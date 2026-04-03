@@ -3,6 +3,7 @@ import Arena from './Arena'
 import Camera from './Camera'
 import Player from './Player'
 import EnemyManager from './EnemyManager'
+import SpellManager from './Spell'
 
 export default function Scene() {
   return (
@@ -13,6 +14,7 @@ export default function Scene() {
       <Arena />
       <Player />
       <EnemyManager />
+      <SpellManager />
     </Canvas>
   )
 }
