@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { GamePhase, GameStats, SpellType } from '../types'
+import type { GamePhase, GameStats, SpellType } from '../types'
 
 interface GameState {
   phase: GamePhase; currentWave: number; timeScale: number; stats: GameStats

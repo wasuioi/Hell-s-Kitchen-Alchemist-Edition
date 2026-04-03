@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Position, StatusEffect } from '../types'
+import type { Position, StatusEffect } from '../types'
 
 interface PlayerState {
   position: Position; rotation: number; hp: number; maxHp: number; status: StatusEffect

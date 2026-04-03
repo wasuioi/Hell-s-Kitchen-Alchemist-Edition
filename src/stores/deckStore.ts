@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Ingredient, Perk, SpellType } from '../types'
+import type { Ingredient, Perk, SpellType } from '../types'
 import { getRecipe } from '../data/recipes'
 
 const INGREDIENTS: Ingredient[] = ['CHILI', 'BOTTLE', 'SALT']

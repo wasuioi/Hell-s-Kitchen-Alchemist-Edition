@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Enemy, EnemyType, Position, StatusEffect } from '../types'
+import type { Enemy, EnemyType, Position, StatusEffect } from '../types'
 
 const BASE_HP = 30
 const HP_MULTIPLIER: Record<EnemyType, number> = { slow: 1, fast: 1, tanky: 3, boss: 15 }
