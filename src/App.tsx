@@ -5,6 +5,7 @@ import { useDeckStore } from './stores/deckStore'
 import { castSpell } from './utils/castSpell'
 import HUD from './ui/HUD'
 import RewardScreen from './ui/RewardScreen'
+import DeathScreen from './ui/DeathScreen'
 
 export default function App() {
   const phase = useGameStore((s) => s.phase)
@@ -60,6 +61,7 @@ export default function App() {
 
       {(phase === 'combat' || phase === 'boss') && <HUD />}
       {phase === 'reward' && <RewardScreen />}
+      {phase === 'death' && <DeathScreen />}
     </div>
   )
 }
