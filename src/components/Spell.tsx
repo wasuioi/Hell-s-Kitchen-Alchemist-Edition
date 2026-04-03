@@ -4,6 +4,7 @@ import * as THREE from 'three'
 import type { SpellEffect, SpellType } from '../types'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
+import { useDeckStore } from '../stores/deckStore'
 import { getDistance } from '../utils/collision'
 import { SPELL_CONFIG } from '../data/recipes'
 
@@ -50,6 +51,12 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
 
     // Damage enemies in range
     const enemies = useEnemyStore.getState().enemies
+    const activePerks = useDeckStore.getState().activePerks
+    const deepFreezeStacks = activePerks.find((p) => p.id === 'deep_freeze')?.stackCount || 0
+    const heavySaltStacks = activePerks.find((p) => p.id === 'heavy_salt')?.stackCount || 0
+    const BOTTLE_SPELLS: SpellType[] = ['TIDAL_WAVE', 'MUD']
+    const SALT_SPELLS: SpellType[] = ['FORTRESS', 'METEOR']
+
     for (const enemy of enemies) {
       if (damaged.current.has(enemy.id)) continue
       const dist = getDistance(enemy.position, spell.position)
@@ -63,6 +70,27 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
         if (config.slow > 0) {
           useEnemyStore.getState().setEnemyStatus(enemy.id, 'soaked')
         }
+
+        // Deep Freeze perk: BOTTLE-based spells stun enemies
+        if (BOTTLE_SPELLS.includes(spell.type) && deepFreezeStacks > 0) {
+          useEnemyStore.getState().setEnemyStatus(enemy.id, 'stunned')
+          setTimeout(() => {
+            useEnemyStore.getState().setEnemyStatus(enemy.id, 'normal')
+          }, 2000 * deepFreezeStacks)
+        }
+
+        // Heavy Salt perk: SALT-based spells push enemies away
+        if (SALT_SPELLS.includes(spell.type) && heavySaltStacks > 0) {
+          const dx = enemy.position.x - spell.position.x
+          const dz = enemy.position.z - spell.position.z
+          const len = Math.sqrt(dx * dx + dz * dz) || 1
+          const pushDist = 3 * heavySaltStacks
+          useEnemyStore.getState().updateEnemyPosition(enemy.id, {
+            x: enemy.position.x + (dx / len) * pushDist,
+            z: enemy.position.z + (dz / len) * pushDist,
+          })
+        }
+
         if (spell.type === 'TIDAL_WAVE' && config.knockback > 0) {
           // Knockback: push enemy away from spell center
           const dx = enemy.position.x - spell.position.x

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import Scene from './components/Scene'
 import { useGameStore } from './stores/gameStore'
 import { useDeckStore } from './stores/deckStore'
@@ -10,6 +10,7 @@ import DeathScreen from './ui/DeathScreen'
 
 export default function App() {
   const phase = useGameStore((s) => s.phase)
+  const cookCooldown = useRef(0)
 
   // Keyboard controls
   useEffect(() => {
@@ -21,8 +22,13 @@ export default function App() {
       else if (e.key === '3') useDeckStore.getState().slotIngredient(2)
       else if (e.key === ' ') {
         e.preventDefault()
+        const now = performance.now() / 1000
+        const fastPrepStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'fast_prep')?.stackCount || 0
+        const baseCooldown = Math.max(0.2, 1.5 - fastPrepStacks * 0.5)
+        if (now - cookCooldown.current < baseCooldown) return
         const spell = useDeckStore.getState().cook()
         if (!spell) return
+        cookCooldown.current = now
         useGameStore.getState().recordIngredientUsed()
         useGameStore.getState().recordIngredientUsed()
         useGameStore.getState().recordSpellCast(spell)

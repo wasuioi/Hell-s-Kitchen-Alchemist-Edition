@@ -20,7 +20,8 @@ export default function Enemy({ enemy }: Props) {
     if (phase !== 'combat' && phase !== 'boss') return
     const timeScale = useGameStore.getState().timeScale
     const playerPos = usePlayerStore.getState().position
-    const speed = SPEED[enemy.type] * (enemy.status === 'soaked' ? 0.5 : 1) * timeScale
+    const statusMultiplier = enemy.status === 'stunned' ? 0 : enemy.status === 'soaked' ? 0.5 : 1
+    const speed = SPEED[enemy.type] * statusMultiplier * timeScale
     const dx = playerPos.x - enemy.position.x
     const dz = playerPos.z - enemy.position.z
     const dist = Math.sqrt(dx * dx + dz * dz)
