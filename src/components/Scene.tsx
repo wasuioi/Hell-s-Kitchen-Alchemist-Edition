@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber'
 import Arena from './Arena'
 import Camera from './Camera'
 import Player from './Player'
+import EnemyManager from './EnemyManager'
 
 export default function Scene() {
   return (
@@ -11,6 +12,7 @@ export default function Scene() {
       <Camera />
       <Arena />
       <Player />
+      <EnemyManager />
     </Canvas>
   )
 }
