@@ -1,4 +1,4 @@
-import { Position, Enemy } from '../types'
+import type { Position, Enemy } from '../types'
 
 export function getDistance(a: Position, b: Position): number {
   const dx = a.x - b.x; const dz = a.z - b.z; return Math.sqrt(dx * dx + dz * dz)

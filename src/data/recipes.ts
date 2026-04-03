@@ -1,4 +1,4 @@
-import { Ingredient, SpellType } from '../types'
+import type { Ingredient, SpellType } from '../types'
 
 const RECIPE_MATRIX: Record<string, SpellType> = {
   'CHILI+CHILI': 'INFERNO',
