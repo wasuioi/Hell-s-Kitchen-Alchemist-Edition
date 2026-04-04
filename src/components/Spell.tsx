@@ -7,6 +7,7 @@ import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import { getDistance } from '../utils/collision'
 import { SPELL_CONFIG } from '../data/recipes'
+import ParticleSystem from './ParticleSystem'
 
 const SPELL_COLOR: Record<SpellType, string> = {
   INFERNO: '#ef4444',
@@ -155,49 +156,64 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
 
   if (isMeteor) {
     return (
-      <mesh
-        ref={meshRef}
-        position={[spell.position.x, 10.5, spell.position.z]}
-      >
-        <sphereGeometry args={[spell.radius, 16, 16]} />
-        <meshStandardMaterial color={color} transparent opacity={0.85} emissive={color} emissiveIntensity={0.4} />
-      </mesh>
+      <group>
+        <mesh
+          ref={meshRef}
+          position={[spell.position.x, 10.5, spell.position.z]}
+        >
+          <sphereGeometry args={[spell.radius, 16, 16]} />
+          <meshStandardMaterial color={color} transparent opacity={0.85} emissive={color} emissiveIntensity={0.4} />
+        </mesh>
+        <group position={[spell.position.x, 0, spell.position.z]}>
+          <ParticleSystem type={spell.type} duration={spell.duration} radius={spell.radius} />
+        </group>
+      </group>
     )
   }
 
   if (spell.type === 'FORTRESS') {
     return (
-      <group ref={meshRef as any} position={[spell.position.x, 0, spell.position.z]} scale={[0, 1, 0]}>
-        {/* Glass dome */}
-        <mesh position={[0, 0, 0]}>
-          <sphereGeometry args={[spell.radius, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          <meshStandardMaterial
-            color="#a8d8ea"
-            transparent
-            opacity={0.25}
-            emissive="#a8d8ea"
-            emissiveIntensity={0.3}
-            side={THREE.DoubleSide}
-          />
-        </mesh>
-        {/* Dome edge ring on ground */}
-        <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[spell.radius - 0.15, spell.radius, 48]} />
-          <meshStandardMaterial color="#a8d8ea" transparent opacity={0.5} emissive="#a8d8ea" emissiveIntensity={0.5} />
-        </mesh>
+      <group>
+        <group ref={meshRef as any} position={[spell.position.x, 0, spell.position.z]} scale={[0, 1, 0]}>
+          {/* Glass dome */}
+          <mesh position={[0, 0, 0]}>
+            <sphereGeometry args={[spell.radius, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            <meshStandardMaterial
+              color="#a8d8ea"
+              transparent
+              opacity={0.25}
+              emissive="#a8d8ea"
+              emissiveIntensity={0.3}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+          {/* Dome edge ring on ground */}
+          <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[spell.radius - 0.15, spell.radius, 48]} />
+            <meshStandardMaterial color="#a8d8ea" transparent opacity={0.5} emissive="#a8d8ea" emissiveIntensity={0.5} />
+          </mesh>
+        </group>
+        <group position={[spell.position.x, 0, spell.position.z]}>
+          <ParticleSystem type={spell.type} duration={spell.duration} radius={spell.radius} />
+        </group>
       </group>
     )
   }
 
   return (
-    <mesh
-      ref={meshRef}
-      position={[spell.position.x, 0.2, spell.position.z]}
-      scale={[0, 1, 0]}
-    >
-      <cylinderGeometry args={[spell.radius, spell.radius, 0.3, 32]} />
-      <meshStandardMaterial color={color} transparent opacity={0.7} emissive={color} emissiveIntensity={0.3} />
-    </mesh>
+    <group>
+      <mesh
+        ref={meshRef}
+        position={[spell.position.x, 0.2, spell.position.z]}
+        scale={[0, 1, 0]}
+      >
+        <cylinderGeometry args={[spell.radius, spell.radius, 0.3, 32]} />
+        <meshStandardMaterial color={color} transparent opacity={0.7} emissive={color} emissiveIntensity={0.3} />
+      </mesh>
+      <group position={[spell.position.x, 0, spell.position.z]}>
+        <ParticleSystem type={spell.type} duration={spell.duration} radius={spell.radius} />
+      </group>
+    </group>
   )
 }
 
