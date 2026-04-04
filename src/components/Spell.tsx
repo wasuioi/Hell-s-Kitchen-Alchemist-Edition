@@ -7,16 +7,8 @@ import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import { getDistance } from '../utils/collision'
 import { SPELL_CONFIG } from '../data/recipes'
+import { PARTICLE_CONFIG } from '../data/particleConfig'
 import ParticleSystem from './ParticleSystem'
-
-const SPELL_COLOR: Record<SpellType, string> = {
-  INFERNO: '#ef4444',
-  TIDAL_WAVE: '#3b82f6',
-  FORTRESS: '#9ca3af',
-  STEAM: '#a855f7',
-  METEOR: '#f97316',
-  MUD: '#b48c50',
-}
 
 interface SpellVisualProps {
   spell: SpellEffect
@@ -151,7 +143,7 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
     }
   })
 
-  const color = SPELL_COLOR[spell.type]
+  const color = PARTICLE_CONFIG[spell.type].color
   const isMeteor = spell.type === 'METEOR'
 
   if (isMeteor) {

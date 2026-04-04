@@ -70,6 +70,7 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
   const velocities = useRef(new Float32Array(TOTAL_PARTICLES * 3))
   const ages = useRef(new Float32Array(TOTAL_PARTICLES))
   const lifetimes = useRef(new Float32Array(TOTAL_PARTICLES))
+  const baseSizes = useRef(new Float32Array(TOTAL_PARTICLES))
   const lingerTimer = useRef(0)
   const lingerIndex = useRef(0) // next slot in linger region
   const spellAge = useRef(0)
@@ -127,7 +128,8 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
       colors[i3 + 2] = 1
 
       // Size: 0.3 - 0.6
-      sizes[i] = 0.3 + Math.random() * 0.3
+      baseSizes.current[i] = 0.3 + Math.random() * 0.3
+      sizes[i] = baseSizes.current[i]
     }
 
     // Initialize linger particles as dead (off screen)
@@ -183,10 +185,11 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
         vel[i3 + 2] += (Math.random() - 0.5) * 20 * delta
       }
 
-      // Friction
-      vel[i3] *= 0.95
-      vel[i3 + 1] *= 0.95
-      vel[i3 + 2] *= 0.95
+      // Friction (frame-rate independent)
+      const friction = Math.pow(0.95, delta * 60)
+      vel[i3] *= friction
+      vel[i3 + 1] *= friction
+      vel[i3 + 2] *= friction
 
       // Move
       positions[i3] += vel[i3] * delta
@@ -216,7 +219,7 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
       }
 
       // Fade size with opacity
-      sizes[i] = (0.3 + Math.random() * 0.01) * (1 - t)
+      sizes[i] = baseSizes.current[i] * (1 - t)
     }
 
     // --- Spawn new linger particles ---
@@ -252,7 +255,8 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
           colors[i3 + 2] = spellColor.b
 
           // Size: 0.15 - 0.3
-          sizes[i] = 0.15 + Math.random() * 0.15
+          baseSizes.current[i] = 0.15 + Math.random() * 0.15
+          sizes[i] = baseSizes.current[i]
         }
       }
     }
@@ -302,7 +306,7 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
       }
 
       // Shrink slightly as it fades
-      sizes[i] = (0.15 + Math.random() * 0.01) * opacity
+      sizes[i] = baseSizes.current[i] * opacity
     }
 
     // --- Sync buffers to GPU ---
