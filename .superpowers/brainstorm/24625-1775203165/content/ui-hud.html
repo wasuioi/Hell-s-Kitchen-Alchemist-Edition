@@ -1,0 +1,156 @@
+<h2>Section 3: UI & HUD Layer</h2>
+<p class="subtitle">2D overlay on top of the 3D scene — all HTML/CSS via React</p>
+
+<div class="section">
+  <h3>HUD Layout (During Combat)</h3>
+  <div class="mockup">
+    <div class="mockup-header">In-Game HUD</div>
+    <div class="mockup-body" style="height: 400px; position: relative; background: #1a1a2e; overflow: hidden;">
+      <!-- Wave info top-left -->
+      <div style="position:absolute;top:12px;left:12px;font-size:11px;color:#f97316;background:rgba(0,0,0,0.5);padding:6px 12px;border-radius:6px;border:1px solid rgba(249,115,22,0.3);">
+        <div style="font-weight:bold;">SHIFT 1 — WAVE 3/7</div>
+        <div style="font-size:10px;opacity:0.7;margin-top:2px;">Enemies: 12/20 · Time: 0:42</div>
+      </div>
+
+      <!-- Perks top-right -->
+      <div style="position:absolute;top:12px;right:12px;font-size:10px;color:#a855f7;background:rgba(0,0,0,0.5);padding:6px 10px;border-radius:6px;border:1px solid rgba(168,85,247,0.2);">
+        <div style="opacity:0.6;font-size:9px;">PERKS</div>
+        <div>🌶️ Extra Spicy</div>
+        <div>⚡ Fast Prep</div>
+      </div>
+
+      <!-- 3D scene area -->
+      <div style="position:absolute;inset:50px 10px 120px 10px;border:1px dashed rgba(255,255,255,0.1);border-radius:4px;display:flex;align-items:center;justify-content:center;">
+        <span style="font-size:12px;opacity:0.3;">[ 3D Scene Renders Here ]</span>
+      </div>
+
+      <!-- Player HP bar (in 3D space, shown here for reference) -->
+      <div style="position:absolute;top:45%;left:50%;transform:translateX(-50%);text-align:center;">
+        <div style="width:60px;height:5px;background:#333;border-radius:3px;overflow:hidden;">
+          <div style="width:70%;height:100%;background:#22c55e;border-radius:3px;"></div>
+        </div>
+        <div style="width:14px;height:14px;background:#22c55e;border-radius:50%;margin:4px auto 0;box-shadow:0 0 6px #22c55e;"></div>
+      </div>
+
+      <!-- Bottom HUD -->
+      <div style="position:absolute;bottom:0;left:0;right:0;height:110px;background:linear-gradient(transparent, rgba(0,0,0,0.8));padding:15px 20px;display:flex;align-items:flex-end;justify-content:center;gap:20px;">
+
+        <!-- Hand cards -->
+        <div style="display:flex;gap:8px;align-items:flex-end;">
+          <div style="width:65px;height:85px;border-radius:8px;background:linear-gradient(135deg,#b91c1c,#ef4444);border:2px solid #fca5a5;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:white;box-shadow:0 2px 8px rgba(239,68,68,0.3);">
+            <div style="font-size:20px;">🔥</div>
+            <div style="font-weight:bold;margin-top:4px;">FIRE</div>
+            <div style="font-size:9px;opacity:0.7;margin-top:2px;">[1]</div>
+          </div>
+          <div style="width:65px;height:85px;border-radius:8px;background:linear-gradient(135deg,#1e40af,#3b82f6);border:2px solid #93c5fd;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:white;box-shadow:0 2px 8px rgba(59,130,246,0.3);">
+            <div style="font-size:20px;">💧</div>
+            <div style="font-weight:bold;margin-top:4px;">WATER</div>
+            <div style="font-size:9px;opacity:0.7;margin-top:2px;">[2]</div>
+          </div>
+          <div style="width:65px;height:85px;border-radius:8px;background:linear-gradient(135deg,#57534e,#78716c);border:2px solid #a8a29e;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:10px;color:white;box-shadow:0 2px 8px rgba(120,113,108,0.3);">
+            <div style="font-size:20px;">🪨</div>
+            <div style="font-weight:bold;margin-top:4px;">STONE</div>
+            <div style="font-size:9px;opacity:0.7;margin-top:2px;">[3]</div>
+          </div>
+        </div>
+
+        <!-- Cauldron -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+          <div style="font-size:9px;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;">Cauldron</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="width:45px;height:45px;border-radius:50%;border:2px dashed rgba(245,158,11,0.4);display:flex;align-items:center;justify-content:center;background:rgba(245,158,11,0.05);">
+              <span style="font-size:16px;">🔥</span>
+            </div>
+            <div style="font-size:14px;color:#f59e0b;">+</div>
+            <div style="width:45px;height:45px;border-radius:50%;border:2px dashed rgba(245,158,11,0.4);display:flex;align-items:center;justify-content:center;background:rgba(245,158,11,0.05);">
+              <span style="font-size:10px;opacity:0.4;">empty</span>
+            </div>
+          </div>
+          <!-- Cook button -->
+          <div style="padding:4px 16px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.3);border-radius:4px;font-size:10px;color:#f59e0b;opacity:0.4;">
+            COOK [Space]
+          </div>
+        </div>
+
+        <!-- Recipe preview -->
+        <div style="font-size:10px;color:#94a3b8;opacity:0.6;align-self:center;max-width:100px;text-align:center;">
+          <div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Next slot →</div>
+          Fill both slots to cook!
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem;">
+  <h3>Reward Screen (Between Waves)</h3>
+  <div class="mockup">
+    <div class="mockup-header">Pick a Kitchen Perk</div>
+    <div class="mockup-body" style="height: 300px; position:relative; background: #1a1a2e; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;">
+      <div style="font-size:14px;color:#f59e0b;font-weight:bold;">WAVE 3 CLEARED!</div>
+      <div style="font-size:11px;opacity:0.6;color:white;">Choose a Kitchen Perk</div>
+
+      <div style="display:flex;gap:12px;margin-top:8px;">
+        <div style="width:140px;padding:16px 12px;border-radius:10px;background:rgba(249,115,22,0.08);border:2px solid rgba(249,115,22,0.3);text-align:center;cursor:pointer;">
+          <div style="font-size:24px;">🌶️</div>
+          <div style="font-size:11px;font-weight:bold;color:#f97316;margin:6px 0;">Extra Spicy</div>
+          <div style="font-size:10px;color:#94a3b8;">Fire spells +20% damage but smaller AOE</div>
+        </div>
+        <div style="width:140px;padding:16px 12px;border-radius:10px;background:rgba(59,130,246,0.08);border:2px solid rgba(59,130,246,0.3);text-align:center;cursor:pointer;">
+          <div style="font-size:24px;">🧊</div>
+          <div style="font-size:11px;font-weight:bold;color:#3b82f6;margin:6px 0;">Deep Freeze</div>
+          <div style="font-size:10px;color:#94a3b8;">Water spells stun enemies for 2 seconds</div>
+        </div>
+        <div style="width:140px;padding:16px 12px;border-radius:10px;background:rgba(168,85,247,0.08);border:2px solid rgba(168,85,247,0.3);text-align:center;cursor:pointer;">
+          <div style="font-size:24px;">🧪</div>
+          <div style="font-size:11px;font-weight:bold;color:#a855f7;margin:6px 0;">Double Batch</div>
+          <div style="font-size:10px;color:#94a3b8;">10% chance spell triggers twice</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem;">
+  <h3>The Final Bill (Death Screen)</h3>
+  <div class="mockup">
+    <div class="mockup-header">Game Over</div>
+    <div class="mockup-body" style="height: 320px; position:relative; background: #111; display:flex; align-items:center; justify-content:center;">
+      <div style="width:280px;background:#1c1917;border:2px solid #44403c;border-radius:12px;padding:24px;font-family:monospace;">
+        <div style="text-align:center;font-size:16px;font-weight:bold;color:#ef4444;letter-spacing:2px;border-bottom:1px dashed #44403c;padding-bottom:12px;">
+          🚫 KITCHEN CLOSED
+        </div>
+        <div style="margin-top:16px;font-size:11px;color:#a8a29e;">
+          <div style="display:flex;justify-content:space-between;margin:6px 0;">
+            <span>Waves Survived</span><span style="color:white;">5</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin:6px 0;">
+            <span>Ingredients Used</span><span style="color:white;">34</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin:6px 0;">
+            <span>Enemies Defeated</span><span style="color:white;">47</span>
+          </div>
+          <div style="border-top:1px dashed #44403c;margin-top:12px;padding-top:12px;display:flex;justify-content:space-between;">
+            <span>Best Combo</span><span style="color:#f97316;">Inferno ×8</span>
+          </div>
+        </div>
+        <div style="margin-top:20px;display:flex;flex-direction:column;gap:8px;">
+          <div style="text-align:center;padding:8px;background:#b91c1c;border-radius:6px;color:white;font-size:12px;font-weight:bold;cursor:pointer;">ONE MORE RUN</div>
+          <div style="text-align:center;padding:6px;border:1px solid #44403c;border-radius:6px;color:#a8a29e;font-size:11px;cursor:pointer;">Back to Menu</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem;">
+  <h3>Key UI Decisions</h3>
+  <ul style="font-size: 0.9rem; opacity: 0.85;">
+    <li><strong>HUD is HTML/CSS overlay</strong> — not rendered in 3D. Simpler, more responsive, easier to style.</li>
+    <li><strong>HP bar is in 3D</strong> — floats above player model using R3F's Html component or a 3D sprite.</li>
+    <li><strong>Cook button grays out</strong> until both cauldron slots are filled, then glows amber.</li>
+    <li><strong>Recipe preview</strong> — when both slots are full, show the resulting spell name before cooking (e.g., "= Inferno 🔥").</li>
+    <li><strong>Card played animation</strong> — card slides from hand to cauldron slot. New card fades in.</li>
+    <li><strong>Death sequence</strong> — slo-mo (timeScale 0.2) → desaturate scene → fade in The Final Bill.</li>
+  </ul>
+</div>

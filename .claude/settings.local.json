@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git worktree:*)",
+      "Bash(npm create:*)",
+      "Bash(printf 'y\\\\n')",
+      "Bash(yes)",
+      "Bash(npx create-vite@latest . --template react-ts)",
+      "Bash(npx create-vite@latest --help)",
+      "Bash(npx create-vite@latest . --template react-ts --no-interactive)",
+      "Bash(git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition/.worktrees/alchemist-kitchen status)",
+      "Read(//private/tmp/**)",
+      "Bash(rm -rf vite-temp)",
+      "Bash(npx create-vite@latest vite-temp --template react-ts --no-interactive)",
+      "Bash(cp:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(npx vitest:*)",
+      "Bash(git commit:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx vite:*)",
+      "Bash(git stash:*)",
+      "Bash(git branch:*)"
+    ]
+  }
+}

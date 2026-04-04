@@ -30,7 +30,7 @@ export default function CardHand() {
         >
           <span style={{ fontSize: '28px' }}>{ICON[ingredient]}</span>
           <span style={{ fontSize: '11px', fontWeight: 'bold' }}>{LABEL[ingredient]}</span>
-          <span style={{ fontSize: '11px', opacity: 0.7 }}>[{i + 1}]</span>
+          <span style={{ fontSize: '11px', opacity: 0.7 }}>[{i + 1}/{['J','K','L'][i]}]</span>
         </button>
       ))}
     </div>

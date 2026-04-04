@@ -38,10 +38,13 @@ export default function Player() {
     usePlayerStore.getState().setRotation(Math.atan2(dx, -dz))
   })
 
+  const phase = useGameStore((s) => s.phase)
   const position = usePlayerStore((s) => s.position)
   const rotation = usePlayerStore((s) => s.rotation)
   const hp = usePlayerStore((s) => s.hp)
   const maxHp = usePlayerStore((s) => s.maxHp)
+
+  if (phase !== 'combat' && phase !== 'boss') return null
 
   return (
     <group position={[position.x, 0, position.z]}>

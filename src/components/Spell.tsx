@@ -34,7 +34,9 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
     if (meshRef.current) {
       const scale = spell.type === 'METEOR'
         ? 1 + (1 - progress) * 0.5  // shrink slightly on impact
-        : progress                    // AOE expands outward
+        : spell.type === 'FORTRESS'
+          ? Math.min(1, progress * 8)  // Fortress pops up fast
+          : progress                    // AOE expands outward
 
       meshRef.current.scale.set(scale, 1, scale)
 
@@ -44,9 +46,11 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
         meshRef.current.position.y = y + 0.5
       }
 
-      // Fade opacity
-      const material = meshRef.current.material as THREE.MeshStandardMaterial
-      material.opacity = Math.max(0, 1 - progress)
+      // Fade opacity (skip for Fortress — it's a group, not a mesh)
+      if (spell.type !== 'FORTRESS') {
+        const material = meshRef.current.material as THREE.MeshStandardMaterial
+        if (material) material.opacity = Math.max(0, 1 - progress)
+      }
     }
 
     // Damage enemies in range
@@ -57,12 +61,31 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
     const BOTTLE_SPELLS: SpellType[] = ['TIDAL_WAVE', 'MUD']
     const SALT_SPELLS: SpellType[] = ['FORTRESS', 'METEOR']
 
+    // Fortress: push enemies inside the dome to its edge
+    if (spell.type === 'FORTRESS') {
+      for (const enemy of enemies) {
+        const dist = getDistance(enemy.position, spell.position)
+        if (dist < spell.radius && dist > 0.1) {
+          const dx = enemy.position.x - spell.position.x
+          const dz = enemy.position.z - spell.position.z
+          const len = Math.sqrt(dx * dx + dz * dz) || 1
+          // Place enemy just outside the dome edge
+          const edgeDist = spell.radius + 0.5
+          useEnemyStore.getState().updateEnemyPosition(enemy.id, {
+            x: spell.position.x + (dx / len) * edgeDist,
+            z: spell.position.z + (dz / len) * edgeDist,
+          })
+        }
+      }
+    }
+
     for (const enemy of enemies) {
       if (damaged.current.has(enemy.id)) continue
       const dist = getDistance(enemy.position, spell.position)
       const currentRadius = spell.type === 'METEOR' ? spell.radius : spell.radius * progress
       if (dist <= currentRadius) {
         damaged.current.add(enemy.id)
+        if (spell.type === 'FORTRESS') continue // Fortress doesn't deal damage, just pushes
         useEnemyStore.getState().damageEnemy(enemy.id, spell.damage)
 
         // Apply status effects
@@ -112,8 +135,14 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
       return updated && updated.hp <= 0
     })
     for (const deadEnemy of dead) {
+      const wasBoss = deadEnemy.type === 'boss'
       useEnemyStore.getState().removeEnemy(deadEnemy.id)
       useGameStore.getState().recordEnemyDefeated()
+      if (wasBoss) {
+        useEnemyStore.getState().reset()
+        useGameStore.getState().triggerVictory()
+        return
+      }
     }
 
     if (elapsed.current >= spell.duration) {
@@ -124,19 +153,46 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
   const color = SPELL_COLOR[spell.type]
   const isMeteor = spell.type === 'METEOR'
 
-  return isMeteor ? (
-    <mesh
-      ref={meshRef}
-      position={[spell.position.x, 10.5, spell.position.z]}
-    >
-      <sphereGeometry args={[spell.radius, 16, 16]} />
-      <meshStandardMaterial color={color} transparent opacity={0.85} emissive={color} emissiveIntensity={0.4} />
-    </mesh>
-  ) : (
+  if (isMeteor) {
+    return (
+      <mesh
+        ref={meshRef}
+        position={[spell.position.x, 10.5, spell.position.z]}
+      >
+        <sphereGeometry args={[spell.radius, 16, 16]} />
+        <meshStandardMaterial color={color} transparent opacity={0.85} emissive={color} emissiveIntensity={0.4} />
+      </mesh>
+    )
+  }
+
+  if (spell.type === 'FORTRESS') {
+    return (
+      <group ref={meshRef as any} position={[spell.position.x, 0, spell.position.z]} scale={[0, 1, 0]}>
+        {/* Glass dome */}
+        <mesh position={[0, 0, 0]}>
+          <sphereGeometry args={[spell.radius, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <meshStandardMaterial
+            color="#a8d8ea"
+            transparent
+            opacity={0.25}
+            emissive="#a8d8ea"
+            emissiveIntensity={0.3}
+            side={THREE.DoubleSide}
+          />
+        </mesh>
+        {/* Dome edge ring on ground */}
+        <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[spell.radius - 0.15, spell.radius, 48]} />
+          <meshStandardMaterial color="#a8d8ea" transparent opacity={0.5} emissive="#a8d8ea" emissiveIntensity={0.5} />
+        </mesh>
+      </group>
+    )
+  }
+
+  return (
     <mesh
       ref={meshRef}
       position={[spell.position.x, 0.2, spell.position.z]}
-      rotation={[-Math.PI / 2, 0, 0]}
       scale={[0, 1, 0]}
     >
       <cylinderGeometry args={[spell.radius, spell.radius, 0.3, 32]} />
@@ -149,7 +205,7 @@ export default function SpellManager() {
   const [spells, setSpells] = useState<SpellEffect[]>([])
 
   useEffect(() => {
-    ;(window as any).__castSpell = (spell: SpellEffect) => {
+    ; (window as any).__castSpell = (spell: SpellEffect) => {
       setSpells((prev) => [...prev, spell])
     }
     return () => { delete (window as any).__castSpell }

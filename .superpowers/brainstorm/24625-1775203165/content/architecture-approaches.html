@@ -1,0 +1,87 @@
+<h2>Architecture Approach</h2>
+<p class="subtitle">How should we structure the codebase and 3D engine integration?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Recommended: Zustand-First with R3F</h3>
+      <p><strong>All game state lives in Zustand stores.</strong> React Three Fiber renders the 3D scene reactively. No game loop — Zustand state changes trigger re-renders.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>Simplest mental model — state in, visuals out</li>
+            <li>React devtools work for debugging</li>
+            <li>Easiest to understand for React developers</li>
+            <li>Card/deck/perk logic is pure JS functions</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>useFrame() still needed for movement/physics/VFX</li>
+            <li>Must be careful not to cause unnecessary re-renders</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Game Loop + Zustand Hybrid</h3>
+      <p><strong>A central useFrame() game loop drives everything.</strong> Zustand stores hold state but the loop reads/writes it each frame. Closer to traditional game architecture.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>More control over update order</li>
+            <li>Familiar to game developers</li>
+            <li>Easier to add timeScale (slow-mo death)</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>More complex — two update systems (React + loop)</li>
+            <li>Harder to debug state flow</li>
+            <li>More boilerplate code</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>ECS (Entity Component System)</h3>
+      <p><strong>Use an ECS library (like miniplex) for entities.</strong> Enemies, spells, player are all entities with components. Most scalable but most complex.</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>Pros</h4>
+          <ul>
+            <li>Scales to hundreds of entities efficiently</li>
+            <li>Clean separation of concerns</li>
+            <li>Industry-standard game pattern</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>Cons</h4>
+          <ul>
+            <li>Steep learning curve — new paradigm to learn</li>
+            <li>Overkill for MVP scope (~20 enemies max)</li>
+            <li>Extra dependency, more concepts to debug</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem; padding: 1.5rem; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+  <h3>My Recommendation: Option A</h3>
+  <p>For your MVP with tactical pacing and ~20 enemies, Zustand-first is the sweet spot. It keeps things simple — card logic and game state are plain functions, and R3F handles rendering reactively. We use <code>useFrame()</code> only where we must (movement, collisions, VFX particles). This matches your preference for simplicity and is easiest to debug.</p>
+</div>

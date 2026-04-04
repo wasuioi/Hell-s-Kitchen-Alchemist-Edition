@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useDeckStore } from '../stores/deckStore'
 import { useGameStore } from '../stores/gameStore'
 import { getRecipe } from '../data/recipes'
@@ -13,8 +14,24 @@ const SPELL_LABELS: Record<string, string> = {
 
 export default function CauldronUI() {
   const cauldron = useDeckStore((s) => s.cauldron)
+  const cookCooldown = useDeckStore((s) => s.cookCooldown)
+  const cookCooldownDuration = useDeckStore((s) => s.cookCooldownDuration)
   const { slotA, slotB } = cauldron
   const ready = slotA !== null && slotB !== null
+
+  const [cooldownProgress, setCooldownProgress] = useState(0)
+
+  useEffect(() => {
+    if (cookCooldown === 0) { setCooldownProgress(0); return }
+    const interval = setInterval(() => {
+      const now = performance.now() / 1000
+      const elapsed = now - cookCooldown
+      const progress = Math.min(1, elapsed / cookCooldownDuration)
+      setCooldownProgress(progress)
+      if (progress >= 1) clearInterval(interval)
+    }, 30)
+    return () => clearInterval(interval)
+  }, [cookCooldown, cookCooldownDuration])
 
   const spellPreview = ready
     ? (SPELL_LABELS[getRecipe(slotA!, slotB!)] ?? getRecipe(slotA!, slotB!))
@@ -22,8 +39,13 @@ export default function CauldronUI() {
 
   function handleCook() {
     if (!ready) return
+    const now = performance.now() / 1000
+    const fastPrepStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'fast_prep')?.stackCount || 0
+    const baseCooldown = Math.max(0.2, 1.5 - fastPrepStacks * 0.5)
+    if (cookCooldown > 0 && now - cookCooldown < baseCooldown) return
     const spell = useDeckStore.getState().cook()
     if (!spell) return
+    useDeckStore.getState().setCookCooldown(now, baseCooldown)
     useGameStore.getState().recordIngredientUsed()
     useGameStore.getState().recordIngredientUsed()
     useGameStore.getState().recordSpellCast(spell)
@@ -71,6 +93,20 @@ export default function CauldronUI() {
       >
         COOK [Space]
       </button>
+
+      {/* Cooldown bar */}
+      {cooldownProgress < 1 && cookCooldown > 0 && (
+        <div style={{
+          width: '100px', height: '4px', background: 'rgba(255,255,255,0.1)',
+          borderRadius: '2px', overflow: 'hidden',
+        }}>
+          <div style={{
+            width: `${cooldownProgress * 100}%`, height: '100%',
+            background: '#f59e0b', borderRadius: '2px',
+            transition: 'width 0.03s linear',
+          }} />
+        </div>
+      )}
     </div>
   )
 }

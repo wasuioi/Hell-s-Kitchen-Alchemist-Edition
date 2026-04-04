@@ -1,0 +1,94 @@
+<h2>Section 1: State Architecture</h2>
+<p class="subtitle">How the Zustand stores are organized — the brain of the game</p>
+
+<div class="section">
+  <h3>Store Structure</h3>
+  <p>We split state into <strong>4 focused Zustand stores</strong>, each with one job:</p>
+</div>
+
+<div class="cards" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+  <div class="card">
+    <div class="card-body">
+      <h3 style="color: #f97316;">useGameStore</h3>
+      <p class="label">Game Flow</p>
+      <ul style="font-size: 0.9rem; opacity: 0.85; margin-top: 0.5rem;">
+        <li><code>phase</code>: 'menu' | 'combat' | 'reward' | 'boss' | 'death'</li>
+        <li><code>currentWave</code>: number</li>
+        <li><code>timeScale</code>: number (1.0 normal, 0.2 for death slo-mo)</li>
+        <li><code>stats</code>: { enemiesDefeated, ingredientsUsed, wavesCleared }</li>
+        <li>Actions: <code>startShift()</code>, <code>nextWave()</code>, <code>triggerDeath()</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h3 style="color: #3b82f6;">useDeckStore</h3>
+      <p class="label">Cards & Cauldron</p>
+      <ul style="font-size: 0.9rem; opacity: 0.85; margin-top: 0.5rem;">
+        <li><code>hand</code>: Card[3] (always 3 cards)</li>
+        <li><code>cauldron</code>: { slotA: Card|null, slotB: Card|null }</li>
+        <li><code>activePerks</code>: Perk[] (collected this shift)</li>
+        <li>Actions: <code>drawCard()</code>, <code>slotCard(index)</code>, <code>cook()</code></li>
+        <li><code>cook()</code> looks up Recipe Matrix → returns spell type</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h3 style="color: #22c55e;">usePlayerStore</h3>
+      <p class="label">Player State</p>
+      <ul style="font-size: 0.9rem; opacity: 0.85; margin-top: 0.5rem;">
+        <li><code>position</code>: { x, z } (y is fixed, top-down)</li>
+        <li><code>rotation</code>: number (facing direction)</li>
+        <li><code>hp</code>: number</li>
+        <li><code>maxHp</code>: number</li>
+        <li><code>status</code>: 'normal' | 'soaked' | 'stunned'</li>
+        <li>Actions: <code>move()</code>, <code>takeDamage()</code>, <code>heal()</code></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h3 style="color: #ef4444;">useEnemyStore</h3>
+      <p class="label">Enemies & Spawning</p>
+      <ul style="font-size: 0.9rem; opacity: 0.85; margin-top: 0.5rem;">
+        <li><code>enemies</code>: Enemy[] (id, position, hp, type, status)</li>
+        <li><code>spawnTimer</code>: number</li>
+        <li>Enemy types: 'slow' | 'fast' | 'tanky'</li>
+        <li>Actions: <code>spawnEnemy()</code>, <code>damageEnemy(id)</code>, <code>removeEnemy(id)</code></li>
+        <li>Boss stored as a special enemy with <code>type: 'boss'</code></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top: 2rem; padding: 1.5rem; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
+  <h3>Data Flow</h3>
+  <pre style="font-size: 0.85rem; color: #94a3b8; line-height: 1.6;">
+Player presses 1/2/3 or clicks card
+  → useDeckStore.slotCard(index)
+  → Card moves from hand to cauldron slot
+  → New card drawn into hand
+
+Both slots full → Player presses Space or clicks Cook
+  → useDeckStore.cook()
+  → Recipe Matrix lookup → "Steam" spell
+  → Spell spawns at player position (auto-target nearest)
+  → useFrame() checks distance to each enemy
+  → Hit enemies take damage / get status effect
+  → useEnemyStore.damageEnemy(id)
+
+Enemy HP ≤ 0
+  → useEnemyStore.removeEnemy(id)
+  → useGameStore.stats.enemiesDefeated++
+
+Wave end (60s elapsed OR 20 enemies defeated)
+  → useGameStore.phase = 'reward'
+  → Show 3 random perks → player picks 1
+  → useDeckStore.activePerks.push(perk)
+  → useGameStore.nextWave()
+  </pre>
+</div>

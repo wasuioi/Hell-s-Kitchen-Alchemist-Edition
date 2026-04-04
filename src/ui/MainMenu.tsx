@@ -89,7 +89,7 @@ export default function MainMenu() {
         marginTop: '12px',
         letterSpacing: '1px',
       }}>
-        WASD to move &nbsp;·&nbsp; 1/2/3 to slot ingredients &nbsp;·&nbsp; Space to cook
+        WASD to move &nbsp;·&nbsp; 1/2/3 or J/K/L to slot ingredients &nbsp;·&nbsp; Space to cook
       </p>
     </div>
   )

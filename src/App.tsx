@@ -7,6 +7,7 @@ import HUD from './ui/HUD'
 import MainMenu from './ui/MainMenu'
 import RewardScreen from './ui/RewardScreen'
 import DeathScreen from './ui/DeathScreen'
+import VictoryScreen from './ui/VictoryScreen'
 
 export default function App() {
   const phase = useGameStore((s) => s.phase)
@@ -17,9 +18,9 @@ export default function App() {
     function onKey(e: KeyboardEvent) {
       const p = useGameStore.getState().phase
       if (p !== 'combat' && p !== 'boss') return
-      if (e.key === '1') useDeckStore.getState().slotIngredient(0)
-      else if (e.key === '2') useDeckStore.getState().slotIngredient(1)
-      else if (e.key === '3') useDeckStore.getState().slotIngredient(2)
+      if (e.key === '1' || e.key === 'j') useDeckStore.getState().slotIngredient(0)
+      else if (e.key === '2' || e.key === 'k') useDeckStore.getState().slotIngredient(1)
+      else if (e.key === '3' || e.key === 'l') useDeckStore.getState().slotIngredient(2)
       else if (e.key === ' ') {
         e.preventDefault()
         const now = performance.now() / 1000
@@ -29,6 +30,7 @@ export default function App() {
         const spell = useDeckStore.getState().cook()
         if (!spell) return
         cookCooldown.current = now
+        useDeckStore.getState().setCookCooldown(now, baseCooldown)
         useGameStore.getState().recordIngredientUsed()
         useGameStore.getState().recordIngredientUsed()
         useGameStore.getState().recordSpellCast(spell)
@@ -48,6 +50,7 @@ export default function App() {
       {(phase === 'combat' || phase === 'boss') && <HUD />}
       {phase === 'reward' && <RewardScreen />}
       {phase === 'death' && <DeathScreen />}
+      {phase === 'victory' && <VictoryScreen />}
     </div>
   )
 }

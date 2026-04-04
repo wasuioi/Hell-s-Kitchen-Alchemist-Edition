@@ -4,7 +4,7 @@ export type SpellType = 'INFERNO' | 'TIDAL_WAVE' | 'FORTRESS' | 'STEAM' | 'METEO
 
 export type EnemyType = 'slow' | 'fast' | 'tanky' | 'boss'
 
-export type GamePhase = 'menu' | 'combat' | 'reward' | 'boss' | 'death'
+export type GamePhase = 'menu' | 'combat' | 'reward' | 'boss' | 'death' | 'victory'
 
 export type StatusEffect = 'normal' | 'soaked' | 'stunned'
 

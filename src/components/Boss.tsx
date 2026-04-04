@@ -43,6 +43,10 @@ export default function Boss() {
   const [saltCircles, setSaltCircles] = useState<SaltCircle[]>([])
   const [showHeatRing, setShowHeatRing] = useState(false)
   const [showBeam, setShowBeam] = useState(false)
+  const [heatBlast, setHeatBlast] = useState(false)
+  const [saltImpact, setSaltImpact] = useState<SaltCircle[]>([])
+  const heatBlastScale = useRef(0)
+  const saltImpactTimer = useRef(0)
 
   const beamRef = useRef<THREE.Mesh>(null)
 
@@ -60,7 +64,7 @@ export default function Boss() {
     if (boss.hp <= 0) {
       useEnemyStore.getState().removeEnemy(boss.id)
       useEnemyStore.getState().reset()
-      useGameStore.getState().completeWave()
+      useGameStore.getState().triggerVictory()
       return
     }
 
@@ -116,10 +120,12 @@ export default function Boss() {
 
         if (currentAttack.current === 'heat_wave') {
           setShowHeatRing(false)
+          // Show blast effect
+          setHeatBlast(true)
+          heatBlastScale.current = 0
           const playerPos = usePlayerStore.getState().position
           if (isInRange(playerPos, bossPos, 6)) {
             usePlayerStore.getState().takeDamage(25)
-            // Push player back from boss
             const dx = playerPos.x - bossPos.x
             const dz = playerPos.z - bossPos.z
             const len = Math.sqrt(dx * dx + dz * dz) || 1
@@ -128,9 +134,12 @@ export default function Boss() {
               z: playerPos.z + (dz / len) * 4,
             })
           }
-          attackPhase.current = 'idle'
-          attackTimer.current = 0
+          // Stay in attack phase to animate blast
         } else if (currentAttack.current === 'salt_rain') {
+          // Show impact effects at circle positions
+          setSaltImpact([...saltCircles])
+          saltImpactTimer.current = 0
+          setSaltCircles([])
           const playerPos = usePlayerStore.getState().position
           for (const circle of saltCircles) {
             if (isInRange(playerPos, circle, 1.5)) {
@@ -138,14 +147,30 @@ export default function Boss() {
               break
             }
           }
-          setSaltCircles([])
+          // Stay in attack phase to animate impact
+        }
+      }
+    } else if (attackPhase.current === 'attack') {
+      // Heat wave blast animation (expanding fire ring)
+      if (currentAttack.current === 'heat_wave') {
+        heatBlastScale.current += delta * 8
+        if (heatBlastScale.current >= 6) {
+          setHeatBlast(false)
           attackPhase.current = 'idle'
           attackTimer.current = 0
         }
       }
-    } else if (attackPhase.current === 'attack') {
+      // Salt rain impact animation (pillars rise then fade)
+      else if (currentAttack.current === 'salt_rain') {
+        saltImpactTimer.current += delta
+        if (saltImpactTimer.current >= 0.8) {
+          setSaltImpact([])
+          attackPhase.current = 'idle'
+          attackTimer.current = 0
+        }
+      }
       // Deep soak active attack
-      if (currentAttack.current === 'deep_soak') {
+      else if (currentAttack.current === 'deep_soak') {
         attackPhaseTimer.current += delta
         beamAngle.current += delta * 1.5
 
@@ -200,6 +225,49 @@ export default function Boss() {
         <mesh key={i} position={[c.x, 0.05, c.z]} rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[1.5, 24]} />
           <meshStandardMaterial color="#ef4444" transparent opacity={0.5} emissive="#ef4444" emissiveIntensity={0.4} />
+        </mesh>
+      ))}
+
+      {/* Heat wave blast effect — expanding fire disc */}
+      {heatBlast && boss && (
+        <mesh position={[boss.position.x, 0.3, boss.position.z]}>
+          <cylinderGeometry args={[1, 1, 0.5, 32]} />
+          <meshStandardMaterial
+            color="#ff4500"
+            transparent
+            opacity={Math.max(0, 1 - heatBlastScale.current / 6)}
+            emissive="#ff4500"
+            emissiveIntensity={2}
+          />
+        </mesh>
+      )}
+      {heatBlast && boss && (
+        <mesh
+          position={[boss.position.x, 0.15, boss.position.z]}
+          scale={[heatBlastScale.current, 1, heatBlastScale.current]}
+        >
+          <cylinderGeometry args={[1, 1, 0.2, 32]} />
+          <meshStandardMaterial
+            color="#ef4444"
+            transparent
+            opacity={Math.max(0, 0.7 - heatBlastScale.current / 8)}
+            emissive="#ef4444"
+            emissiveIntensity={1}
+          />
+        </mesh>
+      )}
+
+      {/* Salt rain impact — pillars shooting up */}
+      {saltImpact.map((c, i) => (
+        <mesh key={`impact_${i}`} position={[c.x, saltImpactTimer.current * 3, c.z]}>
+          <boxGeometry args={[0.5, 2, 0.5]} />
+          <meshStandardMaterial
+            color="#a8a29e"
+            transparent
+            opacity={Math.max(0, 1 - saltImpactTimer.current / 0.8)}
+            emissive="#78716c"
+            emissiveIntensity={0.5}
+          />
         </mesh>
       ))}
 
