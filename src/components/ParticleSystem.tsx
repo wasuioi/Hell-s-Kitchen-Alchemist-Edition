@@ -66,6 +66,200 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
   const config = PARTICLE_CONFIG[type]
   const texture = config.texture === 'square' ? squareTexture : circleTexture
 
-  // Placeholder — will be filled in Task 3 and Task 4
-  return null
+  // --- Refs for particle state (not buffer attributes — updated per frame) ---
+  const velocities = useRef(new Float32Array(TOTAL_PARTICLES * 3))
+  const ages = useRef(new Float32Array(TOTAL_PARTICLES))
+  const lifetimes = useRef(new Float32Array(TOTAL_PARTICLES))
+  const lingerTimer = useRef(0)
+  const lingerIndex = useRef(0) // next slot in linger region
+  const spellAge = useRef(0)
+  const initialized = useRef(false)
+
+  // --- Buffer attributes (synced to GPU each frame) ---
+  const positions = useMemo(() => new Float32Array(TOTAL_PARTICLES * 3), [])
+  const colors = useMemo(() => new Float32Array(TOTAL_PARTICLES * 3), [])
+  const sizes = useMemo(() => new Float32Array(TOTAL_PARTICLES), [])
+
+  const pointsRef = useRef<THREE.Points>(null)
+
+  // Parse spell color once
+  const spellColor = useMemo(() => new THREE.Color(config.color), [config.color])
+
+  // --- Initialize burst particles on first frame ---
+  function initBurst() {
+    const vel = velocities.current
+    const age = ages.current
+    const lt = lifetimes.current
+
+    for (let i = 0; i < BURST_COUNT; i++) {
+      const i3 = i * 3
+
+      // Position: all start at origin (0,0,0) since parent group is at spell position
+      positions[i3] = 0
+      positions[i3 + 1] = 0.1 // slightly above ground
+      positions[i3 + 2] = 0
+
+      // Random direction on unit sphere
+      const theta = Math.random() * Math.PI * 2
+      const phi = Math.acos(2 * Math.random() - 1)
+      let vx = Math.sin(phi) * Math.cos(theta)
+      let vy = Math.sin(phi) * Math.sin(theta)
+      let vz = Math.cos(phi)
+
+      // Hemisphere for stone spells — force vy upward
+      if (config.burstDirection === 'hemisphere') {
+        vy = Math.abs(vy)
+      }
+
+      // Speed: 8-15 units/sec
+      const speed = 8 + Math.random() * 7
+      vel[i3] = vx * speed
+      vel[i3 + 1] = vy * speed
+      vel[i3 + 2] = vz * speed
+
+      // Age and lifetime
+      age[i] = 0
+      lt[i] = 0.3 + Math.random() * 0.2 // 0.3 - 0.5s
+
+      // Start color: white
+      colors[i3] = 1
+      colors[i3 + 1] = 1
+      colors[i3 + 2] = 1
+
+      // Size: 0.3 - 0.6
+      sizes[i] = 0.3 + Math.random() * 0.3
+    }
+
+    // Initialize linger particles as dead (off screen)
+    for (let i = BURST_COUNT; i < TOTAL_PARTICLES; i++) {
+      const i3 = i * 3
+      positions[i3] = 0
+      positions[i3 + 1] = -999
+      positions[i3 + 2] = 0
+      vel[i3] = 0
+      vel[i3 + 1] = 0
+      vel[i3 + 2] = 0
+      age[i] = 999
+      lt[i] = 1
+      colors[i3] = 0
+      colors[i3 + 1] = 0
+      colors[i3 + 2] = 0
+      sizes[i] = 0
+    }
+  }
+
+  useFrame((_, delta) => {
+    if (!initialized.current) {
+      initBurst()
+      initialized.current = true
+    }
+
+    spellAge.current += delta
+    const vel = velocities.current
+    const age = ages.current
+    const lt = lifetimes.current
+
+    // --- Update burst particles ---
+    for (let i = 0; i < BURST_COUNT; i++) {
+      const i3 = i * 3
+      age[i] += delta
+
+      if (age[i] > lt[i]) {
+        // Dead — move off screen
+        positions[i3 + 1] = -999
+        sizes[i] = 0
+        vel[i3] = 0
+        vel[i3 + 1] = 0
+        vel[i3 + 2] = 0
+        continue
+      }
+
+      const t = age[i] / lt[i] // 0..1 normalized age
+
+      // Meteor jitter: random velocity perturbation in first 0.1s
+      if (config.meteorJitter && age[i] < 0.1) {
+        vel[i3] += (Math.random() - 0.5) * 20 * delta
+        vel[i3 + 1] += (Math.random() - 0.5) * 20 * delta
+        vel[i3 + 2] += (Math.random() - 0.5) * 20 * delta
+      }
+
+      // Friction
+      vel[i3] *= 0.95
+      vel[i3 + 1] *= 0.95
+      vel[i3 + 2] *= 0.95
+
+      // Move
+      positions[i3] += vel[i3] * delta
+      positions[i3 + 1] += vel[i3 + 1] * delta
+      positions[i3 + 2] += vel[i3 + 2] * delta
+
+      // Color flicker: white -> spell color -> dark
+      if (t < 0.5) {
+        // White to spell color
+        const blend = t / 0.5
+        colors[i3] = 1 + (spellColor.r - 1) * blend
+        colors[i3 + 1] = 1 + (spellColor.g - 1) * blend
+        colors[i3 + 2] = 1 + (spellColor.b - 1) * blend
+      } else {
+        // Spell color to dark
+        const blend = (t - 0.5) / 0.5
+        colors[i3] = spellColor.r * (1 - blend)
+        colors[i3 + 1] = spellColor.g * (1 - blend)
+        colors[i3 + 2] = spellColor.b * (1 - blend)
+      }
+
+      // Fire flicker: oscillate RGB slightly
+      if (config.fireFlicker) {
+        const flicker = Math.sin(age[i] * 30) * 0.15
+        colors[i3] = Math.min(1, Math.max(0, colors[i3] + flicker))
+        colors[i3 + 1] = Math.min(1, Math.max(0, colors[i3 + 1] + flicker * 0.3))
+      }
+
+      // Fade size with opacity
+      sizes[i] = (0.3 + Math.random() * 0.01) * (1 - t)
+    }
+
+    // --- Linger spawning and update happens in Task 4 ---
+
+    // --- Sync buffers to GPU ---
+    if (pointsRef.current) {
+      const geo = pointsRef.current.geometry
+      geo.attributes.position.needsUpdate = true
+      geo.attributes.color.needsUpdate = true
+      geo.attributes.size.needsUpdate = true
+    }
+  })
+
+  return (
+    <points ref={pointsRef}>
+      <bufferGeometry>
+        <bufferAttribute
+          attach="attributes-position"
+          array={positions}
+          count={TOTAL_PARTICLES}
+          itemSize={3}
+        />
+        <bufferAttribute
+          attach="attributes-color"
+          array={colors}
+          count={TOTAL_PARTICLES}
+          itemSize={3}
+        />
+        <bufferAttribute
+          attach="attributes-size"
+          array={sizes}
+          count={TOTAL_PARTICLES}
+          itemSize={1}
+        />
+      </bufferGeometry>
+      <pointsMaterial
+        map={texture}
+        vertexColors
+        transparent
+        depthWrite={false}
+        sizeAttenuation
+        blending={THREE.AdditiveBlending}
+      />
+    </points>
+  )
 }
