@@ -219,7 +219,91 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
       sizes[i] = (0.3 + Math.random() * 0.01) * (1 - t)
     }
 
-    // --- Linger spawning and update happens in Task 4 ---
+    // --- Spawn new linger particles ---
+    if (spellAge.current < duration) {
+      lingerTimer.current += delta
+      while (lingerTimer.current >= LINGER_SPAWN_INTERVAL) {
+        lingerTimer.current -= LINGER_SPAWN_INTERVAL
+
+        for (let b = 0; b < LINGER_BATCH_SIZE; b++) {
+          const i = BURST_COUNT + (lingerIndex.current % MAX_LINGER)
+          lingerIndex.current++
+          const i3 = i * 3
+
+          // Random position on 2D disk within spell radius
+          const angle = Math.random() * Math.PI * 2
+          const dist = Math.sqrt(Math.random()) * radius
+          positions[i3] = Math.cos(angle) * dist
+          positions[i3 + 1] = 0.05 // ground level
+          positions[i3 + 2] = Math.sin(angle) * dist
+
+          // Velocity: slow upward + slight horizontal drift
+          vel[i3] = (Math.random() - 0.5) * 0.6
+          vel[i3 + 1] = config.lingerYSpeed
+          vel[i3 + 2] = (Math.random() - 0.5) * 0.6
+
+          // Age and lifetime
+          age[i] = 0
+          lt[i] = 0.8 + Math.random() * 0.4 // 0.8 - 1.2s
+
+          // Start at spell color
+          colors[i3] = spellColor.r
+          colors[i3 + 1] = spellColor.g
+          colors[i3 + 2] = spellColor.b
+
+          // Size: 0.15 - 0.3
+          sizes[i] = 0.15 + Math.random() * 0.15
+        }
+      }
+    }
+
+    // --- Update linger particles ---
+    for (let i = BURST_COUNT; i < TOTAL_PARTICLES; i++) {
+      const i3 = i * 3
+      if (age[i] > lt[i]) {
+        // Dead
+        positions[i3 + 1] = -999
+        sizes[i] = 0
+        continue
+      }
+
+      age[i] += delta
+      if (age[i] > lt[i]) {
+        positions[i3 + 1] = -999
+        sizes[i] = 0
+        continue
+      }
+
+      const t = age[i] / lt[i]
+
+      // Move upward
+      positions[i3] += vel[i3] * delta
+      positions[i3 + 1] += vel[i3 + 1] * delta
+      positions[i3 + 2] += vel[i3 + 2] * delta
+
+      // Fade-in over first 0.1s, then fade out
+      let opacity: number
+      if (age[i] < 0.1) {
+        opacity = age[i] / 0.1
+      } else {
+        opacity = 1 - ((age[i] - 0.1) / (lt[i] - 0.1))
+      }
+      opacity = Math.max(0, Math.min(1, opacity))
+
+      // Apply opacity via color intensity
+      colors[i3] = spellColor.r * opacity
+      colors[i3 + 1] = spellColor.g * opacity
+      colors[i3 + 2] = spellColor.b * opacity
+
+      // Fire flicker on linger too
+      if (config.fireFlicker) {
+        const flicker = Math.sin(age[i] * 25) * 0.1
+        colors[i3] = Math.min(1, Math.max(0, colors[i3] + flicker))
+      }
+
+      // Shrink slightly as it fades
+      sizes[i] = (0.15 + Math.random() * 0.01) * opacity
+    }
 
     // --- Sync buffers to GPU ---
     if (pointsRef.current) {
