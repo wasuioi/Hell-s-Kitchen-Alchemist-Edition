@@ -1,5 +1,6 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { usePlayerStore } from '../stores/playerStore'
+import { useGameStore } from '../stores/gameStore'
 import * as THREE from 'three'
 
 const CAMERA_HEIGHT = 18
@@ -10,9 +11,27 @@ export default function Camera() {
   const { camera } = useThree()
   useFrame(() => {
     const { position } = usePlayerStore.getState()
+    const { shakeIntensity, shakeEndTime, checkHitFreezeExpiry } = useGameStore.getState()
+
+    // Check if hit freeze should expire (uses real-world time)
+    checkHitFreezeExpiry()
+
+    // Smooth follow
     camera.position.x += (position.x - camera.position.x) * CAMERA_LERP_SPEED
     camera.position.z += (position.z + CAMERA_OFFSET_Z - camera.position.z) * CAMERA_LERP_SPEED
     camera.position.y = CAMERA_HEIGHT
+
+    // Screen shake offset
+    const now = performance.now()
+    if (now < shakeEndTime && shakeIntensity > 0) {
+      const remaining = (shakeEndTime - now) / 300 // decay over max duration
+      const decay = Math.min(1, remaining)
+      const offsetX = (Math.random() - 0.5) * 2 * shakeIntensity * decay
+      const offsetZ = (Math.random() - 0.5) * 2 * shakeIntensity * decay
+      camera.position.x += offsetX
+      camera.position.z += offsetZ
+    }
+
     camera.lookAt(new THREE.Vector3(position.x, 0, position.z))
   })
   return null
