@@ -6,6 +6,7 @@ import Player from './Player'
 import EnemyManager from './EnemyManager'
 import SpellManager from './Spell'
 import Boss from './Boss'
+import DamageNumbers from './DamageNumbers'
 
 export default function Scene() {
   const phase = useGameStore((s) => s.phase)
@@ -21,6 +22,7 @@ export default function Scene() {
         <Player />
         <EnemyManager />
         <SpellManager />
+        <DamageNumbers />
         <Boss />
       </Canvas>
     </div>
