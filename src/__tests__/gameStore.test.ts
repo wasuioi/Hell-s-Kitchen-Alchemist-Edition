@@ -1,6 +1,58 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useGameStore } from '../stores/gameStore'
 
+describe('gameStore juice', () => {
+  beforeEach(() => {
+    useGameStore.getState().reset()
+  })
+
+  it('triggerScreenShake sets shake state', () => {
+    useGameStore.getState().triggerScreenShake(0.6, 200)
+    const state = useGameStore.getState()
+    expect(state.shakeIntensity).toBe(0.6)
+    expect(state.shakeEndTime).toBeGreaterThan(0)
+  })
+
+  it('stronger shake overrides weaker one', () => {
+    useGameStore.getState().triggerScreenShake(0.3, 150)
+    const firstEnd = useGameStore.getState().shakeEndTime
+    useGameStore.getState().triggerScreenShake(0.6, 200)
+    expect(useGameStore.getState().shakeIntensity).toBe(0.6)
+    expect(useGameStore.getState().shakeEndTime).toBeGreaterThanOrEqual(firstEnd)
+  })
+
+  it('weaker shake does not override stronger one', () => {
+    useGameStore.getState().triggerScreenShake(0.6, 200)
+    const strongEnd = useGameStore.getState().shakeEndTime
+    useGameStore.getState().triggerScreenShake(0.3, 150)
+    expect(useGameStore.getState().shakeIntensity).toBe(0.6)
+    expect(useGameStore.getState().shakeEndTime).toBe(strongEnd)
+  })
+
+  it('triggerHitFreeze sets timeScale and freezeUntil', () => {
+    useGameStore.getState().triggerHitFreeze(60)
+    const state = useGameStore.getState()
+    expect(state.timeScale).toBe(0.05)
+    expect(state.freezeUntil).toBeGreaterThan(0)
+  })
+
+  it('triggerScreenFlash sets flash state', () => {
+    useGameStore.getState().triggerScreenFlash()
+    expect(useGameStore.getState().screenFlashUntil).toBeGreaterThan(0)
+  })
+
+  it('reset clears juice state', () => {
+    useGameStore.getState().triggerScreenShake(1, 300)
+    useGameStore.getState().triggerScreenFlash()
+    useGameStore.getState().reset()
+    const state = useGameStore.getState()
+    expect(state.shakeIntensity).toBe(0)
+    expect(state.shakeEndTime).toBe(0)
+    expect(state.freezeUntil).toBe(0)
+    expect(state.screenFlashUntil).toBe(0)
+  })
+})
+
 describe('useGameStore', () => {
   beforeEach(() => { useGameStore.getState().reset() })
   it('starts in menu phase', () => { expect(useGameStore.getState().phase).toBe('menu') })
