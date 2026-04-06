@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import { usePlayerStore } from '../stores/playerStore'
@@ -10,6 +11,20 @@ export default function HUD() {
   const stats = useGameStore((s) => s.stats)
   const activePerks = useDeckStore((s) => s.activePerks)
   const dashCooldownUntil = usePlayerStore((s) => s.dashCooldownUntil)
+
+  // Update dash cooldown display on an interval (avoids performance.now() in render)
+  const [dashReady, setDashReady] = useState(true)
+  const [dashProgress, setDashProgress] = useState(100)
+  useEffect(() => {
+    const update = () => {
+      const remaining = Math.max(0, dashCooldownUntil - performance.now())
+      setDashProgress(Math.max(0, Math.min(100, (1 - remaining / 2500) * 100)))
+      setDashReady(remaining <= 0)
+    }
+    update()
+    const interval = setInterval(update, 50)
+    return () => clearInterval(interval)
+  }, [dashCooldownUntil])
 
   return (
     <>
@@ -67,9 +82,9 @@ export default function HUD() {
           marginTop: '4px', overflow: 'hidden',
         }}>
           <div style={{
-            width: `${Math.max(0, Math.min(100, (1 - Math.max(0, dashCooldownUntil - performance.now()) / 2500) * 100))}%`,
+            width: `${dashProgress}%`,
             height: '100%',
-            background: dashCooldownUntil <= performance.now() ? '#22c55e' : '#6b7280',
+            background: dashReady ? '#22c55e' : '#6b7280',
             borderRadius: '2px',
             transition: 'width 0.1s',
           }} />
