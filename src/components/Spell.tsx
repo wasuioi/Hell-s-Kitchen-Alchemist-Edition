@@ -9,6 +9,14 @@ import { getDistance } from '../utils/collision'
 import { SPELL_CONFIG } from '../data/recipes'
 import { PARTICLE_CONFIG } from '../data/particleConfig'
 import ParticleSystem from './ParticleSystem'
+import { spawnDamageNumber } from './DamageNumbers'
+import { spawnGroundCrack } from './GroundCracks'
+
+declare global {
+  interface Window {
+    __queueDetonation?: (enemyId: string) => void
+  }
+}
 
 interface SpellVisualProps {
   spell: SpellEffect
@@ -81,6 +89,19 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
         if (spell.type === 'FORTRESS') continue // Fortress doesn't deal damage, just pushes
         useEnemyStore.getState().damageEnemy(enemy.id, spell.damage)
 
+        // --- JUICE: hit flash, damage number, screen shake ---
+        useEnemyStore.getState().setEnemyHitFlash(enemy.id, performance.now() + 100)
+
+        const dmgColor = spell.damage >= 80 ? '#ef4444' : spell.damage >= 40 ? '#fbbf24' : '#ffffff'
+        spawnDamageNumber(enemy.position.x, enemy.position.z, spell.damage, dmgColor)
+
+        // Screen shake: stronger for big spells
+        if (spell.type === 'METEOR' || spell.type === 'INFERNO') {
+          useGameStore.getState().triggerScreenShake(0.6, 200)
+        } else {
+          useGameStore.getState().triggerScreenShake(0.3, 150)
+        }
+
         // Apply status effects
         const config = SPELL_CONFIG[spell.type]
         if (config.slow > 0) {
@@ -108,28 +129,52 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
         }
 
         if (spell.type === 'TIDAL_WAVE' && config.knockback > 0) {
-          // Knockback: push enemy away from spell center
+          // Knockback: push enemy to the edge of spell radius
           const dx = enemy.position.x - spell.position.x
           const dz = enemy.position.z - spell.position.z
           const len = Math.sqrt(dx * dx + dz * dz) || 1
-          const newPos = {
-            x: enemy.position.x + (dx / len) * config.knockback,
-            z: enemy.position.z + (dz / len) * config.knockback,
-          }
-          useEnemyStore.getState().updateEnemyPosition(enemy.id, newPos)
+          const pushDist = spell.radius - len
+          const speed = Math.max(0, pushDist) * 8
+          useEnemyStore.getState().setEnemyKnockback(enemy.id, {
+            vx: (dx / len) * speed,
+            vz: (dz / len) * speed,
+          })
         }
+      }
+    }
+
+    // --- JUICE: hit freeze + screen flash for impactful spells ---
+    // Only trigger once, on first frame damage is dealt
+    if (damaged.current.size > 0 && elapsed.current <= delta * 2) {
+      if (spell.type === 'METEOR' || spell.type === 'INFERNO') {
+        useGameStore.getState().triggerHitFreeze(60)
+        useGameStore.getState().triggerScreenFlash()
+      }
+      // Meteor ground crack
+      if (spell.type === 'METEOR') {
+        spawnGroundCrack(spell.position.x, spell.position.z)
       }
     }
 
     // Remove dead enemies and record kills
     const afterDamage = useEnemyStore.getState().enemies
     const dead = enemies.filter((e) => {
+      if (e.dying || e.detonating) return false
       const updated = afterDamage.find((ae) => ae.id === e.id)
       return updated && updated.hp <= 0
     })
     for (const deadEnemy of dead) {
+      // Exploder: start detonation instead of dying
+      if (deadEnemy.type === 'exploder' && !deadEnemy.detonating && !deadEnemy.dying) {
+        useEnemyStore.getState().setEnemyDetonating(deadEnemy.id)
+        window.__queueDetonation?.(deadEnemy.id)
+        continue
+      }
+
       const wasBoss = deadEnemy.type === 'boss'
-      useEnemyStore.getState().removeEnemy(deadEnemy.id)
+      if (!deadEnemy.dying) {
+        useEnemyStore.getState().setEnemyDying(deadEnemy.id)
+      }
       useGameStore.getState().recordEnemyDefeated()
       if (wasBoss) {
         useEnemyStore.getState().reset()
