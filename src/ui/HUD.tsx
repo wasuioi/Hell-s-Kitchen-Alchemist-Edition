@@ -2,6 +2,7 @@ import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import CardHand from './CardHand'
 import CauldronUI from './CauldronUI'
+import ScreenFlash from './ScreenFlash'
 
 export default function HUD() {
   const currentWave = useGameStore((s) => s.currentWave)
@@ -52,6 +53,7 @@ export default function HUD() {
         <CardHand />
         <CauldronUI />
       </div>
+      <ScreenFlash />
     </>
   )
 }
