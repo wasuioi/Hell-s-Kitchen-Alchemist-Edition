@@ -26,19 +26,21 @@ Offset the camera position with decaying random values each frame.
 On impactful spell hits (METEOR, INFERNO): set existing `timeScale` to 0.05 for 60ms, then restore to 1.0.
 
 - Add `freezeUntil` timestamp to gameStore.
-- `triggerHitFreeze(durationMs)` sets `timeScale = 0.05` and `freezeUntil = now + durationMs`.
-- In the game loop, if `now >= freezeUntil && timeScale === 0.05`, restore `timeScale = 1.0`.
+- `triggerHitFreeze(durationMs)` sets `timeScale = 0.05` and `freezeUntil = performance.now() + durationMs`.
+- **CRITICAL**: `freezeUntil` must use real-world time (`performance.now()`), NOT scaled game time. If the freeze check uses `delta * timeScale`, a 60ms freeze would take ~1.2 real seconds to clear.
+- In the game loop, if `performance.now() >= freezeUntil && timeScale === 0.05`, restore `timeScale = 1.0`.
 - Does NOT apply to small/frequent damage — only METEOR and INFERNO.
 
 ### 1.3 Damage Numbers
 
 Floating numbers that rise from damaged enemies and fade out.
 
-- Spawn a `<Html>` (drei) element at enemy world position on damage.
+- Use drei's `<Text>` component (renders in WebGL, not DOM) at enemy world position on damage.
+- **Why not `<Html>`**: `<Html>` creates real DOM elements synced to 3D space. An INFERNO hitting 15 enemies would spawn 15 DOM elements causing layout thrashing and stuttering. `<Text>` renders directly in the WebGL canvas — no DOM overhead.
 - Rise upward (y += 2 units/sec), fade opacity over 0.8s, then remove.
 - Colors: white (normal), yellow (damage >= 40), red (METEOR).
-- Font: bold monospace, size ~16px, text-shadow for readability.
-- Store active damage numbers in a lightweight array (max ~20, oldest removed first).
+- Font: bold, size ~0.5 world units, with billboard behavior (always faces camera).
+- Store active damage numbers in a lightweight array (max 10, oldest removed first).
 
 ### 1.4 Enemy Hit Flash
 
@@ -84,10 +86,18 @@ Floating numbers that rise from damaged enemies and fade out.
 | Soaked interaction | Dash removes soaked status |
 | Stunned interaction | Cannot dash while stunned |
 
+### Dash Direction Vector
+
+- On dash trigger, capture a **static dash vector** locked for the full 150ms (no steering mid-dash).
+- If player is moving (WASD held): dash vector = current movement direction (normalized).
+- If player is stationary (no input): dash vector = direction from player's current `rotation` (i.e., where they're facing).
+- Store as `dashDirection: {x, z}` — set on trigger, cleared when dash ends.
+
 ### State (playerStore)
 
 - `isDashing: boolean` — true during the 150ms dash window.
 - `dashCooldownUntil: number` — timestamp when dash becomes available again.
+- `dashDirection: {x: number, z: number} | null` — locked movement vector during dash.
 
 ### Visual
 
