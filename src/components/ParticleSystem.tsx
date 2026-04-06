@@ -47,9 +47,8 @@ const squareTexture = createSquareTexture()
 
 // --- Constants ---
 
-const BURST_COUNT = 50
+const DEFAULT_BURST_COUNT = 50
 const MAX_LINGER = 75
-const TOTAL_PARTICLES = BURST_COUNT + MAX_LINGER
 
 const LINGER_SPAWN_INTERVAL = 0.2
 const LINGER_BATCH_SIZE = 5
@@ -64,22 +63,24 @@ interface ParticleSystemProps {
 
 export default function ParticleSystem({ type, duration, radius }: ParticleSystemProps) {
   const config = PARTICLE_CONFIG[type]
+  const burstCount = config.burstCount ?? DEFAULT_BURST_COUNT
+  const totalParticles = burstCount + MAX_LINGER
   const texture = config.texture === 'square' ? squareTexture : circleTexture
 
   // --- Refs for particle state (not buffer attributes — updated per frame) ---
-  const velocities = useRef(new Float32Array(TOTAL_PARTICLES * 3))
-  const ages = useRef(new Float32Array(TOTAL_PARTICLES))
-  const lifetimes = useRef(new Float32Array(TOTAL_PARTICLES))
-  const baseSizes = useRef(new Float32Array(TOTAL_PARTICLES))
+  const velocities = useRef(new Float32Array(totalParticles * 3))
+  const ages = useRef(new Float32Array(totalParticles))
+  const lifetimes = useRef(new Float32Array(totalParticles))
+  const baseSizes = useRef(new Float32Array(totalParticles))
   const lingerTimer = useRef(0)
   const lingerIndex = useRef(0) // next slot in linger region
   const spellAge = useRef(0)
   const initialized = useRef(false)
 
   // --- Buffer attributes (synced to GPU each frame) ---
-  const positions = useMemo(() => new Float32Array(TOTAL_PARTICLES * 3), [])
-  const colors = useMemo(() => new Float32Array(TOTAL_PARTICLES * 3), [])
-  const sizes = useMemo(() => new Float32Array(TOTAL_PARTICLES), [])
+  const positions = useMemo(() => new Float32Array(totalParticles * 3), [totalParticles])
+  const colors = useMemo(() => new Float32Array(totalParticles * 3), [totalParticles])
+  const sizes = useMemo(() => new Float32Array(totalParticles), [totalParticles])
 
   const pointsRef = useRef<THREE.Points>(null)
 
@@ -92,7 +93,7 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
     const age = ages.current
     const lt = lifetimes.current
 
-    for (let i = 0; i < BURST_COUNT; i++) {
+    for (let i = 0; i < burstCount; i++) {
       const i3 = i * 3
 
       // Position: all start at origin (0,0,0) since parent group is at spell position
@@ -133,7 +134,7 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
     }
 
     // Initialize linger particles as dead (off screen)
-    for (let i = BURST_COUNT; i < TOTAL_PARTICLES; i++) {
+    for (let i = burstCount; i < totalParticles; i++) {
       const i3 = i * 3
       positions[i3] = 0
       positions[i3 + 1] = -999
@@ -162,7 +163,7 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
     const lt = lifetimes.current
 
     // --- Update burst particles ---
-    for (let i = 0; i < BURST_COUNT; i++) {
+    for (let i = 0; i < burstCount; i++) {
       const i3 = i * 3
       age[i] += delta
 
@@ -229,7 +230,7 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
         lingerTimer.current -= LINGER_SPAWN_INTERVAL
 
         for (let b = 0; b < LINGER_BATCH_SIZE; b++) {
-          const i = BURST_COUNT + (lingerIndex.current % MAX_LINGER)
+          const i = burstCount + (lingerIndex.current % MAX_LINGER)
           lingerIndex.current++
           const i3 = i * 3
 
@@ -262,7 +263,7 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
     }
 
     // --- Update linger particles ---
-    for (let i = BURST_COUNT; i < TOTAL_PARTICLES; i++) {
+    for (let i = burstCount; i < totalParticles; i++) {
       const i3 = i * 3
       if (age[i] > lt[i]) {
         // Dead
@@ -324,19 +325,19 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
         <bufferAttribute
           attach="attributes-position"
           array={positions}
-          count={TOTAL_PARTICLES}
+          count={totalParticles}
           itemSize={3}
         />
         <bufferAttribute
           attach="attributes-color"
           array={colors}
-          count={TOTAL_PARTICLES}
+          count={totalParticles}
           itemSize={3}
         />
         <bufferAttribute
           attach="attributes-size"
           array={sizes}
-          count={TOTAL_PARTICLES}
+          count={totalParticles}
           itemSize={1}
         />
       </bufferGeometry>
