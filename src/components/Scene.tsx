@@ -7,6 +7,7 @@ import EnemyManager from './EnemyManager'
 import SpellManager from './Spell'
 import Boss from './Boss'
 import DamageNumbers from './DamageNumbers'
+import GroundCracks from './GroundCracks'
 
 export default function Scene() {
   const phase = useGameStore((s) => s.phase)
@@ -19,6 +20,7 @@ export default function Scene() {
         <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
         <Camera />
         <Arena />
+        <GroundCracks />
         <Player />
         <EnemyManager />
         <SpellManager />
