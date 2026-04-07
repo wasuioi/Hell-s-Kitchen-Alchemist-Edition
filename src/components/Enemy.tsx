@@ -62,7 +62,12 @@ export default function Enemy({ enemy }: Props) {
     }
 
     // --- Detonating (exploder only) — skip movement ---
-    if (enemy.detonating) return
+    if (enemy.detonating) {
+      // Rapid flash: toggle scale between 1.0 and 1.2 every 50ms
+      const flashPhase = Math.floor(performance.now() / 50) % 2
+      setVisualScale(flashPhase === 0 ? 1.0 : 1.2)
+      return
+    }
 
     const timeScale = useGameStore.getState().timeScale
     const playerPos = usePlayerStore.getState().position
@@ -188,6 +193,19 @@ export default function Enemy({ enemy }: Props) {
           intensity={1 + Math.sin(performance.now() / 200) * 0.5}
           distance={2}
         />
+      )}
+      {/* Exploder danger zone ring during detonation */}
+      {isExploder && enemy.detonating && (
+        <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[2.7, 3, 48]} />
+          <meshBasicMaterial
+            color="#ef4444"
+            transparent
+            opacity={0.3 + Math.sin(performance.now() / 80) * 0.15}
+            side={THREE.DoubleSide}
+            depthWrite={false}
+          />
+        </mesh>
       )}
     </group>
   )
