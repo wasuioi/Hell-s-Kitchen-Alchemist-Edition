@@ -157,6 +157,14 @@ export default function Enemy({ enemy }: Props) {
     }
 
     const isDashing = usePlayerStore.getState().isDashing
+
+    // Exploder: self-detonate when close to player
+    if (enemy.type === 'exploder' && dist < 1.5 && !enemy.detonating && !enemy.dying) {
+      useEnemyStore.getState().setEnemyDetonating(enemy.id)
+      ;(window as any).__queueDetonation?.(enemy.id)
+      return
+    }
+
     if (dist < 1 && !isDashing) {
       const now = performance.now() / 1000
       if (now - lastContactTime.current > CONTACT_COOLDOWN) {
