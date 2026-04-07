@@ -6,15 +6,27 @@ import * as THREE from 'three'
 const CAMERA_HEIGHT = 18
 const CAMERA_OFFSET_Z = 10
 const CAMERA_LERP_SPEED = 0.08
+const DEFAULT_FOV = 75
+const FREEZE_FOV = 68
 
 export default function Camera() {
   const { camera } = useThree()
   useFrame(() => {
     const { position } = usePlayerStore.getState()
-    const { shakeIntensity, shakeEndTime, checkHitFreezeExpiry } = useGameStore.getState()
+    const { shakeIntensity, shakeEndTime, checkHitFreezeExpiry, freezeUntil, timeScale } = useGameStore.getState()
 
     // Check if hit freeze should expire (uses real-world time)
     checkHitFreezeExpiry()
+
+    // Adaptive zoom: zoom in during hit freeze, spring back out
+    const perspCam = camera as THREE.PerspectiveCamera
+    const isFrozen = timeScale === 0.05 && freezeUntil > 0
+    const targetFov = isFrozen ? FREEZE_FOV : DEFAULT_FOV
+    const zoomLerp = isFrozen ? 0.15 : 0.06
+    if (Math.abs(perspCam.fov - targetFov) > 0.01) {
+      perspCam.fov += (targetFov - perspCam.fov) * zoomLerp
+      perspCam.updateProjectionMatrix()
+    }
 
     // Smooth follow
     camera.position.x += (position.x - camera.position.x) * CAMERA_LERP_SPEED
