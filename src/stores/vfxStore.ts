@@ -15,11 +15,11 @@ interface VfxState {
 }
 
 const DEFAULT_VARIANTS: VfxVariant[] = [
-  { id: 'fireburst', name: 'V1: Fireburst', description: 'Particle burst only — quick punchy pop' },
-  { id: 'shockwave', name: 'V2: Shockwave', description: 'Expanding ring + light flash — clean cinematic' },
-  { id: 'hellfire', name: 'V3: Hellfire', description: 'Particles + ring + ground scorch' },
-  { id: 'double_ring', name: 'V4: Double Ring', description: 'Layered shockwaves + embers + screen flash' },
-  { id: 'supernova', name: 'V5: Supernova', description: 'Maximum impact — fireball core + chain scaling' },
+  { id: 'fireburst', name: 'V1: Fireburst', description: '200 sparks with gravity + fire flicker' },
+  { id: 'shockwave', name: 'V2: Shockwave', description: 'Clean blast disc + white ring edge + screen flash' },
+  { id: 'hellfire', name: 'V3: Hellfire', description: 'Fire carpet spreading on ground + rising smoke' },
+  { id: 'double_ring', name: 'V4: Pillar', description: 'Fire column shooting upward + falling embers' },
+  { id: 'supernova', name: 'V5: Supernova', description: 'Fireball core + double rings + sparks + chain scaling' },
 ]
 
 export const useVfxStore = create<VfxState>((set) => ({
