@@ -35,7 +35,8 @@ export default function Player() {
     const ghostNow = performance.now()
     const before = ghostsRef.current.length
     ghostsRef.current = ghostsRef.current.filter((g) => ghostNow - g.time < 300)
-    if (ghostsRef.current.length !== before) {
+    // Re-render every frame while ghosts exist so opacity fades smoothly
+    if (ghostsRef.current.length > 0 || ghostsRef.current.length !== before) {
       setGhosts([...ghostsRef.current])
     }
 
