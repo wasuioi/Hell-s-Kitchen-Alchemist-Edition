@@ -10,6 +10,7 @@ import RewardScreen from './ui/RewardScreen'
 import DeathScreen from './ui/DeathScreen'
 import VictoryScreen from './ui/VictoryScreen'
 import DebugPanel from './ui/DebugPanel'
+import VfxPicker from './ui/VfxPicker'
 
 export default function App() {
   const phase = useGameStore((s) => s.phase)
@@ -75,6 +76,7 @@ export default function App() {
       {phase === 'death' && <DeathScreen />}
       {phase === 'victory' && <VictoryScreen />}
       <DebugPanel />
+      <VfxPicker />
     </div>
   )
 }

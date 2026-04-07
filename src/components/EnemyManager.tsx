@@ -8,6 +8,7 @@ import Enemy from './Enemy'
 import { spawnDamageNumber } from './DamageNumbers'
 import { getDistance } from '../utils/collision'
 import type { EnemyType } from '../types'
+import { spawnExplosion } from './ExplosionEffect'
 
 const SPAWN_INTERVAL_BASE = 3
 const ENEMIES_PER_WAVE = 20
@@ -48,7 +49,7 @@ export default function EnemyManager() {
   const spawnedCount = useRef(0)
   const waveTimer = useRef(0)
   const prevPhase = useRef<string>('menu')
-  const pendingDetonations = useRef<Map<string, number>>(new Map())
+  const pendingDetonations = useRef<Map<string, { time: number; chainDepth: number }>>(new Map())
 
   useFrame((_, delta) => {
     const { phase, currentWave, timeScale } = useGameStore.getState()
@@ -62,17 +63,17 @@ export default function EnemyManager() {
     if (phase !== 'combat') return
     const dt = delta * timeScale
 
-    // Register global detonation callback so Spell.tsx can queue detonations
+    // Register global detonation callback so Spell.tsx and Enemy.tsx can queue detonations
     if (!(window as any).__queueDetonation) {
-      ;(window as any).__queueDetonation = (enemyId: string) => {
-        pendingDetonations.current.set(enemyId, performance.now() + DETONATION_DELAY)
+      ;(window as any).__queueDetonation = (enemyId: string, chainDepth = 0) => {
+        pendingDetonations.current.set(enemyId, { time: performance.now() + DETONATION_DELAY, chainDepth })
       }
     }
 
     // Process pending detonations
     const now = performance.now()
-    for (const [enemyId, detonateAt] of pendingDetonations.current) {
-      if (now >= detonateAt) {
+    for (const [enemyId, det] of pendingDetonations.current) {
+      if (now >= det.time) {
         pendingDetonations.current.delete(enemyId)
         const enemy = useEnemyStore.getState().enemies.find((e) => e.id === enemyId)
         if (!enemy) continue
@@ -91,7 +92,7 @@ export default function EnemyManager() {
             const updated = useEnemyStore.getState().enemies.find((e) => e.id === other.id)
             if (updated && updated.hp <= 0 && updated.type === 'exploder' && !updated.detonating) {
               useEnemyStore.getState().setEnemyDetonating(other.id)
-              pendingDetonations.current.set(other.id, now + DETONATION_DELAY)
+              pendingDetonations.current.set(other.id, { time: now + DETONATION_DELAY, chainDepth: det.chainDepth + 1 })
             } else if (updated && updated.hp <= 0 && !updated.dying) {
               useEnemyStore.getState().setEnemyDying(updated.id)
               useGameStore.getState().recordEnemyDefeated()
@@ -106,6 +107,9 @@ export default function EnemyManager() {
           usePlayerStore.getState().takeDamage(EXPLODER_PLAYER_DAMAGE)
           if (usePlayerStore.getState().hp <= 0) useGameStore.getState().triggerDeath()
         }
+
+        // Spawn explosion visual effect
+        spawnExplosion(enemy.position.x, enemy.position.z, det.chainDepth)
 
         // Screen shake + start death animation for the exploder
         useGameStore.getState().triggerScreenShake(0.6, 200)
