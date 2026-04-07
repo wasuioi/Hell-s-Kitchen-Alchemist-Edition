@@ -1,5 +1,6 @@
 import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
+import { Text } from '@react-three/drei'
 import { useGameStore } from '../stores/gameStore'
 import Arena from './Arena'
 import Camera from './Camera'
@@ -25,8 +26,10 @@ export default function Scene() {
         <Player />
         <EnemyManager />
         <SpellManager />
+        <DamageNumbers />
+        {/* Pre-load drei Text font to prevent black flash on first damage number */}
         <Suspense fallback={null}>
-          <DamageNumbers />
+          <Text position={[0, -100, 0]} fontSize={0.1}>.</Text>
         </Suspense>
         <Boss />
       </Canvas>
