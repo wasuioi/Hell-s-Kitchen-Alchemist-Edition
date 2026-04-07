@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { useGameStore } from '../stores/gameStore'
 import Arena from './Arena'
@@ -24,7 +25,9 @@ export default function Scene() {
         <Player />
         <EnemyManager />
         <SpellManager />
-        <DamageNumbers />
+        <Suspense fallback={null}>
+          <DamageNumbers />
+        </Suspense>
         <Boss />
       </Canvas>
     </div>

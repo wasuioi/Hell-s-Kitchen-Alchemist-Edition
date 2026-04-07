@@ -62,6 +62,8 @@ export default function DamageNumbers() {
 
   return (
     <>
+      {/* Hidden text to pre-load the font — prevents black flash on first damage number */}
+      <Text position={[0, -100, 0]} fontSize={0.1}>.</Text>
       {numbers.map((n) => {
         const opacity = Math.max(0, 1 - n.age / LIFETIME)
         return (
