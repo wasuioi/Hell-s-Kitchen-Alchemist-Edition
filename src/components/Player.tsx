@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import * as THREE from 'three'
@@ -19,7 +19,9 @@ if (typeof window !== 'undefined') {
 
 export default function Player() {
   const meshRef = useRef<THREE.Mesh>(null)
-  const ghostPositions = useRef<{ x: number; z: number; time: number }[]>([])
+  const ghostsRef = useRef<{ x: number; z: number; time: number; index: number }[]>([])
+  const [ghosts, setGhosts] = useState<{ x: number; z: number; time: number; index: number }[]>([])
+  const ghostIndex = useRef(0)
   const lastSpellColor = useRef('#22c55e')
   const dashTrailColor = useRef('#22c55e')
 
@@ -29,9 +31,13 @@ export default function Player() {
       ;(window as any).__setLastSpellColor = (color: string) => { lastSpellColor.current = color }
     }
 
-    // Clean expired ghosts
+    // Clean expired ghosts and sync to state for re-render
     const ghostNow = performance.now()
-    ghostPositions.current = ghostPositions.current.filter((g) => ghostNow - g.time < 300)
+    const before = ghostsRef.current.length
+    ghostsRef.current = ghostsRef.current.filter((g) => ghostNow - g.time < 300)
+    if (ghostsRef.current.length !== before) {
+      setGhosts([...ghostsRef.current])
+    }
 
     const phase = useGameStore.getState().phase
     if (phase !== 'combat' && phase !== 'boss') return
@@ -50,12 +56,14 @@ export default function Player() {
       const newX = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.x + dashDirection.x * dashSpeed))
       const newZ = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.z + dashDirection.z * dashSpeed))
       // Capture trail color on first frame of dash
-      if (ghostPositions.current.length === 0) {
+      if (ghostsRef.current.length === 0) {
+        ghostIndex.current = 0
         const playerStatus = usePlayerStore.getState().status
         dashTrailColor.current = playerStatus === 'soaked' ? '#3b82f6' : lastSpellColor.current
       }
       // Record ghost position for trail
-      ghostPositions.current.push({ x: pos.x, z: pos.z, time: performance.now() })
+      ghostsRef.current.push({ x: pos.x, z: pos.z, time: performance.now(), index: ghostIndex.current++ })
+      setGhosts([...ghostsRef.current])
       usePlayerStore.getState().setPosition({ x: newX, z: newZ })
       return
     }
@@ -97,12 +105,17 @@ export default function Player() {
           </div>
         </Html>
       </group>
-      {/* Dash ghost trail */}
-      {ghostPositions.current.map((ghost, i) => {
+      {/* Dash ghost trail — earlier ghosts fade faster for a smooth streaking effect */}
+      {ghosts.map((ghost) => {
         const age = (performance.now() - ghost.time) / 300
-        const opacity = Math.max(0, 0.4 * (1 - age))
+        // Stagger: earlier ghosts (lower index) get shorter lifetimes
+        const totalGhosts = ghostIndex.current || 1
+        const positionRatio = ghost.index / totalGhosts // 0 = first, ~1 = last
+        const maxOpacity = 0.15 + 0.25 * positionRatio // first=0.15, last=0.4
+        const opacity = Math.max(0, maxOpacity * (1 - age))
+        if (opacity <= 0) return null
         return (
-          <mesh key={i} position={[ghost.x, 0.75, ghost.z]} rotation={[0, rotation, 0]}>
+          <mesh key={ghost.index} position={[ghost.x, 0.75, ghost.z]} rotation={[0, rotation, 0]}>
             <capsuleGeometry args={[PLAYER_RADIUS, 0.8, 8, 16]} />
             <meshStandardMaterial color={dashTrailColor.current} transparent opacity={opacity} />
           </mesh>
