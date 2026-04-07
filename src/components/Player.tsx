@@ -20,8 +20,15 @@ if (typeof window !== 'undefined') {
 export default function Player() {
   const meshRef = useRef<THREE.Mesh>(null)
   const ghostPositions = useRef<{ x: number; z: number; time: number }[]>([])
+  const lastSpellColor = useRef('#22c55e')
+  const dashTrailColor = useRef('#22c55e')
 
   useFrame((_, delta) => {
+    // Register global callback so castSpell can notify us of the last spell color
+    if (!(window as any).__setLastSpellColor) {
+      ;(window as any).__setLastSpellColor = (color: string) => { lastSpellColor.current = color }
+    }
+
     // Clean expired ghosts
     const ghostNow = performance.now()
     ghostPositions.current = ghostPositions.current.filter((g) => ghostNow - g.time < 300)
@@ -42,6 +49,11 @@ export default function Player() {
       const dashSpeed = PLAYER_SPEED * 3 * timeScale * delta
       const newX = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.x + dashDirection.x * dashSpeed))
       const newZ = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.z + dashDirection.z * dashSpeed))
+      // Capture trail color on first frame of dash
+      if (ghostPositions.current.length === 0) {
+        const playerStatus = usePlayerStore.getState().status
+        dashTrailColor.current = playerStatus === 'soaked' ? '#3b82f6' : lastSpellColor.current
+      }
       // Record ghost position for trail
       ghostPositions.current.push({ x: pos.x, z: pos.z, time: performance.now() })
       usePlayerStore.getState().setPosition({ x: newX, z: newZ })
@@ -92,7 +104,7 @@ export default function Player() {
         return (
           <mesh key={i} position={[ghost.x, 0.75, ghost.z]} rotation={[0, rotation, 0]}>
             <capsuleGeometry args={[PLAYER_RADIUS, 0.8, 8, 16]} />
-            <meshStandardMaterial color="#22c55e" transparent opacity={opacity} />
+            <meshStandardMaterial color={dashTrailColor.current} transparent opacity={opacity} />
           </mesh>
         )
       })}
