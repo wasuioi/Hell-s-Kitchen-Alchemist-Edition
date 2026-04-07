@@ -9,6 +9,7 @@ import MainMenu from './ui/MainMenu'
 import RewardScreen from './ui/RewardScreen'
 import DeathScreen from './ui/DeathScreen'
 import VictoryScreen from './ui/VictoryScreen'
+import DebugPanel from './ui/DebugPanel'
 
 export default function App() {
   const phase = useGameStore((s) => s.phase)
@@ -73,6 +74,7 @@ export default function App() {
       {phase === 'reward' && <RewardScreen />}
       {phase === 'death' && <DeathScreen />}
       {phase === 'victory' && <VictoryScreen />}
+      <DebugPanel />
     </div>
   )
 }
