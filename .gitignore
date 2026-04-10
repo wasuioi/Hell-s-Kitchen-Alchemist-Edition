@@ -25,3 +25,6 @@ dist-ssr
 
 # Worktrees
 .worktrees
+
+# Superpowers brainstorm files
+.superpowers
