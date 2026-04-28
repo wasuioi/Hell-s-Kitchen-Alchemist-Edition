@@ -44,20 +44,32 @@ jobs:
           echo "Slug: $SLUG"
           echo "URL: $URL"
 
-      - name: Download icon
+      - name: Download icon (2-step — auth at github.com, no-auth at S3)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p public/icons
-          # Private repo user-attachments require auth — pass the workflow token as Bearer.
-          curl -L --fail --silent --show-error \
+          URL="${{ steps.parse.outputs.url }}"
+          OUT="public/icons/${{ steps.parse.outputs.slug }}.png"
+
+          # Private-repo user-attachments redirect to a TEMPORARY signed S3 URL
+          # (~5 min expiry, signature is in the query string). curl -L would
+          # forward the Authorization header to S3 and S3 rejects it (403).
+          # Two steps: authenticated HEAD to grab the Location, then plain GET.
+          REDIR=$(curl -sI \
             -H "Authorization: Bearer $GH_TOKEN" \
             -H "User-Agent: github-actions-save-icon" \
-            -o "public/icons/${{ steps.parse.outputs.slug }}.png" \
-            "${{ steps.parse.outputs.url }}"
-          file "public/icons/${{ steps.parse.outputs.slug }}.png"
-          ls -la "public/icons/${{ steps.parse.outputs.slug }}.png"
+            "$URL" | grep -i '^location:' | sed -E 's/^[Ll]ocation:[[:space:]]*//' | tr -d '\r\n')
+
+          if [ -z "$REDIR" ]; then
+            echo "::error::No Location header from $URL — auth may have failed or URL is not a user-attachment."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error -o "$OUT" "$REDIR"
+          file "$OUT"
+          ls -la "$OUT"
 
       - name: Create branch and PR
         env:
