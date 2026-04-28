@@ -279,8 +279,6 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
         continue
       }
 
-      const t = age[i] / lt[i]
-
       // Move upward
       positions[i3] += vel[i3] * delta
       positions[i3 + 1] += vel[i3 + 1] * delta
