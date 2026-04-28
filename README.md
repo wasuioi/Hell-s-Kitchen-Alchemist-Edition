@@ -1,3 +1,5 @@
+<!-- Hell's Kitchen Alchemist Edition is a roguelike cooking game where you combine ingredients, discover recipes, and battle your way through a procedurally generated kitchen dungeon. -->
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
