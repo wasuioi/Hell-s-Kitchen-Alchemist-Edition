@@ -1,13 +1,19 @@
 import { useDeckStore } from '../stores/deckStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
-import { spawnExplosionVfx } from './spawnVfx'
+import { PERK_POOL } from '../data/perks'
+import { spawnExplosionVfx, spawnSpriteVfx } from './spawnVfx'
 import type { Position } from '../types'
 
 // Convention for future on-trigger perks: alongside the gameplay logic
 // (damage, status, etc.), spawn visible feedback so the player actually
-// sees the perk fire. spawnExplosionVfx() is a no-op outside the 3D scene
-// (e.g. in unit tests), so it is safe to call from anywhere.
+// sees the perk fire. spawnExplosionVfx() / spawnSpriteVfx() are no-ops
+// outside the 3D scene (e.g. in unit tests), so it is safe to call them
+// from anywhere.
+//
+// Visual lookup pattern: if the perk has a `vfxSprite` slug it plays the
+// sprite-sheet VFX (custom per-perk look); otherwise it falls back to the
+// generic fireburst explosion.
 
 let lastGreaseFireAt = -Infinity
 
@@ -33,9 +39,15 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
     useEnemyStore.getState().applyStatusInRadius(position, radius, status, dur)
   }
 
-  // Visible feedback — fireburst + screen flash at the player so the player
-  // can tell the perk fired and roughly how big the AOE was.
-  spawnExplosionVfx(position.x, position.z)
+  // Visible feedback — sprite-sheet VFX if the perk defines one, else the
+  // generic fireburst. Always pair with a screen flash so the player feels
+  // the trigger even with sound off.
+  const def = PERK_POOL.find((p) => p.id === 'grease_fire')
+  if (def?.vfxSprite) {
+    spawnSpriteVfx(def.vfxSprite, position.x, position.z)
+  } else {
+    spawnExplosionVfx(position.x, position.z)
+  }
   useGameStore.getState().triggerScreenFlash()
 }
 

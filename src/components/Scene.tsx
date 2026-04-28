@@ -11,6 +11,7 @@ import Boss from './Boss'
 import DamageNumbers from './DamageNumbers'
 import GroundCracks from './GroundCracks'
 import ExplosionEffects from './ExplosionEffect'
+import SpriteVfxEffects from './SpriteVfxEffect'
 
 export default function Scene() {
   const phase = useGameStore((s) => s.phase)
@@ -29,6 +30,7 @@ export default function Scene() {
         <SpellManager />
         <DamageNumbers />
         <ExplosionEffects />
+        <SpriteVfxEffects />
         {/* Pre-load drei Text font to prevent black flash on first damage number */}
         <Suspense fallback={null}>
           <Text position={[0, -100, 0]} fontSize={0.1}>.</Text>

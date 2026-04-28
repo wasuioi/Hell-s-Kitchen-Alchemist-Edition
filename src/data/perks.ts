@@ -3,8 +3,13 @@ export type PerkRarity = 'common' | 'rare' | 'epic' | 'legendary'
 // `icon` may be either an emoji string ("🔥") or an absolute public path to an
 // image ("/icons/grease_fire.png"). The <PerkIcon> component picks the right
 // renderer based on whether the value starts with "/".
+//
+// `vfxSprite` (optional) — slug of a sprite-sheet VFX in `public/vfx/<slug>.png`.
+// When set, on-trigger perks play this sprite instead of the generic explosion
+// variant. See SpriteVfxEffect.tsx for the expected sheet format.
 export interface PerkDefinition {
   id: string; name: string; icon: string; description: string; rarity: PerkRarity
+  vfxSprite?: string
 }
 
 export const MAX_PERK_TIER = 3
@@ -19,7 +24,7 @@ export const PERK_POOL: PerkDefinition[] = [
   { id: 'heavy_salt', name: 'Heavy Salt', icon: '🪨', description: 'Salt spells push enemies 2x further', rarity: 'common' },
   { id: 'fast_prep', name: 'Fast Prep', icon: '⚡', description: 'Cook cooldown reduced by 0.5s', rarity: 'rare' },
   { id: 'double_batch', name: 'Double Batch', icon: '🧪', description: '10% chance spell triggers twice', rarity: 'epic' },
-  { id: 'grease_fire', name: 'Grease Fire', icon: '/icons/grease_fire.png', description: 'Taking damage erupts a fiery grease burst around you, scorching nearby enemies. 2s cooldown.', rarity: 'rare' },
+  { id: 'grease_fire', name: 'Grease Fire', icon: '/icons/grease_fire.png', description: 'Taking damage erupts a fiery grease burst around you, scorching nearby enemies. 2s cooldown.', rarity: 'rare', vfxSprite: 'grease_fire' },
 ]
 
 function pickWeightedRarity(): PerkRarity {
