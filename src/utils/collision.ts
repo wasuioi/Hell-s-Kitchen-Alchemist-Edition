@@ -5,14 +5,12 @@ export function getDistance(a: Position, b: Position): number {
 }
 export function isInRange(a: Position, b: Position, radius: number): boolean { return getDistance(a, b) <= radius }
 
-// TODO: add an optional maxRange parameter to filter out enemies beyond a given distance.
-// Currently this returns the nearest enemy regardless of distance, which causes
-// auto-targeting spells to track enemies across the entire arena.
-export function findNearestEnemy(position: Position, enemies: Enemy[]): Enemy | null {
-  if (enemies.length === 0) return null
-  let nearest = enemies[0]; let nearestDist = getDistance(position, nearest.position)
-  for (let i = 1; i < enemies.length; i++) {
+export function findNearestEnemy(position: Position, enemies: Enemy[], maxRange?: number): Enemy | null {
+  let nearest: Enemy | null = null
+  let nearestDist = Infinity
+  for (let i = 0; i < enemies.length; i++) {
     const dist = getDistance(position, enemies[i].position)
+    if (maxRange !== undefined && dist > maxRange) continue
     if (dist < nearestDist) { nearest = enemies[i]; nearestDist = dist }
   }
   return nearest

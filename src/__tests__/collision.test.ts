@@ -18,4 +18,13 @@ describe('findNearestEnemy', () => {
   ]
   it('returns the nearest enemy', () => { expect(findNearestEnemy({ x: 0, z: 0 }, enemies)?.id).toBe('b') })
   it('returns null for empty array', () => { expect(findNearestEnemy({ x: 0, z: 0 }, [])).toBeNull() })
+  it('respects maxRange and returns the nearest within it', () => {
+    expect(findNearestEnemy({ x: 0, z: 0 }, enemies, 6)?.id).toBe('b')
+  })
+  it('returns null when no enemy is within maxRange', () => {
+    expect(findNearestEnemy({ x: 0, z: 0 }, enemies, 1)).toBeNull()
+  })
+  it('includes enemies at exactly maxRange', () => {
+    expect(findNearestEnemy({ x: 0, z: 0 }, enemies, 2)?.id).toBe('b')
+  })
 })
