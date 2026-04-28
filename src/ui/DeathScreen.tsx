@@ -7,7 +7,12 @@ export default function DeathScreen() {
   const stats = useGameStore((s) => s.stats)
   const currentWave = useGameStore((s) => s.currentWave)
 
-  const bestCombo = Math.max(0, ...Object.values(stats.spellsCast))
+  const spellEntries = Object.entries(stats.spellsCast)
+  const bestComboEntry = spellEntries.length > 0
+    ? spellEntries.reduce((a, b) => a[1] >= b[1] ? a : b)
+    : null
+  const bestCombo = bestComboEntry ? bestComboEntry[1] : 0
+  const bestComboName = bestComboEntry ? bestComboEntry[0].replace('_', ' ') : 'None'
 
   function resetAll() {
     useGameStore.getState().reset()
@@ -70,7 +75,7 @@ export default function DeathScreen() {
           </div>
           <div style={{ ...rowStyle, borderBottom: 'none' }}>
             <span style={labelStyle}>Best Combo</span>
-            <span style={valueStyle}>{bestCombo}x</span>
+            <span style={valueStyle}>{bestComboName} {bestCombo}x</span>
           </div>
         </div>
 
