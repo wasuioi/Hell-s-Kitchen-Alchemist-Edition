@@ -86,7 +86,9 @@ Examples:
 ### Body — proposal (12:00 / 14:00 / 16:00)
 
 ```markdown
-> **Implementation note for `@claude implement`:** Before writing any code, read the linked critique issue (see "Context" below) in full via `gh issue view <number> --json title,body`. The proposal builds on observations made there; implementing without that context will miss the point.
+> **Implementation note for `@claude implement`:**
+> 1. Before writing any code, read the linked critique issue (see "Context" below) in full via `gh issue view <number> --json title,body`. The proposal builds on observations made there; implementing without that context will miss the point.
+> 2. If the work is too large for a single PR, split it into sub-issues. Each sub-issue title MUST start with `[Sub-task of #<this-issue-number>]` so the lineage is unambiguous. Apply labels `game-design` and `sub-task`. Link the parent in the sub-issue body. Then implement sub-issues one at a time.
 
 ## Context
 - Theme: <theme name>
@@ -122,8 +124,9 @@ Created once during setup:
 | `proposal-quick` | `#fbca04` (yellow) | 12:00 quick-win proposals |
 | `proposal-medium` | `#d93f0b` (orange) | 14:00 medium-feature proposals |
 | `proposal-big` | `#5319e7` (purple) | 16:00 big-swing proposals |
+| `sub-task` | `#c5def5` (light blue) | Sub-issue split out from a parent proposal during implementation |
 
-Every routine issue carries `game-design` plus exactly one type label.
+Every routine-generated issue carries `game-design` plus exactly one type label. Sub-task issues created during implementation carry `game-design` + `sub-task` (no proposal-* label, since they are not part of the daily routine output).
 
 ## Config files
 
@@ -193,7 +196,7 @@ Each entry: what it does well + which themes it best informs.
 
 ## Setup steps (one-time)
 
-1. Create the 5 GitHub labels via `gh label create`.
+1. Create the 6 GitHub labels via `gh label create` (the 5 routine labels plus `sub-task`).
 2. Write the two config files at `docs/game-design/themes.md` and `docs/game-design/reference-games.md`.
 3. Create the 4 scheduled tasks via `mcp__scheduled-tasks__create_scheduled_task` with the cron expressions and prompts described above.
 4. Smoke test: trigger each of the 4 tasks once on demand (ad-hoc invoke), verify each creates an issue with the correct labels, title format, and body sections.
