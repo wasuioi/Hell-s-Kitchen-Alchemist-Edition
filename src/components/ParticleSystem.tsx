@@ -103,7 +103,7 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
       // Random direction on unit sphere
       const theta = Math.random() * Math.PI * 2
       const phi = Math.acos(2 * Math.random() - 1)
-      let vx = Math.sin(phi) * Math.cos(theta)
+      const vx = Math.sin(phi) * Math.cos(theta)
       let vy = Math.sin(phi) * Math.sin(theta)
       let vz = Math.cos(phi)
 
