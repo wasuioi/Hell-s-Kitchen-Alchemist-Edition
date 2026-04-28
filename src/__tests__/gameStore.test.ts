@@ -97,6 +97,21 @@ describe('useGameStore', () => {
     useGameStore.getState().recordIngredientUsed()
     expect(useGameStore.getState().stats.ingredientsUsed).toBe(1)
   })
+  it('skipReward advances wave and returns to combat without applying perk', () => {
+    useGameStore.getState().startShift()
+    useGameStore.getState().completeWave()
+    const waveBefore = useGameStore.getState().currentWave
+    useGameStore.getState().skipReward()
+    expect(useGameStore.getState().phase).toBe('combat')
+    expect(useGameStore.getState().currentWave).toBe(waveBefore + 1)
+  })
+  it('skipReward from reward phase increments wave by 1 (same as nextWave)', () => {
+    useGameStore.getState().startShift()
+    useGameStore.getState().completeWave()
+    const waveAfterSkip = useGameStore.getState().currentWave + 1
+    useGameStore.getState().skipReward()
+    expect(useGameStore.getState().currentWave).toBe(waveAfterSkip)
+  })
   it('reset returns to initial state', () => {
     useGameStore.getState().startShift()
     useGameStore.getState().recordEnemyDefeated()

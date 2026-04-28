@@ -104,7 +104,7 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
       // Random direction on unit sphere
       const theta = Math.random() * Math.PI * 2
       const phi = Math.acos(2 * Math.random() - 1)
-      let vx = Math.sin(phi) * Math.cos(theta)
+      const vx = Math.sin(phi) * Math.cos(theta)
       let vy = Math.sin(phi) * Math.sin(theta)
       let vz = Math.cos(phi)
 
@@ -320,24 +320,9 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
   return (
     <points ref={pointsRef}>
       <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          array={positions}
-          count={totalParticles}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-color"
-          array={colors}
-          count={totalParticles}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-size"
-          array={sizes}
-          count={totalParticles}
-          itemSize={1}
-        />
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+        <bufferAttribute attach="attributes-color" args={[colors, 3]} />
+        <bufferAttribute attach="attributes-size" args={[sizes, 1]} />
       </bufferGeometry>
       <pointsMaterial
         map={texture}

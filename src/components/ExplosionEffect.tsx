@@ -16,7 +16,7 @@ interface Explosion {
 
 declare global {
   interface Window {
-    __spawnExplosion?: (x: number, z: number, chainDepth?: number) => void
+    __spawnExplosion?: (arg: { x: number; z: number; chainDepth?: number }) => void
   }
 }
 
@@ -93,9 +93,9 @@ function FireburstExplosion({ pos, age }: { pos: { x: number; z: number }; age: 
     <group position={[pos.x, 0, pos.z]}>
       <points ref={pointsRef}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" count={count} array={pPos.current} itemSize={3} />
-          <bufferAttribute attach="attributes-color" count={count} array={pCol.current} itemSize={3} />
-          <bufferAttribute attach="attributes-size" count={count} array={pSize.current} itemSize={1} />
+          <bufferAttribute attach="attributes-position" args={[pPos.current, 3]} />
+          <bufferAttribute attach="attributes-color" args={[pCol.current, 3]} />
+          <bufferAttribute attach="attributes-size" args={[pSize.current, 1]} />
         </bufferGeometry>
         <pointsMaterial vertexColors sizeAttenuation transparent depthWrite={false} blending={THREE.AdditiveBlending} />
       </points>
@@ -260,9 +260,9 @@ function HellfireExplosion({ pos, age }: { pos: { x: number; z: number }; age: n
       {/* Rising smoke */}
       <points ref={smokeRef}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" count={smokeCount} array={smokePos.current} itemSize={3} />
-          <bufferAttribute attach="attributes-color" count={smokeCount} array={smokeCol.current} itemSize={3} />
-          <bufferAttribute attach="attributes-size" count={smokeCount} array={smokeSize.current} itemSize={1} />
+          <bufferAttribute attach="attributes-position" args={[smokePos.current, 3]} />
+          <bufferAttribute attach="attributes-color" args={[smokeCol.current, 3]} />
+          <bufferAttribute attach="attributes-size" args={[smokeSize.current, 1]} />
         </bufferGeometry>
         <pointsMaterial vertexColors sizeAttenuation transparent depthWrite={false} opacity={0.6} />
       </points>
@@ -378,9 +378,9 @@ function PillarExplosion({ pos, age }: { pos: { x: number; z: number }; age: num
       {/* Falling embers */}
       <points ref={emberRef}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" count={emberCount} array={ePos.current} itemSize={3} />
-          <bufferAttribute attach="attributes-color" count={emberCount} array={eCol.current} itemSize={3} />
-          <bufferAttribute attach="attributes-size" count={emberCount} array={eSize.current} itemSize={1} />
+          <bufferAttribute attach="attributes-position" args={[ePos.current, 3]} />
+          <bufferAttribute attach="attributes-color" args={[eCol.current, 3]} />
+          <bufferAttribute attach="attributes-size" args={[eSize.current, 1]} />
         </bufferGeometry>
         <pointsMaterial vertexColors sizeAttenuation transparent depthWrite={false} blending={THREE.AdditiveBlending} />
       </points>
@@ -518,9 +518,9 @@ function SupernovaExplosion({ pos, age, chainDepth }: { pos: { x: number; z: num
       {/* Sparks */}
       <points ref={sparkRef}>
         <bufferGeometry>
-          <bufferAttribute attach="attributes-position" count={sparkCount} array={sPos.current} itemSize={3} />
-          <bufferAttribute attach="attributes-color" count={sparkCount} array={sCol.current} itemSize={3} />
-          <bufferAttribute attach="attributes-size" count={sparkCount} array={sSize.current} itemSize={1} />
+          <bufferAttribute attach="attributes-position" args={[sPos.current, 3]} />
+          <bufferAttribute attach="attributes-color" args={[sCol.current, 3]} />
+          <bufferAttribute attach="attributes-size" args={[sSize.current, 1]} />
         </bufferGeometry>
         <pointsMaterial vertexColors sizeAttenuation transparent depthWrite={false} blending={THREE.AdditiveBlending} />
       </points>

@@ -9,6 +9,7 @@ interface GameState {
   screenFlashUntil: number
   // Actions
   startShift: () => void; completeWave: () => void; nextWave: () => void
+  skipReward: () => void
   startBoss: () => void; triggerVictory: () => void; triggerDeath: () => void
   recordEnemyDefeated: () => void; recordIngredientUsed: () => void
   recordSpellCast: (spell: SpellType) => void; reset: () => void
@@ -32,6 +33,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   startShift: () => set({ phase: 'combat', currentWave: 1, timeScale: 1, stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> } }),
   completeWave: () => set((s) => ({ phase: 'reward', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } })),
   nextWave: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })),
+  skipReward: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })),
   startBoss: () => set({ phase: 'boss' }),
   triggerVictory: () => set((s) => ({ phase: 'victory', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } })),
   triggerDeath: () => set({ phase: 'death', timeScale: 0.2 }),
