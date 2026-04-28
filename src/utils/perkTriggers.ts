@@ -2,18 +2,19 @@ import { useDeckStore } from '../stores/deckStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
 import { PERK_POOL } from '../data/perks'
-import { spawnExplosionVfx, spawnSpriteVfx } from './spawnVfx'
+import { spawnExplosionVfx, spawnSpriteVfx, spawnDamageNumberVfx } from './spawnVfx'
 import type { Position } from '../types'
 
 // Convention for future on-trigger perks: alongside the gameplay logic
 // (damage, status, etc.), spawn visible feedback so the player actually
-// sees the perk fire. spawnExplosionVfx() / spawnSpriteVfx() are no-ops
-// outside the 3D scene (e.g. in unit tests), so it is safe to call them
-// from anywhere.
+// sees the perk fire. The VFX spawn helpers are no-ops outside the 3D
+// scene (e.g. in unit tests), so it's safe to call them from anywhere.
 //
-// Visual lookup pattern: if the perk has a `vfxSprite` slug it plays the
-// sprite-sheet VFX (custom per-perk look); otherwise it falls back to the
-// generic fireburst explosion.
+// Visual lookup pattern: if the perk has a `vfxSprite` slug it plays
+// the sprite-sheet VFX (custom per-perk look); otherwise it falls back
+// to the generic fireburst explosion. Per-enemy juice (hit flash, damage
+// numbers, shake) mirrors what Spell.tsx does, so on-trigger perks read
+// as "real" damage to the player.
 
 let lastGreaseFireAt = -Infinity
 
@@ -31,7 +32,20 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
   const baseDmg = [15, 25, 40][tier - 1] + 8 * Math.max(0, stacks - tier)
   const radius = [4, 5, 6][tier - 1]
   const dmg = tier === 3 && amount >= 15 ? baseDmg * 2 : baseDmg
-  useEnemyStore.getState().damageEnemiesInRadius(position, radius, dmg)
+
+  // Per-enemy: damage + hit flash + floating number, same juice as Spell hits.
+  const enemies = useEnemyStore.getState().enemies
+  const dmgColor = dmg >= 80 ? '#ef4444' : dmg >= 40 ? '#fbbf24' : '#ffffff'
+  let hitCount = 0
+  for (const enemy of enemies) {
+    const dx = enemy.position.x - position.x
+    const dz = enemy.position.z - position.z
+    if (Math.hypot(dx, dz) > radius) continue
+    hitCount++
+    useEnemyStore.getState().damageEnemy(enemy.id, dmg)
+    useEnemyStore.getState().setEnemyHitFlash(enemy.id, performance.now() + 100)
+    spawnDamageNumberVfx(enemy.position.x, enemy.position.z, dmg, dmgColor)
+  }
 
   if (tier >= 2) {
     const status = tier >= 3 ? 'stunned' : 'soaked'
@@ -39,9 +53,9 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
     useEnemyStore.getState().applyStatusInRadius(position, radius, status, dur)
   }
 
-  // Visible feedback — sprite-sheet VFX if the perk defines one, else the
-  // generic fireburst. Always pair with a screen flash so the player feels
-  // the trigger even with sound off.
+  // VFX layer — sprite-sheet if the perk defines one, else the generic
+  // fireburst. Screen flash + shake on every trigger so the player feels
+  // the burst even when no enemies are in range.
   const def = PERK_POOL.find((p) => p.id === 'grease_fire')
   if (def?.vfxSprite) {
     spawnSpriteVfx(def.vfxSprite, position.x, position.z)
@@ -49,6 +63,7 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
     spawnExplosionVfx(position.x, position.z)
   }
   useGameStore.getState().triggerScreenFlash()
+  if (hitCount > 0) useGameStore.getState().triggerScreenShake(0.4, 150)
 }
 
 export function resetGreaseFireCooldown() {
