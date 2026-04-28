@@ -1,6 +1,13 @@
 import { useDeckStore } from '../stores/deckStore'
 import { useEnemyStore } from '../stores/enemyStore'
+import { useGameStore } from '../stores/gameStore'
+import { spawnExplosionVfx } from './spawnVfx'
 import type { Position } from '../types'
+
+// Convention for future on-trigger perks: alongside the gameplay logic
+// (damage, status, etc.), spawn visible feedback so the player actually
+// sees the perk fire. spawnExplosionVfx() is a no-op outside the 3D scene
+// (e.g. in unit tests), so it is safe to call from anywhere.
 
 let lastGreaseFireAt = -Infinity
 
@@ -25,6 +32,11 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
     const dur = tier >= 3 ? 0.5 : 1.5
     useEnemyStore.getState().applyStatusInRadius(position, radius, status, dur)
   }
+
+  // Visible feedback — fireburst + screen flash at the player so the player
+  // can tell the perk fired and roughly how big the AOE was.
+  spawnExplosionVfx(position.x, position.z)
+  useGameStore.getState().triggerScreenFlash()
 }
 
 export function resetGreaseFireCooldown() {

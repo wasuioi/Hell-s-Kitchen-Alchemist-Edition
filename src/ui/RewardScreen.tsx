@@ -1,14 +1,24 @@
 import { useState } from 'react'
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
-import { drawPerksWithRarity } from '../data/perks'
+import { drawPerksWithRarity, MAX_PERK_TIER } from '../data/perks'
 import type { PerkDefinition } from '../data/perks'
+import PerkIcon from './PerkIcon'
+import TierDots from './TierDots'
 
 export default function RewardScreen() {
   const currentWave = useGameStore((s) => s.currentWave)
+  const activePerks = useDeckStore((s) => s.activePerks)
   const [perks, setPerks] = useState<PerkDefinition[]>(() => drawPerksWithRarity(3))
   const [rerollsLeft, setRerollsLeft] = useState(1)
   const [confirmingSkip, setConfirmingSkip] = useState(false)
+
+  // What tier will this perk be at if I pick it now?
+  // 0 stacks → picking puts me at T1; 1 stack → T2; 2+ stacks → T3 (capped).
+  function tierAfterPick(perkId: string): number {
+    const current = activePerks.find((p) => p.id === perkId)?.stackCount ?? 0
+    return Math.min(current + 1, MAX_PERK_TIER)
+  }
 
   function pickPerk(perk: PerkDefinition) {
     useDeckStore.getState().addPerk({ ...perk, stackCount: 1 })
@@ -66,11 +76,14 @@ export default function RewardScreen() {
               el.style.transform = 'translateY(0)'
             }}
           >
-            <span style={{ fontSize: '40px' }}>{perk.icon}</span>
+            <PerkIcon icon={perk.icon} size={40} />
             <span style={{ fontSize: '15px', fontWeight: 'bold' }}>{perk.name}</span>
             <span style={{ fontSize: '12px', opacity: 0.7, textAlign: 'center', lineHeight: '1.4' }}>
               {perk.description}
             </span>
+            <div style={{ marginTop: 'auto', paddingTop: '12px' }}>
+              <TierDots tier={tierAfterPick(perk.id)} size="large" />
+            </div>
           </button>
         ))}
       </div>
