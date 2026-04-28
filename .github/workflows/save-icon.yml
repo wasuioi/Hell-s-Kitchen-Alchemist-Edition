@@ -26,9 +26,7 @@ jobs:
           BODY: ${{ github.event.comment.body }}
         run: |
           set -euo pipefail
-          # Extract slug after either "/save-icon <slug>" or "save this as the icon for <slug>"
           SLUG=$(printf '%s' "$BODY" | grep -oE '(/save-icon|save this as the icon for)[[:space:]]+[a-z][a-z0-9_]*' | head -1 | awk '{print $NF}')
-          # Extract image URL (HTML <img src="..."> or markdown ![](...))
           URL=$(printf '%s' "$BODY" | grep -oE 'https://github\.com/user-attachments/assets/[a-f0-9-]+' | head -1)
           if [ -z "$URL" ]; then
             URL=$(printf '%s' "$BODY" | grep -oE 'https://[a-zA-Z0-9._/-]+\.(png|jpg|jpeg|webp)' | head -1)
@@ -47,13 +45,19 @@ jobs:
           echo "URL: $URL"
 
       - name: Download icon
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           mkdir -p public/icons
+          # Private repo user-attachments require auth — pass the workflow token as Bearer.
           curl -L --fail --silent --show-error \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "User-Agent: github-actions-save-icon" \
             -o "public/icons/${{ steps.parse.outputs.slug }}.png" \
             "${{ steps.parse.outputs.url }}"
           file "public/icons/${{ steps.parse.outputs.slug }}.png"
+          ls -la "public/icons/${{ steps.parse.outputs.slug }}.png"
 
       - name: Create branch and PR
         env:
