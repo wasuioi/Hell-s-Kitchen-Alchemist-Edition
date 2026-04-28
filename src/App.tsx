@@ -4,6 +4,7 @@ import { useGameStore } from './stores/gameStore'
 import { useDeckStore } from './stores/deckStore'
 import { usePlayerStore } from './stores/playerStore'
 import { castSpell } from './utils/castSpell'
+import { preloadGameAssets } from './utils/preloadAssets'
 import HUD from './ui/HUD'
 import MainMenu from './ui/MainMenu'
 import RewardScreen from './ui/RewardScreen'
@@ -16,6 +17,12 @@ import DevPanel from './ui/DevPanel'
 export default function App() {
   const phase = useGameStore((s) => s.phase)
   const cookCooldown = useRef(0)
+
+  // Warm caches for icons + VFX sprites so the first reward/trigger doesn't
+  // flicker. Runs once on mount.
+  useEffect(() => {
+    preloadGameAssets()
+  }, [])
 
   // Keyboard controls
   useEffect(() => {

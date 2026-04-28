@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useMemo, Suspense } from 'react'
-import { useFrame, useThree, useLoader } from '@react-three/fiber'
+import { useFrame, useLoader } from '@react-three/fiber'
 import * as THREE from 'three'
 
 // ── Sprite-sheet VFX player ─────────────────────────────────────────────────
@@ -21,7 +21,10 @@ const TOTAL_FRAMES = COLS * ROWS
 const PLAYBACK_DURATION = 0.5 // seconds; chosen to match the perk-trigger feel
 const FRAME_DURATION = PLAYBACK_DURATION / TOTAL_FRAMES
 const LIFETIME = PLAYBACK_DURATION + 0.05 // small buffer to finish the last frame
-const SIZE = 6 // billboard size in world units; tuned to match grease_fire AOE
+// Plane size in world units. With the frame's visible fire reaching ~80%
+// of the sprite, SIZE=10 gives a bloom roughly 8 units across — close to
+// grease_fire's T1 radius (4) at the rim, slightly under-spilling for T3.
+const SIZE = 10
 
 interface SpriteVfx {
   id: string
@@ -40,7 +43,6 @@ let nextId = 0
 
 function SpriteVfxInstance({ vfx }: { vfx: SpriteVfx }) {
   const meshRef = useRef<THREE.Mesh>(null)
-  const { camera } = useThree()
 
   // useLoader caches per URL across the whole app — multiple instances of
   // the same slug share the GPU upload but each instance gets its own
@@ -69,14 +71,13 @@ function SpriteVfxInstance({ vfx }: { vfx: SpriteVfx }) {
     // Three.js UV origin is bottom-left, but image rows read top-to-bottom,
     // so flip the row index when computing the y offset.
     texture.offset.set(col / COLS, 1 - (row + 1) / ROWS)
-
-    // Billboard the sprite to face the camera so the burst reads as a flat
-    // 2D effect from any camera angle.
-    if (meshRef.current) meshRef.current.quaternion.copy(camera.quaternion)
   })
 
+  // Lay the plane flat on the ground (rotated -90° around X) so the burst
+  // reads as a top-down bloom expanding around the player. y=0.05 keeps it
+  // just above the floor mesh to avoid z-fighting.
   return (
-    <mesh ref={meshRef} position={[vfx.position.x, 1.5, vfx.position.z]}>
+    <mesh ref={meshRef} position={[vfx.position.x, 0.05, vfx.position.z]} rotation={[-Math.PI / 2, 0, 0]}>
       <planeGeometry args={[SIZE, SIZE]} />
       <meshBasicMaterial
         map={texture}

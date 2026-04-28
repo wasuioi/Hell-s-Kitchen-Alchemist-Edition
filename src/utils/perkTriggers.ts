@@ -33,11 +33,16 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
   const radius = [4, 5, 6][tier - 1]
   const dmg = tier === 3 && amount >= 15 ? baseDmg * 2 : baseDmg
 
-  // Per-enemy: damage + hit flash + floating number, same juice as Spell hits.
+  // Per-enemy: damage + hit flash + floating number + death check.
+  // Mirrors what Spell.tsx does so an enemy that hits 0 HP from this perk
+  // actually dies (it would otherwise sit at 0 HP forever, "invincible"
+  // until a spell finally hit it). Exploder enemies queue a detonation
+  // chain instead of dying outright; bosses trigger the victory flow.
   const enemies = useEnemyStore.getState().enemies
   const dmgColor = dmg >= 80 ? '#ef4444' : dmg >= 40 ? '#fbbf24' : '#ffffff'
   let hitCount = 0
   for (const enemy of enemies) {
+    if (enemy.dying || enemy.detonating) continue
     const dx = enemy.position.x - position.x
     const dz = enemy.position.z - position.z
     if (Math.hypot(dx, dz) > radius) continue
@@ -45,6 +50,22 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
     useEnemyStore.getState().damageEnemy(enemy.id, dmg)
     useEnemyStore.getState().setEnemyHitFlash(enemy.id, performance.now() + 100)
     spawnDamageNumberVfx(enemy.position.x, enemy.position.z, dmg, dmgColor)
+
+    const updated = useEnemyStore.getState().enemies.find((e) => e.id === enemy.id)
+    if (!updated || updated.hp > 0) continue
+
+    if (updated.type === 'exploder') {
+      useEnemyStore.getState().setEnemyDetonating(updated.id)
+      window.__queueDetonation?.(updated.id)
+      continue
+    }
+    useEnemyStore.getState().setEnemyDying(updated.id)
+    useGameStore.getState().recordEnemyDefeated()
+    if (updated.type === 'boss') {
+      useEnemyStore.getState().reset()
+      useGameStore.getState().triggerVictory()
+      return
+    }
   }
 
   if (tier >= 2) {
