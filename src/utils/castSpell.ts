@@ -41,6 +41,7 @@ export function castSpell(spellType: SpellType) {
   const spell = buildSpell(spellType)
   ;(window as any).__castSpell?.(spell)
   ;(window as any).__setLastSpellColor?.(PARTICLE_CONFIG[spellType].color)
+  ;(window as any).__playerAttack?.()
 
   // Double Batch perk: chance to cast again after 200ms
   const doubleBatchStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'double_batch')?.stackCount || 0

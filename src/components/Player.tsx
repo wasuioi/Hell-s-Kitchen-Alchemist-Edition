@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
-import { Html } from '@react-three/drei'
+import { Html, useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
 import { usePlayerStore } from '../stores/playerStore'
 import { useGameStore } from '../stores/gameStore'
@@ -12,23 +12,47 @@ const BOUNDARY = ARENA_SIZE / 2 - PLAYER_RADIUS - 0.5
 
 const keys: Record<string, boolean> = {}
 if (typeof window !== 'undefined') {
-  ;(window as any).__playerKeys = keys
+  ; (window as any).__playerKeys = keys
   window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true })
   window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false })
 }
 
+const WIZARD_MODEL_PATH = '/models/wizard/Wizard.gltf'
+const WIZARD_SCALE = 0.9
+
 export default function Player() {
-  const meshRef = useRef<THREE.Mesh>(null)
+  const { scene, animations } = useGLTF(WIZARD_MODEL_PATH)
+  const groupRef = useRef<THREE.Group>(null)
+  const { actions } = useAnimations(animations, groupRef)
+  const currentAnim = useRef<string>('')
+  const isMoving = useRef(false)
+  const isAttacking = useRef(false)
+  const attackEndTime = useRef(0)
+
   const ghostsRef = useRef<{ x: number; z: number; time: number; index: number }[]>([])
   const [ghosts, setGhosts] = useState<{ x: number; z: number; time: number; index: number }[]>([])
   const ghostIndex = useRef(0)
   const lastSpellColor = useRef('#22c55e')
   const dashTrailColor = useRef('#22c55e')
 
+  // Play idle animation on mount
+  useEffect(() => {
+    if (actions['Idle']) {
+      actions['Idle'].play()
+      currentAnim.current = 'Idle'
+    }
+  }, [actions])
+
   useFrame((_, delta) => {
-    // Register global callback so castSpell can notify us of the last spell color
+    // Register global callbacks
     if (!(window as any).__setLastSpellColor) {
-      ;(window as any).__setLastSpellColor = (color: string) => { lastSpellColor.current = color }
+      ; (window as any).__setLastSpellColor = (color: string) => { lastSpellColor.current = color }
+    }
+    if (!(window as any).__playerAttack) {
+      ; (window as any).__playerAttack = () => {
+        isAttacking.current = true
+        attackEndTime.current = performance.now() + 600
+      }
     }
 
     // Clean expired ghosts and sync to state for re-render
@@ -53,7 +77,7 @@ export default function Player() {
     // During dash: move in locked direction at 3x speed
     if (isDashing && dashDirection) {
       const pos = usePlayerStore.getState().position
-      const dashSpeed = PLAYER_SPEED * 3 * timeScale * delta
+      const dashSpeed = PLAYER_SPEED * 2 * timeScale * delta
       const newX = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.x + dashDirection.x * dashSpeed))
       const newZ = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.z + dashDirection.z * dashSpeed))
       // Capture trail color on first frame of dash
@@ -82,7 +106,47 @@ export default function Player() {
     const newX = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.x + dx * PLAYER_SPEED * speedMult * timeScale * delta))
     const newZ = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.z + dz * PLAYER_SPEED * speedMult * timeScale * delta))
     usePlayerStore.getState().setPosition({ x: newX, z: newZ })
-    usePlayerStore.getState().setRotation(Math.atan2(dx, -dz))
+    usePlayerStore.getState().setRotation(Math.atan2(dx, dz))
+
+    // Track movement for animation
+    isMoving.current = true
+  })
+
+  // Switch base animation (Idle/Run) + overlay attack
+  useFrame(() => {
+    const moving = isMoving.current
+    const baseAnim = moving ? 'Run' : 'Idle'
+    isMoving.current = false
+
+    // Switch base animation (Idle <-> Run)
+    if (baseAnim !== currentAnim.current && actions[baseAnim]) {
+      const prev = actions[currentAnim.current]
+      const next = actions[baseAnim]
+      prev?.fadeOut(0.15)
+      next?.reset().fadeIn(0.15).play()
+      currentAnim.current = baseAnim
+    }
+
+    // Play Staff_Attack on top when casting — it plays once then stops
+    if (isAttacking.current && actions['Staff_Attack'] && !actions['Staff_Attack'].isRunning()) {
+      const atk = actions['Staff_Attack']
+      atk.reset()
+      atk.setLoop(THREE.LoopOnce, 1)
+      atk.clampWhenFinished = true
+      atk.timeScale = 1.5
+      atk.play()
+    }
+
+    // Check if attack ended
+    if (isAttacking.current && performance.now() >= attackEndTime.current) {
+      isAttacking.current = false
+      actions['Staff_Attack']?.fadeOut(0.15)
+    }
+
+    // Lock root bone position to prevent animation root motion from drifting the model
+    if (groupRef.current) {
+      scene.position.set(0, 0, 0)
+    }
   })
 
   const phase = useGameStore((s) => s.phase)
@@ -96,11 +160,10 @@ export default function Player() {
   return (
     <>
       <group position={[position.x, 0, position.z]}>
-        <mesh ref={meshRef} position={[0, 0.75, 0]} rotation={[0, rotation, 0]} castShadow>
-          <capsuleGeometry args={[PLAYER_RADIUS, 0.8, 8, 16]} />
-          <meshStandardMaterial color="#22c55e" />
-        </mesh>
-        <Html position={[0, 2, 0]} center>
+        <group ref={groupRef} rotation={[0, rotation, 0]} scale={[WIZARD_SCALE, WIZARD_SCALE, WIZARD_SCALE]}>
+          <primitive object={scene} />
+        </group>
+        <Html position={[0, 2.2, 0]} center>
           <div style={{ width: '60px', height: '6px', background: '#333', borderRadius: '3px', overflow: 'hidden' }}>
             <div style={{ width: `${(hp / maxHp) * 100}%`, height: '100%', background: hp / maxHp > 0.3 ? '#22c55e' : '#ef4444', borderRadius: '3px', transition: 'width 0.2s' }} />
           </div>
@@ -125,3 +188,5 @@ export default function Player() {
     </>
   )
 }
+
+useGLTF.preload(WIZARD_MODEL_PATH)
