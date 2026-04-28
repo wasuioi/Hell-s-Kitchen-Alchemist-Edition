@@ -278,8 +278,6 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
         continue
       }
 
-      const t = age[i] / lt[i]
-
       // Move upward
       positions[i3] += vel[i3] * delta
       positions[i3 + 1] += vel[i3 + 1] * delta
@@ -321,24 +319,9 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
   return (
     <points ref={pointsRef}>
       <bufferGeometry>
-        <bufferAttribute
-          attach="attributes-position"
-          array={positions}
-          count={TOTAL_PARTICLES}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-color"
-          array={colors}
-          count={TOTAL_PARTICLES}
-          itemSize={3}
-        />
-        <bufferAttribute
-          attach="attributes-size"
-          array={sizes}
-          count={TOTAL_PARTICLES}
-          itemSize={1}
-        />
+        <bufferAttribute attach="attributes-position" args={[positions, 3]} />
+        <bufferAttribute attach="attributes-color" args={[colors, 3]} />
+        <bufferAttribute attach="attributes-size" args={[sizes, 1]} />
       </bufferGeometry>
       <pointsMaterial
         map={texture}
