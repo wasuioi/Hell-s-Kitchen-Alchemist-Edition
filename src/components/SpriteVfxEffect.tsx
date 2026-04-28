@@ -15,10 +15,16 @@ import * as THREE from 'three'
 // change needed; the loader resolves the URL from the slug.
 // ────────────────────────────────────────────────────────────────────────────
 
-const COLS = 4
+// 6×4 = 24 frames lets the explosion show a soft burst, peak, ember
+// stage and smoke fade-out over a single play. Source extraction:
+// `ffmpeg ... -vf "fps=3,scale=128:128,tile=6x4" ...` (3fps × 8s = 24).
+const COLS = 6
 const ROWS = 4
 const TOTAL_FRAMES = COLS * ROWS
-const PLAYBACK_DURATION = 0.5 // seconds; chosen to match the perk-trigger feel
+// 1.0s playback gives ~24fps in-game animation — smooth enough that the
+// dimming embers in the last few frames read as a fade rather than a
+// sudden cut. Bumping any higher feels sluggish for a damage reaction.
+const PLAYBACK_DURATION = 1.0
 const FRAME_DURATION = PLAYBACK_DURATION / TOTAL_FRAMES
 const LIFETIME = PLAYBACK_DURATION + 0.05 // small buffer to finish the last frame
 // Plane size in world units. With the frame's visible fire reaching ~80%

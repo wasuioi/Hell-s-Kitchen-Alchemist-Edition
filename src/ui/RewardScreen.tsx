@@ -1,10 +1,21 @@
 import { useState } from 'react'
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
-import { drawPerksWithRarity, MAX_PERK_TIER } from '../data/perks'
+import { drawPerksWithRarity, MAX_PERK_TIER, RARITY_COLOR } from '../data/perks'
 import type { PerkDefinition } from '../data/perks'
 import PerkIcon from './PerkIcon'
 import TierDots from './TierDots'
+import TierDiff from './TierDiff'
+
+// Hex color → rgba(r,g,b,a) — used to tint card backgrounds with the
+// rarity colour without losing the dark base.
+function withAlpha(hex: string, alpha: number): string {
+  const m = hex.replace('#', '')
+  const r = parseInt(m.slice(0, 2), 16)
+  const g = parseInt(m.slice(2, 4), 16)
+  const b = parseInt(m.slice(4, 6), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
 
 export default function RewardScreen() {
   const currentWave = useGameStore((s) => s.currentWave)
@@ -12,12 +23,14 @@ export default function RewardScreen() {
   const [perks, setPerks] = useState<PerkDefinition[]>(() => drawPerksWithRarity(3))
   const [rerollsLeft, setRerollsLeft] = useState(1)
   const [confirmingSkip, setConfirmingSkip] = useState(false)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
-  // What tier will this perk be at if I pick it now?
-  // 0 stacks → picking puts me at T1; 1 stack → T2; 2+ stacks → T3 (capped).
+  function currentTierFor(perkId: string): number {
+    return activePerks.find((p) => p.id === perkId)?.stackCount ?? 0
+  }
+
   function tierAfterPick(perkId: string): number {
-    const current = activePerks.find((p) => p.id === perkId)?.stackCount ?? 0
-    return Math.min(current + 1, MAX_PERK_TIER)
+    return Math.min(currentTierFor(perkId) + 1, MAX_PERK_TIER)
   }
 
   function pickPerk(perk: PerkDefinition) {
@@ -51,46 +64,56 @@ export default function RewardScreen() {
         Choose a perk to upgrade your kitchen
       </p>
 
-      <div style={{ display: 'flex', gap: '20px' }}>
-        {perks.map((perk) => (
-          <button
-            key={perk.id}
-            onClick={() => pickPerk(perk)}
-            style={{
-              width: '180px', padding: '24px 16px',
-              background: 'rgba(255,255,255,0.05)', border: '2px solid rgba(255,255,255,0.2)',
-              borderRadius: '12px', color: 'white', cursor: 'pointer',
-              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
-              transition: 'all 0.2s', fontFamily: 'inherit',
-            }}
-            onMouseEnter={(e) => {
-              const el = e.currentTarget as HTMLButtonElement
-              el.style.background = 'rgba(245,158,11,0.15)'
-              el.style.borderColor = '#f59e0b'
-              el.style.transform = 'translateY(-4px)'
-            }}
-            onMouseLeave={(e) => {
-              const el = e.currentTarget as HTMLButtonElement
-              el.style.background = 'rgba(255,255,255,0.05)'
-              el.style.borderColor = 'rgba(255,255,255,0.2)'
-              el.style.transform = 'translateY(0)'
-            }}
-          >
-            <PerkIcon icon={perk.icon} size={40} />
-            <span style={{ fontSize: '15px', fontWeight: 'bold' }}>{perk.name}</span>
-            <span style={{ fontSize: '12px', opacity: 0.7, textAlign: 'center', lineHeight: '1.4' }}>
-              {perk.description}
-            </span>
-            <div style={{ marginTop: 'auto', paddingTop: '12px' }}>
-              <TierDots tier={tierAfterPick(perk.id)} size="large" />
-            </div>
-          </button>
-        ))}
+      <div style={{ display: 'flex', gap: '24px', alignItems: 'stretch' }}>
+        {perks.map((perk) => {
+          const rarityColor = RARITY_COLOR[perk.rarity]
+          const isHovered = hoveredId === perk.id
+          return (
+            <button
+              key={perk.id}
+              onClick={() => pickPerk(perk)}
+              onMouseEnter={() => setHoveredId(perk.id)}
+              onMouseLeave={() => setHoveredId((id) => (id === perk.id ? null : id))}
+              style={{
+                width: '260px', padding: '28px 22px',
+                background: isHovered ? withAlpha(rarityColor, 0.18) : withAlpha(rarityColor, 0.06),
+                border: `2px solid ${isHovered ? rarityColor : withAlpha(rarityColor, 0.45)}`,
+                borderRadius: '14px', color: 'white', cursor: 'pointer',
+                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px',
+                transition: 'all 0.2s', fontFamily: 'inherit',
+                transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
+                boxShadow: isHovered ? `0 0 28px ${withAlpha(rarityColor, 0.45)}` : 'none',
+              }}
+            >
+              <span style={{
+                fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase',
+                color: rarityColor, fontWeight: 'bold', opacity: 0.9,
+              }}>
+                {perk.rarity}
+              </span>
+              <PerkIcon icon={perk.icon} size={72} />
+              <span style={{ fontSize: '17px', fontWeight: 'bold' }}>{perk.name}</span>
+
+              <div style={{ width: '100%' }}>
+                <TierDiff perk={perk} currentTier={currentTierFor(perk.id)} />
+              </div>
+
+              <div style={{ marginTop: 'auto', paddingTop: '14px' }}>
+                <TierDots
+                  current={currentTierFor(perk.id)}
+                  preview={tierAfterPick(perk.id)}
+                  hovered={isHovered}
+                  size="large"
+                />
+              </div>
+            </button>
+          )
+        })}
       </div>
 
       <div style={{
         display: 'flex', gap: '12px', marginTop: '28px',
-        width: '580px', justifyContent: 'space-between', alignItems: 'center',
+        width: '820px', justifyContent: 'space-between', alignItems: 'center',
       }}>
         <button
           onClick={handleReroll}

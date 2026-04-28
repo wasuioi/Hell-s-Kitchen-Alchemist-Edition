@@ -1,2 +1,8 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { overflow: hidden; background: #000; }
+
+/* Tier-dot blink — tease the upgrade tier on hover (TierDots.tsx) */
+@keyframes tier-dot-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}

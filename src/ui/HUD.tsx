@@ -56,7 +56,7 @@ export default function HUD() {
             <div key={perk.id} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <PerkIcon icon={perk.icon} size={16} />
               <span>{perk.name}</span>
-              <TierDots tier={Math.min(perk.stackCount, MAX_PERK_TIER)} size="small" />
+              <TierDots current={Math.min(perk.stackCount, MAX_PERK_TIER)} size="small" />
               {perk.stackCount > MAX_PERK_TIER && (
                 <span style={{ color: '#fcd34d', fontWeight: 'bold', fontSize: '10px' }}>+{perk.stackCount - MAX_PERK_TIER}</span>
               )}
