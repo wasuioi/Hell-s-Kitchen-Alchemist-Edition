@@ -14,6 +14,7 @@ export const PERK_POOL: PerkDefinition[] = [
   { id: 'heavy_salt', name: 'Heavy Salt', icon: '🪨', description: 'Salt spells push enemies 2x further', rarity: 'common' },
   { id: 'fast_prep', name: 'Fast Prep', icon: '⚡', description: 'Cook cooldown reduced by 0.5s', rarity: 'rare' },
   { id: 'double_batch', name: 'Double Batch', icon: '🧪', description: '10% chance spell triggers twice', rarity: 'epic' },
+  { id: 'grease_fire', name: 'Grease Fire', icon: '🔥', description: 'Taking damage erupts a fiery grease burst around you, scorching nearby enemies. 2s cooldown.', rarity: 'rare' },
 ]
 
 function pickWeightedRarity(): PerkRarity {
