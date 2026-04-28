@@ -42,8 +42,8 @@ Tasks are stored as `~/.claude/scheduled-tasks/{taskId}/SKILL.md` files. Each ru
 3. Read `docs/game-design/themes.md` → extract today's theme + focus areas + suggested files. On Sat/Sun (free critique), the task picks any theme it judges most relevant given the recent code changes.
 4. Read `docs/game-design/reference-games.md` → pick one game whose "Best for" includes today's theme. If multiple match, pick one not used yet today (look at any earlier same-day issues via `gh issue list`); otherwise pick whichever the task judges most relevant.
 5. Read the suggested code files for context.
-6. **Proposal tasks only (12/14/16):** find the morning critique issue using `gh issue list --label daily-critique --state open --search "[Game Design <today>] in:title" --json number,body --limit 1`, then use the returned `body` as input. If the list is empty, proceed without it.
-7. Compose the issue body using the template for the task type.
+6. **Proposal tasks only (12/14/16):** find the morning critique issue using `gh issue list --label daily-critique --state open --search "[Game Design <today>] in:title" --json number,body --limit 1`. Capture the issue number for the "Builds on critique: #N" line in the body. Use the body content as input when generating the proposal. If the list is empty, the "Builds on critique" line becomes "none — standalone proposal".
+7. Compose the issue body using the template for the task type. Proposal bodies MUST start with the `Implementation note for @claude implement` blockquote so a downstream implementer is told to re-read the critique before coding.
 8. `gh issue create --title "..." --label "game-design,<type-label>" --body-file <tmp>`.
 
 ### Cwd & repo target
@@ -86,9 +86,14 @@ Examples:
 ### Body — proposal (12:00 / 14:00 / 16:00)
 
 ```markdown
-## Theme & link
-<theme name> · uses critique from #<morning-issue-number>
-(omit the "uses critique from" clause if no morning critique exists)
+> **Implementation note for `@claude implement`:** Before writing any code, read the linked critique issue (see "Context" below) in full via `gh issue view <number> --json title,body`. The proposal builds on observations made there; implementing without that context will miss the point.
+
+## Context
+- Theme: <theme name>
+- Builds on critique: #<morning-issue-number>
+- Reference: <game name>
+
+(If no morning critique exists for today, replace the "Builds on critique" line with `Builds on critique: none — standalone proposal` so the implementer doesn't waste time searching.)
 
 ## Idea
 <1-2 sentences>
@@ -104,7 +109,7 @@ Examples:
 - <What might break or feel worse>
 ```
 
-Target length: 150-300 words per issue. Scannable, not essay-length.
+Target length: 150-300 words per issue. Scannable, not essay-length. The "Implementation note" callout at the top is mandatory — it is the contract with `@claude implement` that critique context must be loaded first.
 
 ### Labels
 
