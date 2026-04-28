@@ -2,12 +2,20 @@ import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
+import { usePlayerStore } from '../stores/playerStore'
 import { ARENA_SIZE } from './Arena'
 import Enemy from './Enemy'
+import { spawnDamageNumber } from './DamageNumbers'
+import { getDistance } from '../utils/collision'
 import type { EnemyType } from '../types'
+import { spawnExplosion } from './ExplosionEffect'
 
 const SPAWN_INTERVAL_BASE = 3
 const ENEMIES_PER_WAVE = 20
+const EXPLODER_RADIUS = 3
+const EXPLODER_PLAYER_DAMAGE = 15
+const EXPLODER_ENEMY_DAMAGE = 20
+const DETONATION_DELAY = 400 // ms
 
 function getSpawnPosition(): { x: number; z: number } {
   const edge = Math.floor(Math.random() * 4)
@@ -23,10 +31,16 @@ function getSpawnPosition(): { x: number; z: number } {
 
 function getEnemyType(wave: number): EnemyType {
   if (wave <= 3) return 'slow'
-  if (wave <= 6) return Math.random() < 0.6 ? 'fast' : 'slow'
+  if (wave <= 6) {
+    const roll = Math.random()
+    if (roll < 0.15) return 'exploder'
+    if (roll < 0.55) return 'fast'
+    return 'slow'
+  }
   const roll = Math.random()
-  if (roll < 0.3) return 'tanky'
-  if (roll < 0.7) return 'fast'
+  if (roll < 0.2) return 'exploder'
+  if (roll < 0.45) return 'tanky'
+  if (roll < 0.75) return 'fast'
   return 'slow'
 }
 
@@ -35,6 +49,7 @@ export default function EnemyManager() {
   const spawnedCount = useRef(0)
   const waveTimer = useRef(0)
   const prevPhase = useRef<string>('menu')
+  const pendingDetonations = useRef<Map<string, { time: number; chainDepth: number }>>(new Map())
 
   useFrame((_, delta) => {
     const { phase, currentWave, timeScale } = useGameStore.getState()
@@ -47,6 +62,62 @@ export default function EnemyManager() {
 
     if (phase !== 'combat') return
     const dt = delta * timeScale
+
+    // Register global detonation callback so Spell.tsx and Enemy.tsx can queue detonations
+    if (!(window as any).__queueDetonation) {
+      ;(window as any).__queueDetonation = (enemyId: string, chainDepth = 0) => {
+        pendingDetonations.current.set(enemyId, { time: performance.now() + DETONATION_DELAY, chainDepth })
+      }
+    }
+
+    // Process pending detonations
+    const now = performance.now()
+    for (const [enemyId, det] of pendingDetonations.current) {
+      if (now >= det.time) {
+        pendingDetonations.current.delete(enemyId)
+        const enemy = useEnemyStore.getState().enemies.find((e) => e.id === enemyId)
+        if (!enemy) continue
+
+        // Explosion AoE damage to nearby enemies
+        const enemies = useEnemyStore.getState().enemies
+        for (const other of enemies) {
+          if (other.id === enemyId || other.dying) continue
+          const dist = getDistance(other.position, enemy.position)
+          if (dist <= EXPLODER_RADIUS) {
+            useEnemyStore.getState().damageEnemy(other.id, EXPLODER_ENEMY_DAMAGE)
+            useEnemyStore.getState().setEnemyHitFlash(other.id, now + 100)
+            spawnDamageNumber(other.position.x, other.position.z, EXPLODER_ENEMY_DAMAGE, '#f97316')
+
+            // Chain reaction: if we killed another exploder
+            const updated = useEnemyStore.getState().enemies.find((e) => e.id === other.id)
+            if (updated && updated.hp <= 0 && updated.type === 'exploder' && !updated.detonating) {
+              useEnemyStore.getState().setEnemyDetonating(other.id)
+              pendingDetonations.current.set(other.id, { time: now + DETONATION_DELAY, chainDepth: det.chainDepth + 1 })
+            } else if (updated && updated.hp <= 0 && !updated.dying) {
+              useEnemyStore.getState().setEnemyDying(updated.id)
+              useGameStore.getState().recordEnemyDefeated()
+            }
+          }
+        }
+
+        // Damage player if in range
+        const playerPos = usePlayerStore.getState().position
+        const isDashing = usePlayerStore.getState().isDashing
+        if (!isDashing && getDistance(playerPos, enemy.position) <= EXPLODER_RADIUS) {
+          usePlayerStore.getState().takeDamage(EXPLODER_PLAYER_DAMAGE)
+          if (usePlayerStore.getState().hp <= 0) useGameStore.getState().triggerDeath()
+        }
+
+        // Spawn explosion visual effect
+        spawnExplosion(enemy.position.x, enemy.position.z, det.chainDepth)
+
+        // Screen shake + start death animation for the exploder
+        useGameStore.getState().triggerScreenShake(0.6, 200)
+        useEnemyStore.getState().setEnemyDying(enemyId)
+        useGameStore.getState().recordEnemyDefeated()
+      }
+    }
+
     waveTimer.current += dt
     spawnTimer.current += dt
     const spawnInterval = Math.max(1, SPAWN_INTERVAL_BASE - currentWave * 0.2)
@@ -58,9 +129,9 @@ export default function EnemyManager() {
     const enemies = useEnemyStore.getState().enemies
     const allSpawned = spawnedCount.current >= ENEMIES_PER_WAVE
     const allDead = allSpawned && enemies.length === 0
-    const timeUp = waveTimer.current >= 60
-    if (allDead || timeUp) {
+    if (allDead) {
       spawnTimer.current = 0; spawnedCount.current = 0; waveTimer.current = 0
+      pendingDetonations.current.clear()
       useEnemyStore.getState().reset()
       if (currentWave >= 7) useGameStore.getState().startBoss()
       else useGameStore.getState().completeWave()

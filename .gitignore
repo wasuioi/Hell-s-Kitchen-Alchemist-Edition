@@ -22,3 +22,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Worktrees
+.worktrees
+
+# Superpowers brainstorm files
+.superpowers

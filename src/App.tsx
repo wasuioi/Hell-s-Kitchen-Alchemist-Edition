@@ -2,12 +2,15 @@ import { useEffect, useRef } from 'react'
 import Scene from './components/Scene'
 import { useGameStore } from './stores/gameStore'
 import { useDeckStore } from './stores/deckStore'
+import { usePlayerStore } from './stores/playerStore'
 import { castSpell } from './utils/castSpell'
 import HUD from './ui/HUD'
 import MainMenu from './ui/MainMenu'
 import RewardScreen from './ui/RewardScreen'
 import DeathScreen from './ui/DeathScreen'
 import VictoryScreen from './ui/VictoryScreen'
+import DebugPanel from './ui/DebugPanel'
+import VfxPicker from './ui/VfxPicker'
 
 export default function App() {
   const phase = useGameStore((s) => s.phase)
@@ -36,6 +39,27 @@ export default function App() {
         useGameStore.getState().recordSpellCast(spell)
         castSpell(spell)
       }
+      else if (e.key === 'Shift') {
+        const ps = usePlayerStore.getState()
+        if (ps.isDashing || ps.status === 'stunned') return
+        if (performance.now() < ps.dashCooldownUntil) return
+        // Calculate dash direction: use current movement keys or fall back to rotation
+        let dx = 0, dz = 0
+        const playerKeys = (window as any).__playerKeys as Record<string, boolean> | undefined
+        if (playerKeys) {
+          if (playerKeys['w'] || playerKeys['arrowup']) dz -= 1
+          if (playerKeys['s'] || playerKeys['arrowdown']) dz += 1
+          if (playerKeys['a'] || playerKeys['arrowleft']) dx -= 1
+          if (playerKeys['d'] || playerKeys['arrowright']) dx += 1
+        }
+        if (dx === 0 && dz === 0) {
+          // Fall back to rotation
+          dx = Math.sin(ps.rotation)
+          dz = -Math.cos(ps.rotation)
+        }
+        const len = Math.sqrt(dx * dx + dz * dz)
+        ps.startDash({ x: dx / len, z: dz / len })
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -51,6 +75,8 @@ export default function App() {
       {phase === 'reward' && <RewardScreen />}
       {phase === 'death' && <DeathScreen />}
       {phase === 'victory' && <VictoryScreen />}
+      <DebugPanel />
+      <VfxPicker />
     </div>
   )
 }

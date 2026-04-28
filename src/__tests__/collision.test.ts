@@ -11,10 +11,11 @@ describe('isInRange', () => {
   it('returns true when exactly at radius', () => { expect(isInRange({ x: 0, z: 0 }, { x: 3, z: 4 }, 5)).toBe(true) })
 })
 describe('findNearestEnemy', () => {
+  const base = { hp: 10, maxHp: 10, type: 'slow' as const, status: 'normal' as const, knockback: null, hitFlashUntil: 0, dying: false, detonating: false }
   const enemies = [
-    { id: 'a', position: { x: 10, z: 0 }, hp: 10, maxHp: 10, type: 'slow' as const, status: 'normal' as const },
-    { id: 'b', position: { x: 2, z: 0 }, hp: 10, maxHp: 10, type: 'slow' as const, status: 'normal' as const },
-    { id: 'c', position: { x: 5, z: 0 }, hp: 10, maxHp: 10, type: 'slow' as const, status: 'normal' as const },
+    { id: 'a', position: { x: 10, z: 0 }, ...base },
+    { id: 'b', position: { x: 2, z: 0 }, ...base },
+    { id: 'c', position: { x: 5, z: 0 }, ...base },
   ]
   it('returns the nearest enemy', () => { expect(findNearestEnemy({ x: 0, z: 0 }, enemies)?.id).toBe('b') })
   it('returns null for empty array', () => { expect(findNearestEnemy({ x: 0, z: 0 }, [])).toBeNull() })

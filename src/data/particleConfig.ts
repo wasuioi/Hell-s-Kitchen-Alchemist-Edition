@@ -7,6 +7,7 @@ export interface ParticleSpellConfig {
   burstDirection: 'sphere' | 'hemisphere'
   meteorJitter?: boolean
   fireFlicker?: boolean
+  burstCount?: number
 }
 
 export const PARTICLE_CONFIG: Record<SpellType, ParticleSpellConfig> = {
@@ -16,6 +17,7 @@ export const PARTICLE_CONFIG: Record<SpellType, ParticleSpellConfig> = {
     texture: 'circle',
     burstDirection: 'sphere',
     fireFlicker: true,
+    burstCount: 100,
   },
   TIDAL_WAVE: {
     color: '#3b82f6',
@@ -41,6 +43,7 @@ export const PARTICLE_CONFIG: Record<SpellType, ParticleSpellConfig> = {
     texture: 'square',
     burstDirection: 'hemisphere',
     meteorJitter: true,
+    burstCount: 100,
   },
   MUD: {
     color: '#b48c50',

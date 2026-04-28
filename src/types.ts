@@ -2,7 +2,7 @@ export type Ingredient = 'CHILI' | 'BOTTLE' | 'SALT'
 
 export type SpellType = 'INFERNO' | 'TIDAL_WAVE' | 'FORTRESS' | 'STEAM' | 'METEOR' | 'MUD'
 
-export type EnemyType = 'slow' | 'fast' | 'tanky' | 'boss'
+export type EnemyType = 'slow' | 'fast' | 'tanky' | 'boss' | 'exploder'
 
 export type GamePhase = 'menu' | 'combat' | 'reward' | 'boss' | 'death' | 'victory'
 
@@ -13,6 +13,11 @@ export interface Position {
   z: number
 }
 
+export interface Knockback {
+  vx: number
+  vz: number
+}
+
 export interface Enemy {
   id: string
   position: Position
@@ -20,6 +25,18 @@ export interface Enemy {
   maxHp: number
   type: EnemyType
   status: StatusEffect
+  knockback: Knockback | null
+  hitFlashUntil: number
+  dying: boolean
+  detonating: boolean
+}
+
+export interface DamageNumber {
+  id: string
+  position: { x: number; y: number; z: number }
+  amount: number
+  color: string
+  createdAt: number
 }
 
 export interface GameStats {

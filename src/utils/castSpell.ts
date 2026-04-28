@@ -1,5 +1,6 @@
 import type { SpellType, SpellEffect } from '../types'
 import { SPELL_CONFIG } from '../data/recipes'
+import { PARTICLE_CONFIG } from '../data/particleConfig'
 import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useDeckStore } from '../stores/deckStore'
@@ -39,6 +40,8 @@ function buildSpell(spellType: SpellType): SpellEffect {
 export function castSpell(spellType: SpellType) {
   const spell = buildSpell(spellType)
   ;(window as any).__castSpell?.(spell)
+  ;(window as any).__setLastSpellColor?.(PARTICLE_CONFIG[spellType].color)
+  ;(window as any).__playerAttack?.()
 
   // Double Batch perk: chance to cast again after 200ms
   const doubleBatchStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'double_batch')?.stackCount || 0

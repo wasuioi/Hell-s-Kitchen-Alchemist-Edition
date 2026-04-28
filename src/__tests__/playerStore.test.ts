@@ -19,3 +19,40 @@ describe('usePlayerStore', () => {
     expect(usePlayerStore.getState().hp).toBe(100); expect(usePlayerStore.getState().position).toEqual({ x: 0, z: 0 }); expect(usePlayerStore.getState().status).toBe('normal')
   })
 })
+
+describe('playerStore dash', () => {
+  beforeEach(() => {
+    usePlayerStore.getState().reset()
+  })
+
+  it('startDash sets isDashing and dashDirection', () => {
+    usePlayerStore.getState().startDash({ x: 1, z: 0 })
+    const state = usePlayerStore.getState()
+    expect(state.isDashing).toBe(true)
+    expect(state.dashDirection).toEqual({ x: 1, z: 0 })
+    expect(state.dashCooldownUntil).toBeGreaterThan(0)
+  })
+
+  it('endDash clears isDashing and dashDirection', () => {
+    usePlayerStore.getState().startDash({ x: 0, z: -1 })
+    usePlayerStore.getState().endDash()
+    const state = usePlayerStore.getState()
+    expect(state.isDashing).toBe(false)
+    expect(state.dashDirection).toBeNull()
+  })
+
+  it('startDash removes soaked status', () => {
+    usePlayerStore.getState().setStatus('soaked')
+    usePlayerStore.getState().startDash({ x: 1, z: 0 })
+    expect(usePlayerStore.getState().status).toBe('normal')
+  })
+
+  it('reset clears dash state', () => {
+    usePlayerStore.getState().startDash({ x: 1, z: 0 })
+    usePlayerStore.getState().reset()
+    const state = usePlayerStore.getState()
+    expect(state.isDashing).toBe(false)
+    expect(state.dashDirection).toBeNull()
+    expect(state.dashCooldownUntil).toBe(0)
+  })
+})
