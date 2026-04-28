@@ -1,0 +1,84 @@
+name: Save Perk/Artifact Icon
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  save-icon:
+    if: |
+      contains(github.event.comment.body, '/save-icon') ||
+      contains(github.event.comment.body, 'save this as the icon for')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse slug + image URL from comment
+        id: parse
+        env:
+          BODY: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+          # Extract slug after either "/save-icon <slug>" or "save this as the icon for <slug>"
+          SLUG=$(printf '%s' "$BODY" | grep -oE '(/save-icon|save this as the icon for)[[:space:]]+[a-z][a-z0-9_]*' | head -1 | awk '{print $NF}')
+          # Extract image URL (HTML <img src="..."> or markdown ![](...))
+          URL=$(printf '%s' "$BODY" | grep -oE 'https://github\.com/user-attachments/assets/[a-f0-9-]+' | head -1)
+          if [ -z "$URL" ]; then
+            URL=$(printf '%s' "$BODY" | grep -oE 'https://[a-zA-Z0-9._/-]+\.(png|jpg|jpeg|webp)' | head -1)
+          fi
+          if [ -z "$SLUG" ]; then
+            echo "::error::Could not parse slug. Format: '/save-icon <slug>' or 'save this as the icon for <slug>'"
+            exit 1
+          fi
+          if [ -z "$URL" ]; then
+            echo "::error::No image URL found. Did you attach an image to the comment?"
+            exit 1
+          fi
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Slug: $SLUG"
+          echo "URL: $URL"
+
+      - name: Download icon
+        run: |
+          set -euo pipefail
+          mkdir -p public/icons
+          curl -L --fail --silent --show-error \
+            -o "public/icons/${{ steps.parse.outputs.slug }}.png" \
+            "${{ steps.parse.outputs.url }}"
+          file "public/icons/${{ steps.parse.outputs.slug }}.png"
+
+      - name: Create branch and PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SLUG="${{ steps.parse.outputs.slug }}"
+          BRANCH="claude/icon-$SLUG-$(date +%s)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add "public/icons/$SLUG.png"
+          git commit -m "chore: add $SLUG icon"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "chore: add $SLUG icon" \
+            --body "Auto-saved from comment ${{ github.event.comment.html_url }}." \
+            --base main \
+            --head "$BRANCH"
+
+      - name: React rocket on the original comment
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X POST \
+            "/repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions" \
+            -f content=rocket
