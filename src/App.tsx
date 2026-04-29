@@ -45,7 +45,7 @@ export default function App() {
         if (performance.now() < ps.dashCooldownUntil) return
         // Calculate dash direction: use current movement keys or fall back to rotation
         let dx = 0, dz = 0
-        const playerKeys = (window as any).__playerKeys as Record<string, boolean> | undefined
+        const playerKeys = (window as Window & { __playerKeys?: Record<string, boolean> }).__playerKeys
         if (playerKeys) {
           if (playerKeys['w'] || playerKeys['arrowup']) dz -= 1
           if (playerKeys['s'] || playerKeys['arrowdown']) dz += 1
