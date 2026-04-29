@@ -51,6 +51,13 @@ export function castSpell(spellType: SpellType) {
   // Salt Speed: grant the player a speed buff (stacks duration if cast again)
   if (spellType === 'SALT_SPEED') applySaltSpeedBuff()
 
+  // Ashen Apron: every successful cast builds one soot charge (capped at tier max)
+  const apron = useDeckStore.getState().activePerks.find((p) => p.id === 'ashen_apron')
+  if (apron) {
+    const max = [3, 5, 7][Math.min(apron.stackCount, 3) - 1]
+    usePlayerStore.getState().addAshCharge(max)
+  }
+
   // Double Batch perk: chance to cast again after 200ms
   const doubleBatchStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'double_batch')?.stackCount || 0
   if (doubleBatchStacks > 0 && Math.random() < 0.1 * doubleBatchStacks) {

@@ -72,6 +72,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { Damage: 40, Radius: 4.5, Cooldown: '2.0s' }, added: 'Doubles damage on heavy hits, ignites enemies (Burn 3s DOT)' },
     ],
   },
+  {
+    id: 'ashen_apron', name: 'Ashen Apron', icon: '/icons/ashen_apron.png',
+    description: 'Casting spells builds soot charges on your apron. Each charge absorbs incoming damage; T2+ releases a scalding ash burst when a charge breaks.',
+    rarity: 'epic', vfxSprite: 'ash_burst',
+    tiers: [
+      { stats: { Charges: 3, DamageReduced: '50%' } },
+      { stats: { Charges: 5, DamageReduced: '70%' }, added: 'Consumed charge bursts (15 dmg, 3u radius)' },
+      { stats: { Charges: 7, DamageReduced: '90%' }, added: 'Burst upgraded (25 dmg, 5u, applies Soaked 1.5s)' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

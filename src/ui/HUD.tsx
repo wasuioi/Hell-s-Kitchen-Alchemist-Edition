@@ -15,6 +15,10 @@ export default function HUD() {
   const activePerks = useDeckStore((s) => s.activePerks)
   const dashCooldownUntil = usePlayerStore((s) => s.dashCooldownUntil)
   const speedBuffUntil = usePlayerStore((s) => s.speedBuffUntil)
+  const ashCharges = usePlayerStore((s) => s.ashCharges)
+  const apronPerk = useDeckStore((s) => s.activePerks.find((p) => p.id === 'ashen_apron'))
+  const apronTier = apronPerk ? Math.min(apronPerk.stackCount, 3) : 0
+  const apronMaxCharges = apronPerk ? [3, 5, 7][apronTier - 1] : 0
 
   // Update dash cooldown display on an interval (avoids performance.now() in render)
   const [dashReady, setDashReady] = useState(true)
@@ -110,6 +114,23 @@ export default function HUD() {
           <span>👟</span>
           <span style={{ color: '#22c55e', fontSize: '16px' }}>↑</span>
           <span style={{ color: '#22c55e', fontSize: '13px', minWidth: '28px' }}>{speedBuffSecondsLeft.toFixed(1)}s</span>
+        </div>
+      )}
+      {/* Ashen Apron charge readout */}
+      {apronPerk && (
+        <div style={{
+          position: 'absolute', bottom: '115px', right: '24px', zIndex: 10,
+          background: 'rgba(0,0,0,0.6)', borderRadius: '8px', padding: '6px 10px',
+          color: 'white', fontSize: '13px', fontWeight: 'bold',
+          display: 'flex', alignItems: 'center', gap: '6px',
+          boxShadow: '0 0 8px rgba(168,139,250,0.4)',
+        }}>
+          <span style={{ fontSize: '11px', opacity: 0.7 }}>ASH</span>
+          <span style={{ letterSpacing: '2px' }}>
+            {Array.from({ length: apronMaxCharges }, (_, i) => (
+              <span key={i} style={{ color: i < ashCharges ? '#a78bfa' : '#4b5563' }}>●</span>
+            ))}
+          </span>
         </div>
       )}
       <ScreenFlash />
