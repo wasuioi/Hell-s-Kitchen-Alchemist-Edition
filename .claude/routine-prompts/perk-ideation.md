@@ -19,6 +19,12 @@ Tech stack the perks must integrate with:
 - Sprite-sheet VFX system in `src/components/SpriteVfxEffect.tsx`
   (6×4 grid, 24 frames, additive blending, flat-on-ground plane)
 - Tier diff UI in `src/ui/TierDiff.tsx` reads `PerkDefinition.tiers`
+- Reward card layout (`src/ui/RewardScreen.tsx`, `src/ui/DevPanel.tsx`):
+  the perk **name** sits at the top of the card, colored with
+  `RARITY_COLOR[rarity]` (gray / blue / purple / gold). There is **no
+  separate `EPIC` / `RARE` text badge** — rarity is communicated by the
+  name color + border + glow. Keep this in mind when designing perks:
+  a long name eats the top slot, so prefer 1–2 words.
 
 Every routine run, generate **ONE** new perk issue on the GitHub repo using
 the structured template below. Pick a roguelike-style perk that combos with
