@@ -51,9 +51,9 @@ export const PERK_POOL: PerkDefinition[] = [
     description: 'Taking damage erupts a fiery grease burst around you, scorching nearby enemies. 2s cooldown.',
     rarity: 'rare', vfxSprite: 'grease_fire',
     tiers: [
-      { stats: { Damage: 15, Radius: 2.5, Cooldown: '2.0s' } },
-      { stats: { Damage: 25, Radius: 3.5, Cooldown: '1.5s' } },
-      { stats: { Damage: 40, Radius: 4.5, Cooldown: '1.0s' }, added: 'Doubles damage on heavy hits, ignites enemies (Burn 3s DOT)' },
+      { stats: { Damage: 15, Radius: 2.5, Cooldown: '3.0s' } },
+      { stats: { Damage: 25, Radius: 3.5, Cooldown: '2.5s' } },
+      { stats: { Damage: 40, Radius: 4.5, Cooldown: '2.0s' }, added: 'Doubles damage on heavy hits, ignites enemies (Burn 3s DOT)' },
     ],
   },
 ]

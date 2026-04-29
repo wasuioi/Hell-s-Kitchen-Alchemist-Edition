@@ -23,7 +23,7 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
   if (stacks === 0) return
 
   const tier = Math.min(stacks, 3)
-  const baseCd = [2.0, 1.5, 1.0][tier - 1]
+  const baseCd = [3.0, 2.5, 2.0][tier - 1]
   const cd = Math.max(0.5, baseCd - 0.2 * Math.max(0, stacks - tier))
   const now = performance.now() / 1000
   if (now - lastGreaseFireAt < cd) return
