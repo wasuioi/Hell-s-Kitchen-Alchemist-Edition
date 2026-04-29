@@ -44,18 +44,13 @@ export const RARITY_WEIGHTS: Record<PerkRarity, number> = {
 export const PERK_POOL: PerkDefinition[] = [
   {
     id: 'extra_spicy', name: 'Extra Spicy', icon: '🌶️',
-    description: 'Chili spells +20% damage, smaller AOE',
+    description: 'Chili spells +20% damage, smaller AOE; ignites enemies (Burn 🔥)',
     rarity: 'common',
   },
   {
     id: 'deep_freeze', name: 'Deep Freeze', icon: '🧊',
-    description: 'Bottle spells stun enemies for 2 seconds',
+    description: 'Bottle spells Freeze enemies for 2s (immobilized)',
     rarity: 'rare',
-  },
-  {
-    id: 'heavy_salt', name: 'Heavy Salt', icon: '🪨',
-    description: 'Salt spells push enemies 2x further',
-    rarity: 'common',
   },
   {
     id: 'fast_prep', name: 'Fast Prep', icon: '⚡',
@@ -72,9 +67,9 @@ export const PERK_POOL: PerkDefinition[] = [
     description: 'Taking damage erupts a fiery grease burst around you, scorching nearby enemies. 2s cooldown.',
     rarity: 'rare', vfxSprite: 'grease_fire',
     tiers: [
-      { stats: { Damage: 15, Radius: 2.5, Cooldown: '2.0s' } },
-      { stats: { Damage: 25, Radius: 3.5, Cooldown: '1.5s' }, added: 'Soaks enemies for 1.5s' },
-      { stats: { Damage: 40, Radius: 4.5, Cooldown: '1.0s' }, added: 'Doubles damage on heavy hits, stuns instead of soaks' },
+      { stats: { Damage: 15, Radius: 2.5, Cooldown: '3.0s' } },
+      { stats: { Damage: 25, Radius: 3.5, Cooldown: '2.5s' } },
+      { stats: { Damage: 40, Radius: 4.5, Cooldown: '2.0s' }, added: 'Doubles damage on heavy hits, ignites enemies (Burn 3s DOT)' },
     ],
   },
 ]

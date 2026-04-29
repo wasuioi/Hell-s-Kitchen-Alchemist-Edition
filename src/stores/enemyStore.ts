@@ -11,10 +11,18 @@ interface EnemyState {
   spawnEnemy: (type: EnemyType, position: Position) => void
   damageEnemy: (id: string, amount: number) => void
   damageEnemiesInRadius: (center: Position, radius: number, amount: number) => void
-  applyStatusInRadius: (center: Position, radius: number, status: StatusEffect, duration: number) => void
+  applyStatusInRadius: (center: Position, radius: number, status: StatusEffect | 'burning', duration: number) => void
   removeEnemy: (id: string) => void
   updateEnemyPosition: (id: string, position: Position) => void
-  setEnemyStatus: (id: string, status: StatusEffect) => void
+  setEnemySoaked: (id: string, until: number) => void
+  setEnemyFrozen: (id: string, until: number) => void
+  setEnemyBurning: (id: string, until: number) => void
+  setEnemyPoisoned: (id: string, until: number) => void
+  setEnemySlowed: (id: string, until: number) => void
+  setEnemyStunned: (id: string, until: number) => void
+  clearEnemySoaked: (id: string) => void
+  clearEnemyFrozen: (id: string) => void
+  clearEnemyStunned: (id: string) => void
   setEnemyKnockback: (id: string, knockback: Knockback | null) => void
   setEnemyHitFlash: (id: string, until: number) => void
   setEnemyDying: (id: string) => void
@@ -28,7 +36,8 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
     const hp = BASE_HP * HP_MULTIPLIER[type]
     set((s) => ({
       enemies: [...s.enemies, {
-        id: `enemy_${nextId++}`, position, hp, maxHp: hp, type, status: 'normal',
+        id: `enemy_${nextId++}`, position, hp, maxHp: hp, type,
+        soakedUntil: 0, frozenUntil: 0, burningUntil: 0, poisonedUntil: 0, slowedUntil: 0, stunnedUntil: 0,
         knockback: null, hitFlashUntil: 0, dying: false, detonating: false,
       }],
     }))
@@ -40,14 +49,29 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
   applyStatusInRadius: (center, radius, status, duration) => {
     const affectedIds = get().enemies.filter((e) => isInRange(center, e.position, radius)).map((e) => e.id)
     if (affectedIds.length === 0) return
-    set((s) => ({ enemies: s.enemies.map((e) => affectedIds.includes(e.id) ? { ...e, status } : e) }))
-    for (const id of affectedIds) {
-      setTimeout(() => { useEnemyStore.getState().setEnemyStatus(id, 'normal') }, duration * 1000)
-    }
+    // Map status name to its expiry-timestamp field.
+    const field: keyof Enemy | null =
+      status === 'soaked' ? 'soakedUntil' :
+      status === 'stunned' ? 'stunnedUntil' :
+      status === 'burning' ? 'burningUntil' :
+      null
+    if (!field) return
+    const until = performance.now() + duration * 1000
+    set((s) => ({
+      enemies: s.enemies.map((e) => affectedIds.includes(e.id) ? { ...e, [field]: until } : e),
+    }))
   },
   removeEnemy: (id) => set((s) => ({ enemies: s.enemies.filter((e) => e.id !== id) })),
   updateEnemyPosition: (id, position) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, position } : e) })),
-  setEnemyStatus: (id, status) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, status } : e) })),
+  setEnemySoaked: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, soakedUntil: until } : e) })),
+  setEnemyFrozen: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, frozenUntil: until } : e) })),
+  setEnemyBurning: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, burningUntil: until } : e) })),
+  setEnemyPoisoned: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, poisonedUntil: until } : e) })),
+  setEnemySlowed: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, slowedUntil: until } : e) })),
+  setEnemyStunned: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, stunnedUntil: until } : e) })),
+  clearEnemySoaked: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, soakedUntil: 0 } : e) })),
+  clearEnemyFrozen: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, frozenUntil: 0 } : e) })),
+  clearEnemyStunned: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, stunnedUntil: 0 } : e) })),
   setEnemyKnockback: (id, knockback) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, knockback } : e) })),
   setEnemyHitFlash: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, hitFlashUntil: until } : e) })),
   setEnemyDying: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, dying: true } : e) })),

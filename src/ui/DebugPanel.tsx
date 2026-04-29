@@ -3,11 +3,13 @@ import { useGameStore } from '../stores/gameStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useDeckStore } from '../stores/deckStore'
+import { PERK_POOL, type PerkDefinition } from '../data/perks'
 
 export default function DebugPanel() {
   const [open, setOpen] = useState(false)
   const phase = useGameStore((s) => s.phase)
   const currentWave = useGameStore((s) => s.currentWave)
+  const activePerks = useDeckStore((s) => s.activePerks)
 
   function skipToWave(wave: number) {
     useEnemyStore.getState().reset()
@@ -23,6 +25,14 @@ export default function DebugPanel() {
   function healFull() {
     const { maxHp } = usePlayerStore.getState()
     usePlayerStore.getState().heal(maxHp)
+  }
+
+  function grantPerk(def: PerkDefinition) {
+    useDeckStore.getState().addPerk({ ...def, stackCount: 1 })
+  }
+
+  function clearPerks() {
+    useDeckStore.getState().clearPerks()
   }
 
   return (
@@ -77,6 +87,39 @@ export default function DebugPanel() {
             }}
           >
             Full Heal
+          </button>
+          <div style={{ opacity: 0.6, marginTop: '4px' }}>Perks (click to +1 stack)</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {PERK_POOL.map((perk) => {
+              const stack = activePerks.find((p) => p.id === perk.id)?.stackCount || 0
+              return (
+                <button
+                  key={perk.id}
+                  onClick={() => grantPerk(perk)}
+                  title={perk.description}
+                  style={{
+                    background: stack > 0 ? '#7c3aed' : '#333', color: 'white', border: 'none',
+                    borderRadius: '4px', padding: '4px 8px', fontSize: '11px', cursor: 'pointer',
+                    textAlign: 'left',
+                  }}
+                >
+                  {perk.icon} {perk.name}{stack > 0 && ` ×${stack}`}
+                </button>
+              )
+            })}
+          </div>
+          <button
+            onClick={clearPerks}
+            disabled={activePerks.length === 0}
+            style={{
+              background: activePerks.length === 0 ? '#444' : '#ef4444',
+              color: 'white', border: 'none', borderRadius: '4px',
+              padding: '4px 8px', fontSize: '11px',
+              cursor: activePerks.length === 0 ? 'default' : 'pointer',
+              opacity: activePerks.length === 0 ? 0.5 : 1,
+            }}
+          >
+            Clear Perks
           </button>
         </div>
       )}

@@ -18,6 +18,10 @@ declare global {
   }
 }
 
+const SOAK_DURATION_MS = 5000
+const BURN_DURATION_MS = 3000
+const SLOW_DURATION_MS = 4000
+
 interface SpellVisualProps {
   spell: SpellEffect
   onExpired: (id: string) => void
@@ -58,9 +62,9 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
     const enemies = useEnemyStore.getState().enemies
     const activePerks = useDeckStore.getState().activePerks
     const deepFreezeStacks = activePerks.find((p) => p.id === 'deep_freeze')?.stackCount || 0
-    const heavySaltStacks = activePerks.find((p) => p.id === 'heavy_salt')?.stackCount || 0
+    const extraSpicyStacks = activePerks.find((p) => p.id === 'extra_spicy')?.stackCount || 0
     const BOTTLE_SPELLS: SpellType[] = ['TIDAL_WAVE', 'MUD']
-    const SALT_SPELLS: SpellType[] = ['FORTRESS', 'METEOR']
+    const BURN_SPELLS: SpellType[] = ['INFERNO', 'METEOR']
 
     // Fortress: push enemies inside the dome to its edge
     if (spell.type === 'FORTRESS') {
@@ -87,13 +91,28 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
       if (dist <= currentRadius) {
         damaged.current.add(enemy.id)
         if (spell.type === 'FORTRESS') continue // Fortress doesn't deal damage, just pushes
-        useEnemyStore.getState().damageEnemy(enemy.id, spell.damage)
+
+        const now = performance.now()
+        const isInferno = spell.type === 'INFERNO'
+        const wasSoaked = now < enemy.soakedUntil
+        const wasFrozen = now < enemy.frozenUntil
+        const isSoakedInferno = isInferno && wasSoaked
+        const isFrozenInferno = isInferno && wasFrozen
+        const infernoConsumedStatus = isSoakedInferno || isFrozenInferno
+        const actualDamage = isSoakedInferno ? spell.damage * 2 : spell.damage
+        if (isSoakedInferno) {
+          useEnemyStore.getState().clearEnemySoaked(enemy.id)
+        }
+        if (isFrozenInferno) {
+          useEnemyStore.getState().clearEnemyFrozen(enemy.id)
+        }
+        useEnemyStore.getState().damageEnemy(enemy.id, actualDamage)
 
         // --- JUICE: hit flash, damage number, screen shake ---
         useEnemyStore.getState().setEnemyHitFlash(enemy.id, performance.now() + 100)
 
-        const dmgColor = spell.damage >= 80 ? '#ef4444' : spell.damage >= 40 ? '#fbbf24' : '#ffffff'
-        spawnDamageNumber(enemy.position.x, enemy.position.z, spell.damage, dmgColor)
+        const dmgColor = actualDamage >= 80 ? '#ef4444' : actualDamage >= 40 ? '#fbbf24' : '#ffffff'
+        spawnDamageNumber(enemy.position.x, enemy.position.z, actualDamage, dmgColor)
 
         // Screen shake: stronger for big spells
         if (spell.type === 'METEOR' || spell.type === 'INFERNO') {
@@ -104,28 +123,22 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
 
         // Apply status effects
         const config = SPELL_CONFIG[spell.type]
-        if (config.slow > 0) {
-          useEnemyStore.getState().setEnemyStatus(enemy.id, 'soaked')
+        if (spell.type === 'STEAM') {
+          useEnemyStore.getState().setEnemySlowed(enemy.id, now + SLOW_DURATION_MS)
+        } else if (config.slow > 0) {
+          useEnemyStore.getState().setEnemySoaked(enemy.id, now + SOAK_DURATION_MS)
         }
 
-        // Deep Freeze perk: BOTTLE-based spells stun enemies
+        // Deep Freeze perk: BOTTLE-based spells freeze enemies; soak transforms into freeze.
         if (BOTTLE_SPELLS.includes(spell.type) && deepFreezeStacks > 0) {
-          useEnemyStore.getState().setEnemyStatus(enemy.id, 'stunned')
-          setTimeout(() => {
-            useEnemyStore.getState().setEnemyStatus(enemy.id, 'normal')
-          }, 2000 * deepFreezeStacks)
+          useEnemyStore.getState().setEnemyFrozen(enemy.id, now + 2000 * deepFreezeStacks)
+          useEnemyStore.getState().clearEnemySoaked(enemy.id)
         }
 
-        // Heavy Salt perk: SALT-based spells push enemies away
-        if (SALT_SPELLS.includes(spell.type) && heavySaltStacks > 0) {
-          const dx = enemy.position.x - spell.position.x
-          const dz = enemy.position.z - spell.position.z
-          const len = Math.sqrt(dx * dx + dz * dz) || 1
-          const pushDist = 3 * heavySaltStacks
-          useEnemyStore.getState().updateEnemyPosition(enemy.id, {
-            x: enemy.position.x + (dx / len) * pushDist,
-            z: enemy.position.z + (dz / len) * pushDist,
-          })
+        // Extra Spicy perk: BURN_SPELLS ignite enemies (Burn). STEAM excluded.
+        // INFERNO skips burn when it consumes Soak/Freeze — fire spent on melt/steam.
+        if (BURN_SPELLS.includes(spell.type) && extraSpicyStacks > 0 && !infernoConsumedStatus) {
+          useEnemyStore.getState().setEnemyBurning(enemy.id, now + BURN_DURATION_MS)
         }
 
         if (spell.type === 'TIDAL_WAVE' && config.knockback > 0) {
