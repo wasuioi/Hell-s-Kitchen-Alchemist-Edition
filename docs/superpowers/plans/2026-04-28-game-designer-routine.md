@@ -217,6 +217,17 @@ You are the AI game designer for Hell's Kitchen Alchemist Edition. Run the daily
 Repo: wasuioi/Hell-s-Kitchen-Alchemist-Edition
 Working directory: /Users/pacas/Hell-s-Kitchen-Alchemist-Edition
 
+## Step 0 — Sync local main from origin (must run before any file read)
+
+The cron may fire before today's overnight changes have been pulled locally. Always fetch and fast-forward `main` first; if anything blocks that, fail loudly so the user notices instead of running on stale state.
+
+Run, in order:
+1. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition fetch origin main`
+2. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition rev-parse --abbrev-ref HEAD` — output MUST equal `main`. If not, fail loudly with: "Expected /Users/pacas/Hell-s-Kitchen-Alchemist-Edition to be on `main`, got `<branch>`. Aborting cron run." Do NOT continue.
+3. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition pull --ff-only origin main` — if this fails (non-fast-forward, merge conflict, dirty-tree conflict, etc.), surface the exact stderr and STOP. Do NOT proceed with stale state.
+
+Only proceed past Step 0 once main is confirmed fast-forwarded (or already up to date).
+
 ## Step 1 — Setup
 - cd /Users/pacas/Hell-s-Kitchen-Alchemist-Edition
 - Get today's date as YYYY-MM-DD (local time) and the day-of-week (Mon/Tue/.../Sun).
@@ -293,6 +304,17 @@ Repo: wasuioi/Hell-s-Kitchen-Alchemist-Edition
 Working directory: /Users/pacas/Hell-s-Kitchen-Alchemist-Edition
 
 A "quick win" = a number/parameter change or one-line code edit that could plausibly ship in a single day.
+
+## Step 0 — Sync local main from origin (must run before any file read)
+
+The cron may fire before today's overnight changes have been pulled locally. Always fetch and fast-forward `main` first; if anything blocks that, fail loudly.
+
+Run, in order:
+1. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition fetch origin main`
+2. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition rev-parse --abbrev-ref HEAD` — output MUST equal `main`. If not, fail loudly with: "Expected /Users/pacas/Hell-s-Kitchen-Alchemist-Edition to be on `main`, got `<branch>`. Aborting cron run." Do NOT continue.
+3. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition pull --ff-only origin main` — if this fails, surface the exact stderr and STOP.
+
+Only proceed once main is confirmed fast-forwarded (or already up to date).
 
 ## Step 1 — Setup
 - cd /Users/pacas/Hell-s-Kitchen-Alchemist-Edition
@@ -386,6 +408,17 @@ Working directory: /Users/pacas/Hell-s-Kitchen-Alchemist-Edition
 
 A "medium" proposal = a feature implementable in 1-2 focused days. May add new mechanic, new behaviour, new UI element, or a meaningful rework of an existing system. Bigger than a number tweak; smaller than a system overhaul.
 
+## Step 0 — Sync local main from origin (must run before any file read)
+
+The cron may fire before today's overnight changes have been pulled locally. Always fetch and fast-forward `main` first; if anything blocks that, fail loudly.
+
+Run, in order:
+1. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition fetch origin main`
+2. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition rev-parse --abbrev-ref HEAD` — output MUST equal `main`. If not, fail loudly with: "Expected /Users/pacas/Hell-s-Kitchen-Alchemist-Edition to be on `main`, got `<branch>`. Aborting cron run." Do NOT continue.
+3. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition pull --ff-only origin main` — if this fails, surface the exact stderr and STOP.
+
+Only proceed once main is confirmed fast-forwarded (or already up to date).
+
 ## Step 1 — Setup
 - cd /Users/pacas/Hell-s-Kitchen-Alchemist-Edition
 - Get today's date and day-of-week.
@@ -475,6 +508,17 @@ Repo: wasuioi/Hell-s-Kitchen-Alchemist-Edition
 Working directory: /Users/pacas/Hell-s-Kitchen-Alchemist-Edition
 
 A "big swing" = a system-level change that could shift the game's identity. New core loop, new pillar, structural rework. Could take a week or more. Even if risky, propose it — the user decides whether to act.
+
+## Step 0 — Sync local main from origin (must run before any file read)
+
+The cron may fire before today's overnight changes have been pulled locally. Always fetch and fast-forward `main` first; if anything blocks that, fail loudly.
+
+Run, in order:
+1. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition fetch origin main`
+2. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition rev-parse --abbrev-ref HEAD` — output MUST equal `main`. If not, fail loudly with: "Expected /Users/pacas/Hell-s-Kitchen-Alchemist-Edition to be on `main`, got `<branch>`. Aborting cron run." Do NOT continue.
+3. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition pull --ff-only origin main` — if this fails, surface the exact stderr and STOP.
+
+Only proceed once main is confirmed fast-forwarded (or already up to date).
 
 ## Step 1 — Setup
 - cd /Users/pacas/Hell-s-Kitchen-Alchemist-Edition
