@@ -1,0 +1,147 @@
+name: Save Perk VFX Sprite Sheet
+
+# Triggered by a comment like:
+#   /save-vfx grease_fire   (with an MP4 attached to the same comment)
+#
+# Downloads the attached MP4 (private-repo attachments require a user PAT),
+# converts it into a 6×4 / 24-frame sprite sheet at 128×128 per frame, saves
+# to public/vfx/<slug>.png, and opens a PR. Pairs with the `/save-icon` flow
+# — same auth pattern, same auto-PR shape.
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  save-vfx:
+    if: |
+      contains(github.event.comment.body, '/save-vfx') ||
+      contains(github.event.comment.body, 'save this as the vfx for')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Parse slug + video URL from comment
+        id: parse
+        env:
+          BODY: ${{ github.event.comment.body }}
+        run: |
+          set -euo pipefail
+          SLUG=$(printf '%s' "$BODY" | grep -oE '(/save-vfx|save this as the vfx for)[[:space:]]+[a-z][a-z0-9_]*' | head -1 | awk '{print $NF}')
+          # GitHub user-attachments URLs don't include the file extension —
+          # the magic bytes get checked after download.
+          URL=$(printf '%s' "$BODY" | grep -oE 'https://github\.com/user-attachments/assets/[a-f0-9-]+' | head -1)
+          if [ -z "$URL" ]; then
+            URL=$(printf '%s' "$BODY" | grep -oE 'https://[a-zA-Z0-9._/-]+\.(mp4|mov|webm)' | head -1)
+          fi
+          if [ -z "$SLUG" ]; then
+            echo "::error::Could not parse slug. Format: '/save-vfx <slug>' or 'save this as the vfx for <slug>'"
+            exit 1
+          fi
+          if [ -z "$URL" ]; then
+            echo "::error::No video URL found. Did you attach an MP4/MOV/WebM to the comment?"
+            exit 1
+          fi
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Slug: $SLUG"
+          echo "URL: $URL"
+
+      - name: Download video (2-step — PAT at github.com, no-auth at S3)
+        env:
+          USER_TOKEN: ${{ secrets.ICON_DOWNLOAD_TOKEN }}
+        run: |
+          set -euo pipefail
+          mkdir -p .vfx-tmp
+          URL="${{ steps.parse.outputs.url }}"
+          OUT=".vfx-tmp/source.mp4"
+
+          # User-attachments require a USER token (gho_/ghp_), not the workflow's
+          # bot GITHUB_TOKEN. Same flow as save-icon.yml — see comments there
+          # for why two-step is necessary (S3 rejects the auth header that
+          # github.com sets the redirect with).
+          REDIR=$(curl -sI \
+            -H "Authorization: Bearer $USER_TOKEN" \
+            -H "User-Agent: github-actions-save-vfx" \
+            "$URL" | grep -i '^location:' | sed -E 's/^[Ll]ocation:[[:space:]]*//' | tr -d '\r\n')
+
+          if [ -z "$REDIR" ]; then
+            echo "::error::No Location header from $URL — PAT may be invalid, expired, or lack `repo` scope."
+            exit 1
+          fi
+
+          curl --fail --silent --show-error -o "$OUT" "$REDIR"
+          file "$OUT"
+          ls -la "$OUT"
+
+          # Reject obviously-not-a-video downloads early so the ffmpeg step
+          # gives a clean error instead of failing midway.
+          if ! file "$OUT" | grep -qiE 'mp4|mov|matroska|webm|video'; then
+            echo "::error::Downloaded file isn't a recognised video format."
+            file "$OUT"
+            exit 1
+          fi
+
+      - name: Convert MP4 → 6×4 sprite sheet
+        run: |
+          set -euo pipefail
+          INPUT=".vfx-tmp/source.mp4"
+          mkdir -p public/vfx
+          OUT="public/vfx/${{ steps.parse.outputs.slug }}.png"
+
+          # Compute fps so the source duration always yields exactly 24
+          # frames. Without this, a shorter source (say 4s) would only fill
+          # 12 cells of the 6×4 tile and the rest would render black.
+          DURATION=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$INPUT")
+          TARGET_FPS=$(awk -v d="$DURATION" 'BEGIN { printf "%.6f", 24 / d }')
+          echo "Source duration: ${DURATION}s → target fps ${TARGET_FPS}"
+
+          # Centre-crop to a square using the smaller dimension. For a 16:9
+          # input this drops 280px from each side — which conveniently also
+          # removes the right-edge watermark most AI video tools embed. For
+          # a square input the crop is a no-op.
+          ffmpeg -y -i "$INPUT" \
+            -vf "crop='min(iw,ih)':'min(iw,ih)':'(iw-min(iw,ih))/2':'(ih-min(iw,ih))/2',fps=${TARGET_FPS},scale=128:128,tile=6x4" \
+            -frames:v 1 "$OUT"
+
+          file "$OUT"
+          ls -la "$OUT"
+
+      - name: Create branch and PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SLUG="${{ steps.parse.outputs.slug }}"
+          BRANCH="claude/vfx-$SLUG-$(date +%s)"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add "public/vfx/$SLUG.png"
+          git commit -m "chore: add $SLUG vfx sprite sheet"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "chore: add $SLUG vfx sprite sheet" \
+            --body "Auto-saved from comment ${{ github.event.comment.html_url }}.
+
+          Sprite-sheet format: 6×4 grid, 128×128 per frame, 24 frames spread
+          evenly across the full source duration. Plays via SpriteVfxEffect
+          (see src/components/SpriteVfxEffect.tsx)." \
+            --base main \
+            --head "$BRANCH"
+
+      - name: React rocket on the original comment
+        if: success()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api -X POST \
+            "/repos/${{ github.repository }}/issues/comments/${{ github.event.comment.id }}/reactions" \
+            -f content=rocket
