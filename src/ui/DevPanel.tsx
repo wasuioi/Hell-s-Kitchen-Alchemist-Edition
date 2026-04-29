@@ -56,6 +56,12 @@ export default function DevPanel() {
           display: 'flex', flexDirection: 'column', gap: '12px',
           width: `${panelInnerWidth + PANEL_PADDING * 2}px`,
           border: '1px solid #22c55e',
+          // Constrain to the viewport and let the panel scroll internally —
+          // when the cards are tall and the tweaker is expanded the panel
+          // can otherwise spill past the bottom of the window with no way
+          // for the user to reach the sliders.
+          maxHeight: 'calc(100vh - 80px)',
+          overflowY: 'auto',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: '#22c55e', fontWeight: 'bold' }}>DEV — Perk Picker</span>
