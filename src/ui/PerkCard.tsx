@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { MAX_PERK_TIER, RARITY_COLOR, TRIGGER_LABEL } from '../data/perks'
 import type { PerkDefinition } from '../data/perks'
+import { useCardLayoutStore } from '../stores/cardLayoutStore'
 import PerkIcon from './PerkIcon'
 import TierDots from './TierDots'
 import TierDiff from './TierDiff'
@@ -17,7 +18,7 @@ import TierDiff from './TierDiff'
 //   └─────────────────────────────────────────┘
 //   ┌── stone frame (1024×1536, transparent center) ──┐
 //   │                              OWNED · T1         │  ← only if owned
-//   │              [icon 92]                          │
+//   │              [icon]                             │
 //   │              Perk Name                          │
 //   │           [ON DAMAGE TAKEN]                     │
 //   │              #fire #defense                     │
@@ -26,24 +27,11 @@ import TierDiff from './TierDiff'
 //   │              ─ ─ ─                              │  ← TierDots
 //   └─────────────────────────────────────────────────┘
 //
-// The frame PNG has a real transparent centre, so content placed inside
-// shows through cleanly without needing a separate dark fill.
+// All padding / sizing values come from `cardLayoutStore` so the dev
+// can iterate at runtime via the slider tweaker in DevPanel without
+// rebuilding. CARD_LAYOUT_DEFAULTS in that store is the single source
+// of truth for the baked-in numbers.
 // ────────────────────────────────────────────────────────────────────────────
-
-// Frame at 1024×1536 (2:3 aspect). Card width 320 → height 480.
-const CARD_WIDTH = 320
-const CARD_HEIGHT = 480
-
-// Rarity banner sits above the frame, ~28px tall plus a small gap.
-const BANNER_HEIGHT = 28
-const BANNER_GAP = 4
-
-// Inner safe area is generous on this frame — the stone border is thin
-// and the corner symbols are recessed into their own cutouts so they
-// don't intrude into the content area.
-const PAD_X = 30
-const PAD_TOP = 30
-const PAD_BOTTOM = 38
 
 interface PerkCardProps {
   perk: PerkDefinition
@@ -60,6 +48,19 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
   const owned = currentTier > 0
   const triggerLabel = perk.trigger ? TRIGGER_LABEL[perk.trigger] : null
 
+  // Pull each value individually so React only re-renders when the
+  // value actually changes (vs subscribing to the whole object).
+  const cardWidth = useCardLayoutStore((s) => s.cardWidth)
+  const cardHeight = useCardLayoutStore((s) => s.cardHeight)
+  const bannerHeight = useCardLayoutStore((s) => s.bannerHeight)
+  const bannerGap = useCardLayoutStore((s) => s.bannerGap)
+  const padX = useCardLayoutStore((s) => s.padX)
+  const padTop = useCardLayoutStore((s) => s.padTop)
+  const padBottom = useCardLayoutStore((s) => s.padBottom)
+  const iconSize = useCardLayoutStore((s) => s.iconSize)
+  const nameSize = useCardLayoutStore((s) => s.nameSize)
+  const bannerSize = useCardLayoutStore((s) => s.bannerSize)
+
   return (
     <button
       onClick={onPick}
@@ -67,8 +68,8 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
       onMouseLeave={() => setHovered(false)}
       style={{
         position: 'relative',
-        width: `${CARD_WIDTH}px`,
-        height: `${CARD_HEIGHT + BANNER_HEIGHT + BANNER_GAP}px`,
+        width: `${cardWidth}px`,
+        height: `${cardHeight + bannerHeight + bannerGap}px`,
         padding: 0,
         background: 'transparent',
         border: 'none',
@@ -86,13 +87,12 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
       }}
     >
       {/* Rarity banner — sits OUTSIDE the frame as a header so the card
-          announces its tier the moment the player looks at it. The
-          colour is the rarity tint from RARITY_COLOR. */}
+          announces its tier the moment the player looks at it. */}
       <div
         style={{
-          height: `${BANNER_HEIGHT}px`,
-          marginBottom: `${BANNER_GAP}px`,
-          fontSize: '14px',
+          height: `${bannerHeight}px`,
+          marginBottom: `${bannerGap}px`,
+          fontSize: `${bannerSize}px`,
           letterSpacing: '4px',
           textTransform: 'uppercase',
           fontWeight: 'bold',
@@ -110,13 +110,12 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
       <div
         style={{
           position: 'relative',
-          width: `${CARD_WIDTH}px`,
-          height: `${CARD_HEIGHT}px`,
+          width: `${cardWidth}px`,
+          height: `${cardHeight}px`,
         }}
       >
-        {/* Stone-tablet frame as the bottom layer. The frame has a real
-            transparent centre, so content placed inside reads cleanly.
-            brightness goes up on hover so the lava rim "heats up". */}
+        {/* Stone-tablet frame as the bottom layer. brightness goes up on
+            hover so the lava rim "heats up". */}
         <img
           src="/ui/card_frame.png"
           alt=""
@@ -140,7 +139,7 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
           style={{
             position: 'absolute',
             inset: 0,
-            padding: `${PAD_TOP}px ${PAD_X}px ${PAD_BOTTOM}px`,
+            padding: `${padTop}px ${padX}px ${padBottom}px`,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -150,8 +149,6 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
         >
           {/* HEADER GROUP — OWNED badge (top-right) + icon + name */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '100%' }}>
-            {/* OWNED badge — pinned to top-right of the safe area;
-                hidden when the perk has 0 stacks. */}
             <div style={{ width: '100%', minHeight: '20px', display: 'flex', justifyContent: 'flex-end' }}>
               {owned && (
                 <span
@@ -172,9 +169,9 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
               )}
             </div>
 
-            <PerkIcon icon={perk.icon} size={96} />
+            <PerkIcon icon={perk.icon} size={iconSize} />
 
-            <div style={{ fontSize: '21px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1.2 }}>
+            <div style={{ fontSize: `${nameSize}px`, fontWeight: 'bold', textAlign: 'center', lineHeight: 1.2 }}>
               {perk.name}
             </div>
           </div>
@@ -244,6 +241,3 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
   )
 }
 
-// Total height includes banner + gap + frame so RewardScreen / DevPanel
-// can lay out their containers correctly.
-export { CARD_WIDTH, CARD_HEIGHT, BANNER_HEIGHT, BANNER_GAP }

@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { useDeckStore } from '../stores/deckStore'
 import { drawPerksWithRarity } from '../data/perks'
 import type { PerkDefinition } from '../data/perks'
-import PerkCard, { CARD_WIDTH } from './PerkCard'
+import { useCardLayoutStore } from '../stores/cardLayoutStore'
+import PerkCard from './PerkCard'
+import CardLayoutTweaker from './CardLayoutTweaker'
 
 // ── DevPanel ────────────────────────────────────────────────────────────────
 // Cheat menu for fast iteration on perk-related work (VFX, balance, UI).
@@ -13,16 +15,16 @@ import PerkCard, { CARD_WIDTH } from './PerkCard'
 // ────────────────────────────────────────────────────────────────────────────
 
 const CARD_GAP = 12
-// Container is sized to exactly fit 3 PerkCards + gaps + the 14px padding
-// either side of the panel. Avoids the layout going lopsided when cards
-// have a fixed width (no more `flex:1` on the buttons).
-const PANEL_INNER_WIDTH = CARD_WIDTH * 3 + CARD_GAP * 2
 const PANEL_PADDING = 14
 
 export default function DevPanel() {
   const [open, setOpen] = useState(false)
   const [perks, setPerks] = useState<PerkDefinition[]>(() => drawPerksWithRarity(3))
   const activePerks = useDeckStore((s) => s.activePerks)
+  // Container is sized to exactly fit 3 PerkCards + gaps + padding.
+  // Reactive so resizing cards via the tweaker keeps the panel snug.
+  const cardWidth = useCardLayoutStore((s) => s.cardWidth)
+  const panelInnerWidth = cardWidth * 3 + CARD_GAP * 2
 
   function currentTierFor(perkId: string): number {
     return activePerks.find((p) => p.id === perkId)?.stackCount ?? 0
@@ -52,7 +54,7 @@ export default function DevPanel() {
           marginTop: '4px', background: 'rgba(0,0,0,0.92)', borderRadius: '10px',
           padding: `${PANEL_PADDING}px`, color: 'white', fontSize: '11px',
           display: 'flex', flexDirection: 'column', gap: '12px',
-          width: `${PANEL_INNER_WIDTH + PANEL_PADDING * 2}px`,
+          width: `${panelInnerWidth + PANEL_PADDING * 2}px`,
           border: '1px solid #22c55e',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -95,6 +97,8 @@ export default function DevPanel() {
               Clear all perks
             </button>
           </div>
+
+          <CardLayoutTweaker />
         </div>
       )}
     </div>

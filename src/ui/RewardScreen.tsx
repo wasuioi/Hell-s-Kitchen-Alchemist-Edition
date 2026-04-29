@@ -3,14 +3,18 @@ import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import { drawPerksWithRarity } from '../data/perks'
 import type { PerkDefinition } from '../data/perks'
-import PerkCard, { CARD_WIDTH } from './PerkCard'
+import { useCardLayoutStore } from '../stores/cardLayoutStore'
+import PerkCard from './PerkCard'
 
 const CARD_GAP = 24
-const FOOTER_WIDTH = CARD_WIDTH * 3 + CARD_GAP * 2 // align with the card row above
 
 export default function RewardScreen() {
   const currentWave = useGameStore((s) => s.currentWave)
   const activePerks = useDeckStore((s) => s.activePerks)
+  // Footer width tracks the card row above it — reactive so the dev
+  // panel slider can resize the cards and the footer stays aligned.
+  const cardWidth = useCardLayoutStore((s) => s.cardWidth)
+  const footerWidth = cardWidth * 3 + CARD_GAP * 2
   const [perks, setPerks] = useState<PerkDefinition[]>(() => drawPerksWithRarity(3))
   const [rerollsLeft, setRerollsLeft] = useState(1)
   const [confirmingSkip, setConfirmingSkip] = useState(false)
@@ -63,7 +67,7 @@ export default function RewardScreen() {
 
       <div style={{
         display: 'flex', gap: '12px', marginTop: '28px',
-        width: `${FOOTER_WIDTH}px`, justifyContent: 'space-between', alignItems: 'center',
+        width: `${footerWidth}px`, justifyContent: 'space-between', alignItems: 'center',
       }}>
         <button
           onClick={handleReroll}
