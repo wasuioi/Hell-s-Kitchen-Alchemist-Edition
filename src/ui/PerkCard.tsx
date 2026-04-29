@@ -108,7 +108,10 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
         }}
       />
 
-      {/* Content layer — flex column inside the safe inner area */}
+      {/* Content layer — flex column inside the safe inner area.
+          space-between distributes the three logical groups (header,
+          body, dots) so non-tiered perks (short description) don't
+          leave a big void at the bottom of the frame. */}
       <div
         style={{
           position: 'absolute',
@@ -117,111 +120,115 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: '8px',
         }}
       >
-        {/* Top row — rarity label (left) + OWNED badge (right) */}
-        <div
-          style={{
-            width: '100%',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            fontSize: '10px',
-            letterSpacing: '2px',
-            textTransform: 'uppercase',
-            fontWeight: 'bold',
-          }}
-        >
-          <span style={{ color: rarityColor, opacity: 0.95 }}>{perk.rarity}</span>
-          {owned && (
-            <span
-              style={{
-                background: 'rgba(252,211,77,0.18)',
-                border: '1px solid #fcd34d',
-                color: '#fcd34d',
-                padding: '2px 7px',
-                borderRadius: '4px',
-                fontSize: '9px',
-                letterSpacing: '1.5px',
-              }}
-            >
-              OWNED · T{Math.min(currentTier, MAX_PERK_TIER)}
-            </span>
-          )}
-        </div>
-
-        {/* Icon */}
-        <div style={{ marginTop: '4px' }}>
-          <PerkIcon icon={perk.icon} size={64} />
-        </div>
-
-        {/* Name */}
-        <div style={{ fontSize: '15px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1.2 }}>
-          {perk.name}
-        </div>
-
-        {/* Trigger badge (if defined) */}
-        {triggerLabel && (
+        {/* HEADER GROUP — rarity row + icon + name. Stacked tight. */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', width: '100%' }}>
+          {/* Rarity label (left) + OWNED badge (right) */}
           <div
             style={{
-              fontSize: '9px',
-              letterSpacing: '1.5px',
-              fontWeight: 'bold',
-              padding: '3px 8px',
-              borderRadius: '10px',
-              background: 'rgba(255,255,255,0.06)',
-              border: `1px solid ${rarityColor}80`,
-              color: rarityColor,
-              textTransform: 'uppercase',
-            }}
-          >
-            {triggerLabel}
-          </div>
-        )}
-
-        {/* Tags chips */}
-        {perk.tags && perk.tags.length > 0 && (
-          <div
-            style={{
+              width: '100%',
               display: 'flex',
-              gap: '4px',
-              flexWrap: 'wrap',
-              justifyContent: 'center',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '12px',
+              letterSpacing: '2px',
+              textTransform: 'uppercase',
+              fontWeight: 'bold',
             }}
           >
-            {perk.tags.slice(0, 3).map((tag) => (
+            <span style={{ color: rarityColor, opacity: 0.95 }}>{perk.rarity}</span>
+            {owned && (
               <span
-                key={tag}
                 style={{
-                  fontSize: '9px',
-                  padding: '1px 6px',
-                  borderRadius: '8px',
-                  background: 'rgba(0,0,0,0.4)',
-                  color: 'rgba(255,255,255,0.65)',
-                  letterSpacing: '0.3px',
+                  background: 'rgba(252,211,77,0.18)',
+                  border: '1px solid #fcd34d',
+                  color: '#fcd34d',
+                  padding: '3px 9px',
+                  borderRadius: '5px',
+                  fontSize: '11px',
+                  letterSpacing: '1.5px',
                 }}
               >
-                #{tag}
+                OWNED · T{Math.min(currentTier, MAX_PERK_TIER)}
               </span>
-            ))}
+            )}
           </div>
-        )}
 
-        {/* Tier diff text */}
-        <div style={{ width: '100%', marginTop: '4px' }}>
-          <TierDiff perk={perk} currentTier={currentTier} />
+          {/* Icon — bumped up to better fill the larger frame */}
+          <div style={{ marginTop: '2px' }}>
+            <PerkIcon icon={perk.icon} size={92} />
+          </div>
+
+          {/* Name */}
+          <div style={{ fontSize: '20px', fontWeight: 'bold', textAlign: 'center', lineHeight: 1.2, marginTop: '2px' }}>
+            {perk.name}
+          </div>
         </div>
 
-        {/* Tier dots — pinned to bottom */}
-        <div style={{ marginTop: 'auto' }}>
-          <TierDots
-            current={currentTier}
-            preview={previewTier}
-            hovered={hovered}
-            size="large"
-          />
+        {/* BODY GROUP — trigger badge, tags, diff/description.
+            Centered in the leftover middle space so the card balances
+            top→bottom regardless of how much content is in the diff. */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '100%' }}>
+          {triggerLabel && (
+            <div
+              style={{
+                fontSize: '11px',
+                letterSpacing: '1.5px',
+                fontWeight: 'bold',
+                padding: '4px 12px',
+                borderRadius: '12px',
+                background: 'rgba(255,255,255,0.06)',
+                border: `1px solid ${rarityColor}80`,
+                color: rarityColor,
+                textTransform: 'uppercase',
+              }}
+            >
+              {triggerLabel}
+            </div>
+          )}
+
+          {perk.tags && perk.tags.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                gap: '6px',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+              }}
+            >
+              {perk.tags.slice(0, 3).map((tag) => (
+                <span
+                  key={tag}
+                  style={{
+                    fontSize: '11px',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    background: 'rgba(0,0,0,0.4)',
+                    color: 'rgba(255,255,255,0.7)',
+                    letterSpacing: '0.3px',
+                  }}
+                >
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div style={{ width: '100%' }}>
+            <TierDiff perk={perk} currentTier={currentTier} />
+          </div>
         </div>
+
+        {/* DOTS GROUP — bottom anchor */}
+        <TierDots
+          current={currentTier}
+          preview={previewTier}
+          hovered={hovered}
+          size="large"
+        />
       </div>
     </button>
   )

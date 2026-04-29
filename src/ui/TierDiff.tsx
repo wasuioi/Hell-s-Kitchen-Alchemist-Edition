@@ -32,7 +32,7 @@ const ADDED_LINE_COLOR = '#fbbf24'
 export default function TierDiff({ perk, currentTier }: TierDiffProps) {
   if (!perk.tiers) {
     return (
-      <span style={{ fontSize: '13px', opacity: 0.75, textAlign: 'center', lineHeight: 1.45 }}>
+      <span style={{ fontSize: '14px', opacity: 0.78, textAlign: 'center', lineHeight: 1.45, display: 'block' }}>
         {perk.description}
       </span>
     )
@@ -40,7 +40,7 @@ export default function TierDiff({ perk, currentTier }: TierDiffProps) {
 
   if (currentTier >= MAX_PERK_TIER) {
     return (
-      <span style={{ fontSize: '12px', color: ADDED_LINE_COLOR, textAlign: 'center', lineHeight: 1.4 }}>
+      <span style={{ fontSize: '13px', color: ADDED_LINE_COLOR, textAlign: 'center', lineHeight: 1.4, display: 'block' }}>
         Max tier — extra stacks add a small bonus
       </span>
     )
@@ -53,7 +53,7 @@ export default function TierDiff({ perk, currentTier }: TierDiffProps) {
   const oldStats = prev?.stats ?? null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, lineHeight: 1.4 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 14, lineHeight: 1.4 }}>
       {Object.entries(newStats).map(([label, newVal]) => {
         const oldVal = oldStats?.[label]
         const changed = oldVal !== undefined && oldVal !== newVal
@@ -75,12 +75,12 @@ export default function TierDiff({ perk, currentTier }: TierDiffProps) {
         )
       })}
       {next.added && (
-        <div style={{ marginTop: 6, color: ADDED_LINE_COLOR, fontSize: 12, textAlign: 'left', lineHeight: 1.35 }}>
+        <div style={{ marginTop: 6, color: ADDED_LINE_COLOR, fontSize: 13, textAlign: 'left', lineHeight: 1.35 }}>
           + {next.added}
         </div>
       )}
       {currentTier === 0 && (
-        <div style={{ marginTop: 8, opacity: 0.6, fontSize: 11, textAlign: 'center', lineHeight: 1.4, fontStyle: 'italic' }}>
+        <div style={{ marginTop: 8, opacity: 0.65, fontSize: 12, textAlign: 'center', lineHeight: 1.4, fontStyle: 'italic' }}>
           {perk.description}
         </div>
       )}
