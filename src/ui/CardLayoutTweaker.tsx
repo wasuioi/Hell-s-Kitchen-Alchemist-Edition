@@ -42,18 +42,23 @@ const SLIDERS: SliderConfig[] = [
 export default function CardLayoutTweaker() {
   const [open, setOpen] = useState(false)
   const [copyHint, setCopyHint] = useState<string | null>(null)
-  const values = useCardLayoutStore((s) => ({
-    cardWidth: s.cardWidth,
-    cardHeight: s.cardHeight,
-    bannerHeight: s.bannerHeight,
-    bannerGap: s.bannerGap,
-    padX: s.padX,
-    padTop: s.padTop,
-    padBottom: s.padBottom,
-    iconSize: s.iconSize,
-    nameSize: s.nameSize,
-    bannerSize: s.bannerSize,
-  }))
+  // Subscribe to each value individually — returning a fresh object
+  // from the selector creates a new reference every render and causes
+  // Zustand to see a "change" each time, leading to an infinite loop.
+  const cardWidth = useCardLayoutStore((s) => s.cardWidth)
+  const cardHeight = useCardLayoutStore((s) => s.cardHeight)
+  const bannerHeight = useCardLayoutStore((s) => s.bannerHeight)
+  const bannerGap = useCardLayoutStore((s) => s.bannerGap)
+  const padX = useCardLayoutStore((s) => s.padX)
+  const padTop = useCardLayoutStore((s) => s.padTop)
+  const padBottom = useCardLayoutStore((s) => s.padBottom)
+  const iconSize = useCardLayoutStore((s) => s.iconSize)
+  const nameSize = useCardLayoutStore((s) => s.nameSize)
+  const bannerSize = useCardLayoutStore((s) => s.bannerSize)
+  const values: CardLayoutValues = {
+    cardWidth, cardHeight, bannerHeight, bannerGap,
+    padX, padTop, padBottom, iconSize, nameSize, bannerSize,
+  }
   const setValue = useCardLayoutStore((s) => s.setValue)
   const reset = useCardLayoutStore((s) => s.reset)
 
