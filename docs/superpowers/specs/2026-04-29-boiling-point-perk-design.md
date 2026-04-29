@@ -109,12 +109,14 @@ Add to `PERK_POOL`:
   rarity: 'epic',
   vfxSprite: 'boiling_point_consume',
   tiers: [
-    { stats: { 'Max Heat': 5, 'Per Stack': '+20%', Decay: '4.0s' } },
-    { stats: { 'Max Heat': 7, 'Per Stack': '+20%', Decay: '4.0s' } },
-    { stats: { 'Max Heat': 7, 'Per Stack': '+25%', Decay: '4.0s' }, added: 'Heal +1 HP per Heat stack consumed' },
+    { stats: { Spell: 'INFERNO', 'Max Heat': 5, 'Per Stack': '+20%', Decay: '4.0s' } },
+    { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+20%', Decay: '4.0s' } },
+    { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+25%', Decay: '4.0s' }, added: 'Heal +1 HP per Heat stack consumed' },
   ],
 }
 ```
+
+`Spell: INFERNO` is shown on every tier so the spell-restriction stays visible after the player upgrades past T1 (where the description text no longer appears in `<TierDiff>`).
 
 ### `src/stores/playerStore.ts`
 Extend `PlayerState`:
@@ -141,6 +143,32 @@ Inside `buildSpell`, after the `Extra Spicy` block, add a BoilingPoint block gua
 - Subscribe to `heatStacks` via `usePlayerStore((s) => s.heatStacks)`.
 - Above the HP bar `<Html>`, render a second `<Html>` with the stack number when `heatStacks > 0`. Color interpolation + shake CSS keyed off `heatStacks / maxStacks`.
 - Tint blink: when `heatStacks >= 5`, run a `useFrame` timer that toggles a boolean at the stack-derived rate; when on, traverse the wizard `scene` and multiply the materials' emissive by red. When off (or `heatStacks < 5`), restore. Cache original emissive once in a `useRef` to avoid drift.
+
+### Reward card layout change — affects all perks
+
+This applies to every perk card, not just BoilingPoint. Bundled with this spec because BoilingPoint's spell-restriction makes the card's information density a more pressing concern (one extra stat row), and the redesign frees vertical space for that.
+
+**Current layout (each card):**
+1. `EPIC` (or `RARE` / `COMMON` / `LEGENDARY`) — small uppercase label tinted by rarity
+2. PerkIcon (72px)
+3. Perk name — white bold 17px
+4. TierDiff body
+5. TierDots
+
+**New layout:**
+1. ~~Rarity label removed~~
+2. **Perk name** — bold (~22px), colored with `RARITY_COLOR[perk.rarity]`. Takes the slot the rarity label used to occupy.
+3. PerkIcon (72px)
+4. TierDiff body
+5. TierDots
+
+The rarity is still readable from the border + glow + name color (gray / blue / purple / gold), so the explicit text label is redundant.
+
+**Files affected:**
+- `src/ui/RewardScreen.tsx` — replace lines 88-95 (the rarity span + name span pair) with a single colored name span at the top.
+- `src/ui/DevPanel.tsx` — same change at lines 95-102.
+
+The two files share the layout intentionally (DevPanel mirrors RewardScreen so dev iteration matches the real reward flow — see the comment block at the top of `DevPanel.tsx`). Keep them in sync.
 
 ### Tests (`src/__tests__/`)
 - `addHeat` caps at the passed `maxStacks`.
