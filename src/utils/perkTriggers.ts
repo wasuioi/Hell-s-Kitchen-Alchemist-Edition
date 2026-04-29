@@ -23,7 +23,7 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
   if (stacks === 0) return
 
   const tier = Math.min(stacks, 3)
-  const baseCd = [2.0, 1.5, 1.0][tier - 1]
+  const baseCd = [3.0, 2.5, 2.0][tier - 1]
   const cd = Math.max(0.5, baseCd - 0.2 * Math.max(0, stacks - tier))
   const now = performance.now() / 1000
   if (now - lastGreaseFireAt < cd) return
@@ -71,10 +71,8 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
     }
   }
 
-  if (tier >= 2) {
-    const status = tier >= 3 ? 'stunned' : 'soaked'
-    const dur = tier >= 3 ? 0.5 : 1.5
-    useEnemyStore.getState().applyStatusInRadius(position, radius, status, dur)
+  if (tier >= 3) {
+    useEnemyStore.getState().applyStatusInRadius(position, radius, 'burning', 3)
   }
 
   // VFX layer — sprite-sheet if the perk defines one, else the generic

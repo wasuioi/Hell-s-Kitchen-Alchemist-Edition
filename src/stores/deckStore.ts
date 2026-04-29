@@ -9,7 +9,7 @@ interface DeckState {
   hand: Ingredient[]; cauldron: { slotA: Ingredient | null; slotB: Ingredient | null }
   activePerks: Perk[]; cookCooldown: number; cookCooldownDuration: number
   initHand: () => void; slotIngredient: (handIndex: number) => void
-  cook: () => SpellType | null; addPerk: (perk: Perk) => void
+  cook: () => SpellType | null; addPerk: (perk: Perk) => void; clearPerks: () => void
   setCookCooldown: (timestamp: number, duration: number) => void; reset: () => void
 }
 
@@ -36,6 +36,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
     if (existing) { return { activePerks: state.activePerks.map((p) => p.id === perk.id ? { ...p, stackCount: p.stackCount + 1 } : p) } }
     return { activePerks: [...state.activePerks, { ...perk, stackCount: 1 }] }
   }),
+  clearPerks: () => set({ activePerks: [] }),
   setCookCooldown: (timestamp, duration) => set({ cookCooldown: timestamp, cookCooldownDuration: duration }),
   reset: () => set({ hand: [], cauldron: { slotA: null, slotB: null }, activePerks: [], cookCooldown: 0, cookCooldownDuration: 1.5 }),
 }))
