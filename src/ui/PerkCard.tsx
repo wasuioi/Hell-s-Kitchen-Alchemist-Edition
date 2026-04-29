@@ -35,14 +35,20 @@ import TierDiff from './TierDiff'
 // "window" doubles as the card's background — no extra fill needed.
 // ────────────────────────────────────────────────────────────────────────────
 
-const CARD_WIDTH = 260
-const CARD_HEIGHT = 304 // matches the 544×636 frame aspect (0.855)
+// Bumped up from 260×304 once we measured the stone-tablet frame's
+// actual inner safe area. The frame's stone border + lava-glow rim
+// eat ~55px of every side at the source resolution (544×636), so we
+// need a card big enough that the safe area can still comfortably
+// hold rarity label + icon + name + trigger + tags + diff + dots.
+const CARD_WIDTH = 320
+const CARD_HEIGHT = 374 // preserves the 544×636 frame aspect (0.855)
 
-// Padding inside the card to keep content off the stone border. Tuned by
-// eye against the frame's actual inner edge.
-const PAD_X = 26
-const PAD_TOP = 18
-const PAD_BOTTOM = 22
+// Padding inside the card to keep content off the stone border.
+// Measured against the cropped frame: at 320×374 the inner dark area
+// starts ~36px in from each side and ~38px from top/bottom.
+const PAD_X = 38
+const PAD_TOP = 38
+const PAD_BOTTOM = 38
 
 interface PerkCardProps {
   perk: PerkDefinition
