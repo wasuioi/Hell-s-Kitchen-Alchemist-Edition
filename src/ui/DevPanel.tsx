@@ -93,13 +93,12 @@ export default function DevPanel() {
                   }}
                 >
                   <span style={{
-                    fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase',
-                    color: rarityColor, fontWeight: 'bold', opacity: 0.9,
+                    fontSize: '17px', fontWeight: 'bold', color: rarityColor,
+                    textShadow: `0 0 10px ${withAlpha(rarityColor, 0.4)}`,
                   }}>
-                    {perk.rarity}
+                    {perk.name}
                   </span>
                   <PerkIcon icon={perk.icon} size={56} />
-                  <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{perk.name}</span>
                   <div style={{ width: '100%' }}>
                     <TierDiff perk={perk} currentTier={currentTierFor(perk.id)} />
                   </div>

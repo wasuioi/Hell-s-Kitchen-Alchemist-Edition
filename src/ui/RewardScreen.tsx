@@ -86,13 +86,12 @@ export default function RewardScreen() {
               }}
             >
               <span style={{
-                fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase',
-                color: rarityColor, fontWeight: 'bold', opacity: 0.9,
+                fontSize: '22px', fontWeight: 'bold', color: rarityColor,
+                textShadow: `0 0 12px ${withAlpha(rarityColor, 0.4)}`,
               }}>
-                {perk.rarity}
+                {perk.name}
               </span>
               <PerkIcon icon={perk.icon} size={72} />
-              <span style={{ fontSize: '17px', fontWeight: 'bold' }}>{perk.name}</span>
 
               <div style={{ width: '100%' }}>
                 <TierDiff perk={perk} currentTier={currentTierFor(perk.id)} />
