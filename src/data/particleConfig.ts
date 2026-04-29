@@ -25,14 +25,14 @@ export const PARTICLE_CONFIG: Record<SpellType, ParticleSpellConfig> = {
     texture: 'circle',
     burstDirection: 'sphere',
   },
-  FORTRESS: {
+  SALT_SPEED: {
     color: '#9ca3af',
     lingerYSpeed: 0.8,
     texture: 'square',
     burstDirection: 'hemisphere',
   },
   STEAM: {
-    color: '#a855f7',
+    color: '#9ca3af',
     lingerYSpeed: 2.5,
     texture: 'circle',
     burstDirection: 'sphere',
