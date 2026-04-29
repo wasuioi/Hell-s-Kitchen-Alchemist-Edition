@@ -56,7 +56,10 @@ export default function Player() {
   const lastSpellColor = useRef('#22c55e')
   const dashTrailColor = useRef('#22c55e')
 
-  const originalEmissives = useRef<Map<THREE.Material, THREE.Color>>(new Map())
+  // Cache original `color` per material so we can restore on blink-off.
+  // The wizard GLTF uses MeshBasicMaterial which has no `emissive` — we
+  // tint via `color` (multiplied with the diffuse texture) instead.
+  const originalColors = useRef<Map<THREE.Material, THREE.Color>>(new Map())
   const tintOn = useRef(false)
   const lastBlinkAt = useRef(0)
 
@@ -202,20 +205,31 @@ export default function Player() {
     if (nextTintOn === tintOn.current && shouldBlink) return
     tintOn.current = nextTintOn
 
-    // Apply / restore emissive across all wizard materials
+    // Apply / restore color tint across all wizard materials. Handles both
+    // single material and Material[] (multi-material meshes from GLTF).
+    // Tint via `color` (multiplied with the texture) — works on
+    // MeshBasicMaterial / MeshStandardMaterial / MeshPhongMaterial alike.
+    const apply = (mat: THREE.Material) => {
+      const m = mat as THREE.MeshBasicMaterial
+      if (!('color' in m)) return
+      if (!originalColors.current.has(m)) {
+        originalColors.current.set(m, m.color.clone())
+      }
+      const original = originalColors.current.get(m)!
+      if (nextTintOn) {
+        // Multiplier red — kills green/blue channels of the texture so the
+        // visible result reads as bright red even on dark or saturated bases.
+        m.color.setRGB(1.0, 0.2, 0.2)
+      } else {
+        m.color.copy(original)
+      }
+    }
     scene.traverse((obj) => {
       const mesh = obj as THREE.Mesh
-      const mat = mesh.material as THREE.MeshStandardMaterial | undefined
-      if (!mat || !('emissive' in mat)) return
-      if (!originalEmissives.current.has(mat)) {
-        originalEmissives.current.set(mat, mat.emissive.clone())
-      }
-      const original = originalEmissives.current.get(mat)!
-      if (nextTintOn) {
-        mat.emissive.setRGB(1.0, 0.15, 0.15)
-      } else {
-        mat.emissive.copy(original)
-      }
+      const mat = mesh.material as THREE.Material | THREE.Material[] | undefined
+      if (!mat) return
+      if (Array.isArray(mat)) mat.forEach(apply)
+      else apply(mat)
     })
   })
 
