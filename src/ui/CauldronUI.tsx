@@ -8,7 +8,7 @@ import type { Ingredient } from '../types'
 const ICON: Record<Ingredient, string> = { CHILI: '🌶️', BOTTLE: '🧴', SALT: '🧂' }
 
 const SPELL_LABELS: Record<string, string> = {
-  INFERNO: 'Inferno 🔥', TIDAL_WAVE: 'Tidal Wave 🌊', FORTRESS: 'Fortress 🛡️',
+  INFERNO: 'Inferno 🔥', TIDAL_WAVE: 'Tidal Wave 🌊', SALT_SPEED: 'Salt Speed 👟',
   STEAM: 'Steam 💨', METEOR: 'Meteor ☄️', MUD: 'Mud 🟫',
 }
 

@@ -4,7 +4,7 @@ import { getRecipe } from '../data/recipes'
 describe('getRecipe', () => {
   it('returns INFERNO for CHILI + CHILI', () => { expect(getRecipe('CHILI', 'CHILI')).toBe('INFERNO') })
   it('returns TIDAL_WAVE for BOTTLE + BOTTLE', () => { expect(getRecipe('BOTTLE', 'BOTTLE')).toBe('TIDAL_WAVE') })
-  it('returns FORTRESS for SALT + SALT', () => { expect(getRecipe('SALT', 'SALT')).toBe('FORTRESS') })
+  it('returns SALT_SPEED for SALT + SALT', () => { expect(getRecipe('SALT', 'SALT')).toBe('SALT_SPEED') })
   it('returns STEAM for CHILI + BOTTLE', () => { expect(getRecipe('CHILI', 'BOTTLE')).toBe('STEAM') })
   it('returns STEAM for BOTTLE + CHILI (order independent)', () => { expect(getRecipe('BOTTLE', 'CHILI')).toBe('STEAM') })
   it('returns METEOR for CHILI + SALT', () => { expect(getRecipe('CHILI', 'SALT')).toBe('METEOR') })

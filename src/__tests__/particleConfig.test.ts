@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { PARTICLE_CONFIG } from '../data/particleConfig'
 import type { SpellType } from '../types'
 
-const ALL_SPELLS: SpellType[] = ['INFERNO', 'TIDAL_WAVE', 'FORTRESS', 'STEAM', 'METEOR', 'MUD']
+const ALL_SPELLS: SpellType[] = ['INFERNO', 'TIDAL_WAVE', 'SALT_SPEED', 'STEAM', 'METEOR', 'MUD']
 
 describe('PARTICLE_CONFIG', () => {
   it('has config for every spell type', () => {
@@ -22,8 +22,8 @@ describe('PARTICLE_CONFIG', () => {
   })
 
   it('stone spells use square texture and hemisphere burst', () => {
-    expect(PARTICLE_CONFIG.FORTRESS.texture).toBe('square')
-    expect(PARTICLE_CONFIG.FORTRESS.burstDirection).toBe('hemisphere')
+    expect(PARTICLE_CONFIG.SALT_SPEED.texture).toBe('square')
+    expect(PARTICLE_CONFIG.SALT_SPEED.burstDirection).toBe('hemisphere')
     expect(PARTICLE_CONFIG.METEOR.texture).toBe('square')
     expect(PARTICLE_CONFIG.METEOR.burstDirection).toBe('hemisphere')
   })
