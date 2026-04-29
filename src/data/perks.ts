@@ -57,6 +57,18 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { Damage: 40, Radius: 4.5, Cooldown: '1.0s' }, added: 'Doubles damage on heavy hits, stuns instead of soaks' },
     ],
   },
+  {
+    id: 'pressure_cooker', name: 'Pressure Cooker', icon: '/icons/pressure_cooker.png',
+    description:
+      'When enemies close in, the cauldron pressurises — faster cooking, harder hits. Higher tiers ' +
+      'add movement and a steam-vent burst when the swarm clears.',
+    rarity: 'epic', vfxSprite: 'pressure_aura_loop',
+    tiers: [
+      { stats: { Threshold: '3 enemies', CookCD: '×0.75', SpellDmg: '+20%' } },
+      { stats: { Threshold: '2 enemies', CookCD: '×0.65', SpellDmg: '+35%' }, added: '+20% move speed while pressured' },
+      { stats: { Threshold: '1 enemy',   CookCD: '×0.50', SpellDmg: '+60%' }, added: 'Releasing pressure vents a 35-dmg / 6u stun burst' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

@@ -1,8 +1,10 @@
 import { useDeckStore } from '../stores/deckStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
-import { PERK_POOL } from '../data/perks'
+import { usePlayerStore } from '../stores/playerStore'
+import { PERK_POOL, MAX_PERK_TIER } from '../data/perks'
 import { spawnExplosionVfx, spawnSpriteVfx, spawnDamageNumberVfx } from './spawnVfx'
+import { isInRange } from './collision'
 import type { Position } from '../types'
 
 // Convention for future on-trigger perks: alongside the gameplay logic
@@ -94,4 +96,66 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
 
 export function resetGreaseFireCooldown() {
   lastGreaseFireAt = -Infinity
+}
+
+const PRESSURE_RADIUS = 5.0
+const PRESSURE_THRESHOLDS: Record<number, number> = { 1: 3, 2: 2, 3: 1 }
+const RELEASE_COOLDOWN_MS = 1500
+let lastReleaseAt = 0
+
+export function updatePressureState(playerPos: Position) {
+  const stacks = useDeckStore.getState().activePerks.find((p) => p.id === 'pressure_cooker')?.stackCount ?? 0
+  if (stacks === 0) return
+
+  const tier = Math.min(stacks, MAX_PERK_TIER)
+  const threshold = PRESSURE_THRESHOLDS[tier]
+  const wasPressured = usePlayerStore.getState().pressured
+  const enemies = useEnemyStore.getState().enemies
+  const nearby = enemies.filter(
+    (e) => !e.dying && !e.detonating && isInRange(playerPos, e.position, PRESSURE_RADIUS),
+  ).length
+  const isPressured = nearby >= threshold
+  if (isPressured !== wasPressured) usePlayerStore.getState().setPressured(isPressured)
+
+  // T3 release burst on the falling edge
+  const now = performance.now()
+  if (tier >= 3 && wasPressured && !isPressured && now - lastReleaseAt > RELEASE_COOLDOWN_MS) {
+    lastReleaseAt = now
+    const damage = 35
+    const radius = 6
+    const releaseEnemies = useEnemyStore.getState().enemies
+    const dmgColor = '#ffffff'
+    for (const enemy of releaseEnemies) {
+      if (enemy.dying || enemy.detonating) continue
+      if (!isInRange(playerPos, enemy.position, radius)) continue
+      useEnemyStore.getState().damageEnemy(enemy.id, damage)
+      useEnemyStore.getState().setEnemyHitFlash(enemy.id, performance.now() + 100)
+      spawnDamageNumberVfx(enemy.position.x, enemy.position.z, damage, dmgColor)
+    }
+    useEnemyStore.getState().applyStatusInRadius(playerPos, radius, 'stunned', 1.0)
+    spawnSpriteVfx('pressure_release_burst', playerPos.x, playerPos.z, radius * 2)
+
+    // Death-check loop — mirrors triggerOnDamageTaken pattern
+    const afterDmg = useEnemyStore.getState().enemies
+    for (const enemy of afterDmg) {
+      if (enemy.dying || enemy.detonating || enemy.hp > 0) continue
+      if (enemy.type === 'exploder') {
+        useEnemyStore.getState().setEnemyDetonating(enemy.id)
+        window.__queueDetonation?.(enemy.id)
+        continue
+      }
+      useEnemyStore.getState().setEnemyDying(enemy.id)
+      useGameStore.getState().recordEnemyDefeated()
+      if (enemy.type === 'boss') {
+        useEnemyStore.getState().reset()
+        useGameStore.getState().triggerVictory()
+        return
+      }
+    }
+  }
+}
+
+export function resetPressureCookerState() {
+  lastReleaseAt = 0
+  usePlayerStore.getState().setPressured(false)
 }

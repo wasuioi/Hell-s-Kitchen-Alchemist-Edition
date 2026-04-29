@@ -4,6 +4,7 @@ import { PARTICLE_CONFIG } from '../data/particleConfig'
 import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useDeckStore } from '../stores/deckStore'
+import { MAX_PERK_TIER } from '../data/perks'
 import { findNearestEnemy } from './collision'
 
 let spellId = 0
@@ -29,6 +30,13 @@ function buildSpell(spellType: SpellType): SpellEffect {
       damage = damage * (1 + 0.2 * extraSpicyStacks)
       radius = Math.max(0.5, radius * (1 - 0.1 * extraSpicyStacks))
     }
+  }
+
+  // Pressure Cooker perk: damage multiplier while pressured
+  const pcStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'pressure_cooker')?.stackCount ?? 0
+  if (pcStacks > 0 && usePlayerStore.getState().pressured) {
+    const pcTier = Math.min(pcStacks, MAX_PERK_TIER)
+    damage *= [1.20, 1.35, 1.60][pcTier - 1]
   }
 
   return {

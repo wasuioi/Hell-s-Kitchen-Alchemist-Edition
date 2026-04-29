@@ -4,6 +4,9 @@ import { Html, useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
 import { usePlayerStore } from '../stores/playerStore'
 import { useGameStore } from '../stores/gameStore'
+import { useDeckStore } from '../stores/deckStore'
+import { updatePressureState } from '../utils/perkTriggers'
+import { MAX_PERK_TIER } from '../data/perks'
 import { ARENA_SIZE } from './Arena'
 
 const PLAYER_SPEED = 8
@@ -67,7 +70,10 @@ export default function Player() {
     const phase = useGameStore.getState().phase
     if (phase !== 'combat' && phase !== 'boss') return
     const timeScale = useGameStore.getState().timeScale
-    const { status, isDashing, dashDirection, dashEndTime } = usePlayerStore.getState()
+    const { status, isDashing, dashDirection, dashEndTime, position: playerPos } = usePlayerStore.getState()
+
+    // Update pressure state for Pressure Cooker perk
+    updatePressureState(playerPos)
 
     // Check if dash should end
     if (isDashing && performance.now() >= dashEndTime) {
@@ -103,8 +109,12 @@ export default function Player() {
     if (dx === 0 && dz === 0) return
     const len = Math.sqrt(dx * dx + dz * dz); dx /= len; dz /= len
     const pos = usePlayerStore.getState().position
-    const newX = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.x + dx * PLAYER_SPEED * speedMult * timeScale * delta))
-    const newZ = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.z + dz * PLAYER_SPEED * speedMult * timeScale * delta))
+    // Pressure Cooker T2+: +20% move speed while pressured
+    const pcStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'pressure_cooker')?.stackCount ?? 0
+    const pcTier = Math.min(pcStacks, MAX_PERK_TIER)
+    const pressureMult = (pcTier >= 2 && usePlayerStore.getState().pressured) ? 1.2 : 1
+    const newX = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.x + dx * PLAYER_SPEED * speedMult * pressureMult * timeScale * delta))
+    const newZ = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.z + dz * PLAYER_SPEED * speedMult * pressureMult * timeScale * delta))
     usePlayerStore.getState().setPosition({ x: newX, z: newZ })
     usePlayerStore.getState().setRotation(Math.atan2(dx, dz))
 

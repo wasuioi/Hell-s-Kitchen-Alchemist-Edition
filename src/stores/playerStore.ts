@@ -12,11 +12,14 @@ interface PlayerState {
   dashDirection: Position | null
   dashCooldownUntil: number
   dashEndTime: number
+  // Pressure Cooker perk state
+  pressured: boolean
   // Actions
   setPosition: (pos: Position) => void; setRotation: (rot: number) => void
   takeDamage: (amount: number) => void; heal: (amount: number) => void
   setStatus: (status: StatusEffect) => void
   startDash: (direction: Position) => void; endDash: () => void
+  setPressured: (value: boolean) => void
   reset: () => void
 }
 
@@ -26,7 +29,7 @@ export const PLAYER_DASH_COOLDOWN_MS = DASH_COOLDOWN_MS
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   position: { x: 0, z: 0 }, rotation: 0, hp: 100, maxHp: 100, status: 'normal',
-  isDashing: false, dashDirection: null, dashCooldownUntil: 0, dashEndTime: 0,
+  isDashing: false, dashDirection: null, dashCooldownUntil: 0, dashEndTime: 0, pressured: false,
   setPosition: (pos) => set({ position: pos }),
   setRotation: (rot) => set({ rotation: rot }),
   takeDamage: (amount) => {
@@ -46,8 +49,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     })
   },
   endDash: () => set({ isDashing: false, dashDirection: null }),
+  setPressured: (value) => set({ pressured: value }),
   reset: () => set({
     position: { x: 0, z: 0 }, rotation: 0, hp: 100, maxHp: 100, status: 'normal',
-    isDashing: false, dashDirection: null, dashCooldownUntil: 0, dashEndTime: 0,
+    isDashing: false, dashDirection: null, dashCooldownUntil: 0, dashEndTime: 0, pressured: false,
   }),
 }))

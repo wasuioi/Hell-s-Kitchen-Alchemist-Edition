@@ -5,6 +5,7 @@ import { useDeckStore } from './stores/deckStore'
 import { usePlayerStore } from './stores/playerStore'
 import { castSpell } from './utils/castSpell'
 import { preloadGameAssets } from './utils/preloadAssets'
+import { MAX_PERK_TIER } from './data/perks'
 import HUD from './ui/HUD'
 import MainMenu from './ui/MainMenu'
 import RewardScreen from './ui/RewardScreen'
@@ -37,11 +38,16 @@ export default function App() {
         const now = performance.now() / 1000
         const fastPrepStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'fast_prep')?.stackCount || 0
         const baseCooldown = Math.max(0.2, 1.5 - fastPrepStacks * 0.5)
-        if (now - cookCooldown.current < baseCooldown) return
+        const pcStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'pressure_cooker')?.stackCount ?? 0
+        const pcCooldownMult = (pcStacks > 0 && usePlayerStore.getState().pressured)
+          ? [0.75, 0.65, 0.50][Math.min(pcStacks, MAX_PERK_TIER) - 1]
+          : 1
+        const effectiveCooldown = baseCooldown * pcCooldownMult
+        if (now - cookCooldown.current < effectiveCooldown) return
         const spell = useDeckStore.getState().cook()
         if (!spell) return
         cookCooldown.current = now
-        useDeckStore.getState().setCookCooldown(now, baseCooldown)
+        useDeckStore.getState().setCookCooldown(now, effectiveCooldown)
         useGameStore.getState().recordIngredientUsed()
         useGameStore.getState().recordIngredientUsed()
         useGameStore.getState().recordSpellCast(spell)
