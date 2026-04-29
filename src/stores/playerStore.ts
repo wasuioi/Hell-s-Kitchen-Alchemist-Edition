@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { Position, StatusEffect } from '../types'
+import { triggerOnDamageTaken } from '../utils/perkTriggers'
 
 const DASH_COOLDOWN_MS = 2500
 const DASH_DURATION_MS = 150
@@ -23,12 +24,15 @@ export const DASH_SPEED_MULTIPLIER = 3
 export const PLAYER_DASH_DURATION_MS = DASH_DURATION_MS
 export const PLAYER_DASH_COOLDOWN_MS = DASH_COOLDOWN_MS
 
-export const usePlayerStore = create<PlayerState>((set) => ({
+export const usePlayerStore = create<PlayerState>((set, get) => ({
   position: { x: 0, z: 0 }, rotation: 0, hp: 100, maxHp: 100, status: 'normal',
   isDashing: false, dashDirection: null, dashCooldownUntil: 0, dashEndTime: 0,
   setPosition: (pos) => set({ position: pos }),
   setRotation: (rot) => set({ rotation: rot }),
-  takeDamage: (amount) => set((s) => ({ hp: Math.max(0, s.hp - amount) })),
+  takeDamage: (amount) => {
+    if (amount > 0) triggerOnDamageTaken(amount, get().position)
+    set((s) => ({ hp: Math.max(0, s.hp - amount) }))
+  },
   heal: (amount) => set((s) => ({ hp: Math.min(s.maxHp, s.hp + amount) })),
   setStatus: (status) => set({ status }),
   startDash: (direction) => {

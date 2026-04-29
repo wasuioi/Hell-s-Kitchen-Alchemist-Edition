@@ -2,9 +2,12 @@ import { useState, useEffect } from 'react'
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import { usePlayerStore } from '../stores/playerStore'
+import { MAX_PERK_TIER } from '../data/perks'
 import CardHand from './CardHand'
 import CauldronUI from './CauldronUI'
 import ScreenFlash from './ScreenFlash'
+import PerkIcon from './PerkIcon'
+import TierDots from './TierDots'
 
 export default function HUD() {
   const currentWave = useGameStore((s) => s.currentWave)
@@ -51,10 +54,11 @@ export default function HUD() {
         }}>
           {activePerks.map((perk) => (
             <div key={perk.id} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span>{perk.icon}</span>
+              <PerkIcon icon={perk.icon} size={16} />
               <span>{perk.name}</span>
-              {perk.stackCount > 1 && (
-                <span style={{ color: '#fcd34d', fontWeight: 'bold' }}>x{perk.stackCount}</span>
+              <TierDots current={Math.min(perk.stackCount, MAX_PERK_TIER)} size="small" />
+              {perk.stackCount > MAX_PERK_TIER && (
+                <span style={{ color: '#fcd34d', fontWeight: 'bold', fontSize: '10px' }}>+{perk.stackCount - MAX_PERK_TIER}</span>
               )}
             </div>
           ))}

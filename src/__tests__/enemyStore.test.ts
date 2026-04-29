@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { useEnemyStore } from '../stores/enemyStore'
 
 describe('enemyStore juice + exploder', () => {
@@ -41,6 +41,62 @@ describe('enemyStore juice + exploder', () => {
     const id = useEnemyStore.getState().enemies[0].id
     useEnemyStore.getState().setEnemyDetonating(id)
     expect(useEnemyStore.getState().enemies[0].detonating).toBe(true)
+  })
+})
+
+describe('damageEnemiesInRadius', () => {
+  beforeEach(() => { useEnemyStore.getState().reset() })
+
+  it('damages enemies within radius', () => {
+    useEnemyStore.getState().spawnEnemy('slow', { x: 0, z: 0 })
+    useEnemyStore.getState().spawnEnemy('slow', { x: 3, z: 0 })
+    useEnemyStore.getState().damageEnemiesInRadius({ x: 0, z: 0 }, 4, 10)
+    const enemies = useEnemyStore.getState().enemies
+    expect(enemies[0].hp).toBe(20)
+    expect(enemies[1].hp).toBe(20)
+  })
+
+  it('does not damage enemies outside radius', () => {
+    useEnemyStore.getState().spawnEnemy('slow', { x: 0, z: 0 })
+    useEnemyStore.getState().spawnEnemy('slow', { x: 10, z: 0 })
+    useEnemyStore.getState().damageEnemiesInRadius({ x: 0, z: 0 }, 4, 10)
+    const enemies = useEnemyStore.getState().enemies
+    expect(enemies[0].hp).toBe(20)
+    expect(enemies[1].hp).toBe(30)
+  })
+
+  it('does not reduce hp below 0', () => {
+    useEnemyStore.getState().spawnEnemy('slow', { x: 0, z: 0 })
+    useEnemyStore.getState().damageEnemiesInRadius({ x: 0, z: 0 }, 4, 999)
+    expect(useEnemyStore.getState().enemies[0].hp).toBe(0)
+  })
+})
+
+describe('applyStatusInRadius', () => {
+  beforeEach(() => {
+    useEnemyStore.getState().reset()
+    vi.useFakeTimers()
+  })
+  afterEach(() => { vi.useRealTimers() })
+
+  it('applies status to enemies within radius', () => {
+    useEnemyStore.getState().spawnEnemy('slow', { x: 0, z: 0 })
+    useEnemyStore.getState().applyStatusInRadius({ x: 0, z: 0 }, 4, 'soaked', 2)
+    expect(useEnemyStore.getState().enemies[0].status).toBe('soaked')
+  })
+
+  it('does not apply status to enemies outside radius', () => {
+    useEnemyStore.getState().spawnEnemy('slow', { x: 10, z: 0 })
+    useEnemyStore.getState().applyStatusInRadius({ x: 0, z: 0 }, 4, 'soaked', 2)
+    expect(useEnemyStore.getState().enemies[0].status).toBe('normal')
+  })
+
+  it('clears status after duration', () => {
+    useEnemyStore.getState().spawnEnemy('slow', { x: 0, z: 0 })
+    useEnemyStore.getState().applyStatusInRadius({ x: 0, z: 0 }, 4, 'stunned', 1)
+    expect(useEnemyStore.getState().enemies[0].status).toBe('stunned')
+    vi.advanceTimersByTime(1000)
+    expect(useEnemyStore.getState().enemies[0].status).toBe('normal')
   })
 })
 
