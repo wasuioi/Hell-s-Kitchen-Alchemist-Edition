@@ -49,18 +49,18 @@ describe('triggerOnDamageTaken', () => {
     expect(useEnemyStore.getState().enemies[0].hp).toBe(15)
   })
 
-  it('applies soaked status at tier 2', () => {
+  it('applies soaked status at tier 2 (sets soakedUntil)', () => {
     addGreaseFire(2)
     useEnemyStore.getState().spawnEnemy('slow', { x: 1, z: 0 })
     triggerOnDamageTaken(10, CENTER)
-    expect(useEnemyStore.getState().enemies[0].status).toBe('soaked')
+    expect(useEnemyStore.getState().enemies[0].soakedUntil).toBeGreaterThan(performance.now())
   })
 
-  it('applies stunned status at tier 3', () => {
+  it('applies stunned status at tier 3 (mapped to frozenUntil)', () => {
     addGreaseFire(3)
     useEnemyStore.getState().spawnEnemy('slow', { x: 1, z: 0 })
     triggerOnDamageTaken(10, CENTER)
-    expect(useEnemyStore.getState().enemies[0].status).toBe('stunned')
+    expect(useEnemyStore.getState().enemies[0].frozenUntil).toBeGreaterThan(performance.now())
   })
 
   it('doubles burst damage at tier 3 on heavy hit (>=15)', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { useEnemyStore } from '../stores/enemyStore'
 
 describe('enemyStore juice + exploder', () => {
@@ -73,30 +73,28 @@ describe('damageEnemiesInRadius', () => {
 })
 
 describe('applyStatusInRadius', () => {
-  beforeEach(() => {
-    useEnemyStore.getState().reset()
-    vi.useFakeTimers()
-  })
-  afterEach(() => { vi.useRealTimers() })
+  beforeEach(() => { useEnemyStore.getState().reset() })
 
-  it('applies status to enemies within radius', () => {
+  it('applies soaked status to enemies within radius (sets soakedUntil)', () => {
     useEnemyStore.getState().spawnEnemy('slow', { x: 0, z: 0 })
     useEnemyStore.getState().applyStatusInRadius({ x: 0, z: 0 }, 4, 'soaked', 2)
-    expect(useEnemyStore.getState().enemies[0].status).toBe('soaked')
+    expect(useEnemyStore.getState().enemies[0].soakedUntil).toBeGreaterThan(performance.now())
   })
 
   it('does not apply status to enemies outside radius', () => {
     useEnemyStore.getState().spawnEnemy('slow', { x: 10, z: 0 })
     useEnemyStore.getState().applyStatusInRadius({ x: 0, z: 0 }, 4, 'soaked', 2)
-    expect(useEnemyStore.getState().enemies[0].status).toBe('normal')
+    expect(useEnemyStore.getState().enemies[0].soakedUntil).toBe(0)
   })
 
-  it('clears status after duration', () => {
+  it('maps legacy stunned to frozenUntil with the requested duration', () => {
     useEnemyStore.getState().spawnEnemy('slow', { x: 0, z: 0 })
+    const before = performance.now()
     useEnemyStore.getState().applyStatusInRadius({ x: 0, z: 0 }, 4, 'stunned', 1)
-    expect(useEnemyStore.getState().enemies[0].status).toBe('stunned')
-    vi.advanceTimersByTime(1000)
-    expect(useEnemyStore.getState().enemies[0].status).toBe('normal')
+    const after = performance.now()
+    const enemy = useEnemyStore.getState().enemies[0]
+    expect(enemy.frozenUntil).toBeGreaterThanOrEqual(before + 1000)
+    expect(enemy.frozenUntil).toBeLessThanOrEqual(after + 1000)
   })
 })
 

@@ -6,7 +6,11 @@ import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
 import { ARENA_SIZE } from './Arena'
+import { spawnDamageNumber } from './DamageNumbers'
 import type { Enemy as EnemyType } from '../types'
+
+const BURN_TICK_INTERVAL_MS = 1000
+const BURN_TICK_DAMAGE = 3
 
 const SPEED: Record<string, number> = { slow: 2, fast: 4, tanky: 1.5, boss: 1, exploder: 3.5 }
 const SIZE: Record<string, number> = { slow: 0.4, fast: 0.35, tanky: 0.6, boss: 1.2, exploder: 0.3 }
@@ -39,10 +43,40 @@ export default function Enemy({ enemy }: Props) {
   const lastContactTime = useRef(0)
   const deathTimer = useRef(0)
   const [visualScale, setVisualScale] = useState(1)
+  const burnTickRef = useRef(0)
 
   useFrame((_, delta) => {
     const phase = useGameStore.getState().phase
     if (phase !== 'combat' && phase !== 'boss') return
+
+    const tickNow = performance.now()
+
+    // Burn DOT: 3 damage per second while burning, with white flash per tick
+    if (
+      tickNow < enemy.burningUntil &&
+      tickNow - burnTickRef.current >= BURN_TICK_INTERVAL_MS &&
+      !enemy.dying &&
+      !enemy.detonating
+    ) {
+      burnTickRef.current = tickNow
+      useEnemyStore.getState().damageEnemy(enemy.id, BURN_TICK_DAMAGE)
+      useEnemyStore.getState().setEnemyHitFlash(enemy.id, tickNow + 100)
+      spawnDamageNumber(enemy.position.x, enemy.position.z, BURN_TICK_DAMAGE, '#fb923c')
+      const updated = useEnemyStore.getState().enemies.find((e) => e.id === enemy.id)
+      if (updated && updated.hp <= 0) {
+        if (updated.type === 'exploder') {
+          useEnemyStore.getState().setEnemyDetonating(enemy.id)
+          ; (window as any).__queueDetonation?.(enemy.id)
+        } else {
+          useEnemyStore.getState().setEnemyDying(enemy.id)
+          useGameStore.getState().recordEnemyDefeated()
+          if (updated.type === 'boss') {
+            useEnemyStore.getState().reset()
+            useGameStore.getState().triggerVictory()
+          }
+        }
+      }
+    }
 
     // --- Death animation ---
     if (enemy.dying) {
@@ -95,7 +129,11 @@ export default function Enemy({ enemy }: Props) {
       return // skip normal movement while being knocked back
     }
 
-    const statusMultiplier = enemy.status === 'stunned' ? 0 : enemy.status === 'soaked' ? 0.5 : 1
+    const now = performance.now()
+    const isFrozen = now < enemy.frozenUntil
+    const isSoaked = now < enemy.soakedUntil
+    const isSlowed = now < enemy.slowedUntil
+    const statusMultiplier = isFrozen ? 0 : (isSoaked || isSlowed) ? 0.5 : 1
     const speed = SPEED[enemy.type] * statusMultiplier * timeScale
     const dx = playerPos.x - enemy.position.x
     const dz = playerPos.z - enemy.position.z
@@ -176,9 +214,16 @@ export default function Enemy({ enemy }: Props) {
     }
   })
 
-  const isFlashing = enemy.hitFlashUntil > performance.now()
+  const renderNow = performance.now()
+  const isFlashing = enemy.hitFlashUntil > renderNow
+  const isFrozenVisual = renderNow < enemy.frozenUntil
+  const isSoakedVisual = renderNow < enemy.soakedUntil && !isFrozenVisual
+  const isBurningVisual = renderNow < enemy.burningUntil
+  const isPoisonedVisual = renderNow < enemy.poisonedUntil && !isFrozenVisual
+  const isSlowedVisual = renderNow < enemy.slowedUntil && !isFrozenVisual
   const isExploder = enemy.type === 'exploder'
   const scale = MODEL_SCALE[enemy.type] * visualScale
+  const enemySize = SIZE[enemy.type]
 
   return (
     <group position={[enemy.position.x, 0, enemy.position.z]}>
@@ -192,6 +237,107 @@ export default function Enemy({ enemy }: Props) {
           <sphereGeometry args={[SIZE[enemy.type] * 1.2, 8, 8]} />
           <meshBasicMaterial color="white" transparent opacity={0.8} />
         </mesh>
+      )}
+      {/* Soaked: cyan watery glow + puddle ring */}
+      {isSoakedVisual && !enemy.dying && (
+        <>
+          <mesh position={[0, enemySize, 0]}>
+            <sphereGeometry args={[enemySize * 1.5, 16, 16]} />
+            <meshBasicMaterial color="#06b6d4" transparent opacity={0.35} />
+          </mesh>
+          <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[enemySize * 1.3, enemySize * 1.7, 32]} />
+            <meshBasicMaterial color="#06b6d4" transparent opacity={0.5} side={THREE.DoubleSide} />
+          </mesh>
+        </>
+      )}
+      {/* Frozen: white-blue frosty cube + crystalline wireframe edges (static) */}
+      {isFrozenVisual && !enemy.dying && (
+        <group position={[0, enemySize, 0]}>
+          <mesh>
+            <boxGeometry args={[enemySize * 2.6, enemySize * 2.6, enemySize * 2.6]} />
+            <meshBasicMaterial color="#dbeafe" transparent opacity={0.45} />
+          </mesh>
+          <mesh>
+            <boxGeometry args={[enemySize * 2.65, enemySize * 2.65, enemySize * 2.65]} />
+            <meshBasicMaterial color="#0284c7" wireframe transparent opacity={0.7} />
+          </mesh>
+        </group>
+      )}
+      {/* Burning: ember sparks rising from ground + thin black smoke wisps */}
+      {isBurningVisual && !enemy.dying && (
+        <>
+          {[0, 1, 2, 3, 4, 5].map((i) => {
+            const period = 1100
+            const phase = ((renderNow + i * (period / 6)) % period) / period
+            const angle = (i * (Math.PI * 2)) / 6 + Math.sin(renderNow / 600 + i) * 0.25
+            const r = enemySize * (0.55 + Math.sin(phase * Math.PI * 2 + i) * 0.15)
+            const x = Math.cos(angle) * r
+            const z = Math.sin(angle) * r
+            const y = phase * enemySize * 2.4
+            const opacity = phase < 0.15 ? (phase / 0.15) * 0.95 : (1 - (phase - 0.15) / 0.85) * 0.95
+            const color = i % 2 === 0 ? '#fbbf24' : '#f97316'
+            return (
+              <mesh key={`s${i}`} position={[x, y, z]}>
+                <sphereGeometry args={[0.04, 6, 6]} />
+                <meshBasicMaterial color={color} transparent opacity={opacity} />
+              </mesh>
+            )
+          })}
+          {[0, 1].map((i) => {
+            const cycle = ((renderNow / 1400) + i * 0.5) % 1
+            const sway = Math.sin(renderNow / 700 + i * 1.3) * 0.06
+            const x = (i === 0 ? -0.08 : 0.08) + sway
+            const y = enemySize * 1.7 + cycle * enemySize * 1.4
+            const opacity = (1 - cycle) * 0.4
+            const size = 0.06 + cycle * 0.05
+            return (
+              <mesh key={`m${i}`} position={[x, y, 0]}>
+                <sphereGeometry args={[size, 6, 6]} />
+                <meshBasicMaterial color="#1f2937" transparent opacity={opacity} />
+              </mesh>
+            )
+          })}
+        </>
+      )}
+      {/* Slowed: orange downward arrow above head — scales with enemy size */}
+      {isSlowedVisual && !enemy.dying && (
+        <group
+          position={[0, enemySize * 2.5 + 0.5 + Math.sin(renderNow / 250) * 0.05, 0]}
+          scale={enemySize / 0.4}
+        >
+          <mesh position={[0, 0.18, 0]}>
+            <cylinderGeometry args={[0.04, 0.04, 0.32, 6]} />
+            <meshBasicMaterial color="#ea580c" />
+          </mesh>
+          <mesh position={[0, -0.08, 0]} rotation={[0, 0, Math.PI]}>
+            <coneGeometry args={[0.13, 0.22, 6]} />
+            <meshBasicMaterial color="#ea580c" />
+          </mesh>
+        </group>
+      )}
+      {/* Poisoned: green teardrops dripping from above to the ground */}
+      {isPoisonedVisual && !enemy.dying && (
+        <>
+          {[0, 1, 2, 3].map((i) => {
+            const period = 1400
+            const phase = ((renderNow + i * (period / 4)) % period) / period
+            const angle = (i * (Math.PI * 2)) / 4 + Math.sin(renderNow / 900 + i) * 0.2
+            const r = enemySize * (0.5 + Math.sin(i * 1.7) * 0.15)
+            const x = Math.cos(angle) * r
+            const z = Math.sin(angle) * r
+            const startY = enemySize * 2.4
+            const y = startY * (1 - phase)
+            const opacity =
+              phase < 0.1 ? (phase / 0.1) * 0.9 : phase > 0.85 ? ((1 - phase) / 0.15) * 0.9 : 0.9
+            return (
+              <mesh key={`p${i}`} position={[x, y, z]} scale={[1, 1.5, 1]}>
+                <sphereGeometry args={[0.06, 6, 6]} />
+                <meshBasicMaterial color="#22c55e" transparent opacity={opacity} />
+              </mesh>
+            )
+          })}
+        </>
       )}
       {/* Exploder glow pulse */}
       {isExploder && !enemy.dying && (

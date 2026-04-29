@@ -24,7 +24,11 @@ export interface Enemy {
   hp: number
   maxHp: number
   type: EnemyType
-  status: StatusEffect
+  soakedUntil: number
+  frozenUntil: number
+  burningUntil: number
+  poisonedUntil: number
+  slowedUntil: number
   knockback: Knockback | null
   hitFlashUntil: number
   dying: boolean

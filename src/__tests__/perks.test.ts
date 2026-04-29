@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { PERK_POOL, getRandomPerks, drawPerksWithRarity } from '../data/perks'
 
 describe('PERK_POOL', () => {
-  it('contains 6 perks', () => { expect(PERK_POOL).toHaveLength(6) })
+  it('contains 5 perks', () => { expect(PERK_POOL).toHaveLength(5) })
   it('each perk has required fields', () => {
     for (const perk of PERK_POOL) {
       expect(perk).toHaveProperty('id')
@@ -24,7 +24,7 @@ describe('getRandomPerks', () => {
     const perks = getRandomPerks(3)
     expect(new Set(perks.map(p => p.id)).size).toBe(3)
   })
-  it('returns all 6 if asked for 6', () => { expect(getRandomPerks(6)).toHaveLength(6) })
+  it('returns all 5 if asked for 5', () => { expect(getRandomPerks(5)).toHaveLength(5) })
 })
 
 describe('drawPerksWithRarity', () => {
@@ -33,7 +33,7 @@ describe('drawPerksWithRarity', () => {
     const perks = drawPerksWithRarity(3)
     expect(new Set(perks.map(p => p.id)).size).toBe(3)
   })
-  it('returns all 6 if asked for 6', () => { expect(drawPerksWithRarity(6)).toHaveLength(6) })
+  it('returns all 5 if asked for 5', () => { expect(drawPerksWithRarity(5)).toHaveLength(5) })
   it('does not crash when count exceeds pool size', () => {
     const perks = drawPerksWithRarity(10)
     expect(perks.length).toBeLessThanOrEqual(PERK_POOL.length)
