@@ -56,6 +56,7 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
   const iconSize = useCardLayoutStore((s) => s.iconSize)
   const nameSize = useCardLayoutStore((s) => s.nameSize)
   const bannerSize = useCardLayoutStore((s) => s.bannerSize)
+  const cardScale = useCardLayoutStore((s) => s.cardScale)
 
   return (
     <button
@@ -77,6 +78,11 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
+        // CSS `zoom` scales BOTH visual + flex layout box, so parent
+        // containers automatically reflow to the scaled size — unlike
+        // `transform: scale()` which only scales pixels and leaves the
+        // layout box at its original dimensions.
+        zoom: cardScale,
       }}
     >
       {/* Name banner — sits ABOVE the frame, coloured by rarity. The

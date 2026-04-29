@@ -22,9 +22,11 @@ export default function DevPanel() {
   const [perks, setPerks] = useState<PerkDefinition[]>(() => drawPerksWithRarity(3))
   const activePerks = useDeckStore((s) => s.activePerks)
   // Container is sized to exactly fit 3 PerkCards + gaps + padding.
-  // Reactive so resizing cards via the tweaker keeps the panel snug.
+  // cardScale (CSS `zoom`) shrinks the card's visual+layout box, so
+  // we account for that here as well.
   const cardWidth = useCardLayoutStore((s) => s.cardWidth)
-  const panelInnerWidth = cardWidth * 3 + CARD_GAP * 2
+  const cardScale = useCardLayoutStore((s) => s.cardScale)
+  const panelInnerWidth = cardWidth * cardScale * 3 + CARD_GAP * 2
 
   function currentTierFor(perkId: string): number {
     return activePerks.find((p) => p.id === perkId)?.stackCount ?? 0

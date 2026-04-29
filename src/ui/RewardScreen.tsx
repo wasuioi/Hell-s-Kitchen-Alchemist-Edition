@@ -13,8 +13,11 @@ export default function RewardScreen() {
   const activePerks = useDeckStore((s) => s.activePerks)
   // Footer width tracks the card row above it — reactive so the dev
   // panel slider can resize the cards and the footer stays aligned.
+  // cardScale (CSS `zoom`) shrinks the card's visual+layout box, so
+  // the row's actual width is cardWidth × scale × 3 + gaps.
   const cardWidth = useCardLayoutStore((s) => s.cardWidth)
-  const footerWidth = cardWidth * 3 + CARD_GAP * 2
+  const cardScale = useCardLayoutStore((s) => s.cardScale)
+  const footerWidth = cardWidth * cardScale * 3 + CARD_GAP * 2
   const [perks, setPerks] = useState<PerkDefinition[]>(() => drawPerksWithRarity(3))
   const [rerollsLeft, setRerollsLeft] = useState(1)
   const [confirmingSkip, setConfirmingSkip] = useState(false)
@@ -46,6 +49,11 @@ export default function RewardScreen() {
       position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
       background: 'rgba(0,0,0,0.85)', zIndex: 20,
+      // Safety net for tall card scales: if the cards + header + footer
+      // overflow the viewport, scroll inside the overlay rather than
+      // hiding the reroll/skip buttons.
+      overflowY: 'auto',
+      padding: '24px 16px',
     }}>
       <h1 style={{ color: '#fcd34d', fontSize: '36px', fontWeight: 'bold', marginBottom: '8px' }}>
         WAVE {currentWave} CLEARED!

@@ -27,6 +27,7 @@ interface SliderConfig {
 }
 
 const SLIDERS: SliderConfig[] = [
+  { key: 'cardScale',    label: 'Card scale ×',   min: 0.4, max: 1.5,  step: 0.05 },
   { key: 'cardWidth',    label: 'Card width',     min: 220, max: 600,  step: 4 },
   { key: 'cardHeight',   label: 'Card height',    min: 320, max: 1000, step: 4 },
   { key: 'bannerHeight', label: 'Banner height',  min: 8,   max: 120,  step: 1 },
@@ -55,9 +56,10 @@ export default function CardLayoutTweaker() {
   const iconSize = useCardLayoutStore((s) => s.iconSize)
   const nameSize = useCardLayoutStore((s) => s.nameSize)
   const bannerSize = useCardLayoutStore((s) => s.bannerSize)
+  const cardScale = useCardLayoutStore((s) => s.cardScale)
   const values: CardLayoutValues = {
     cardWidth, cardHeight, bannerHeight, bannerGap,
-    padX, padTop, padBottom, iconSize, nameSize, bannerSize,
+    padX, padTop, padBottom, iconSize, nameSize, bannerSize, cardScale,
   }
   const setValue = useCardLayoutStore((s) => s.setValue)
   const reset = useCardLayoutStore((s) => s.reset)
@@ -145,7 +147,7 @@ export default function CardLayoutTweaker() {
                       color: isDefault ? 'rgba(255,255,255,0.7)' : '#fbbf24',
                     }}
                   >
-                    {v}
+                    {Number.isInteger(v) ? v : v.toFixed(2)}
                   </span>
                 </div>
               )

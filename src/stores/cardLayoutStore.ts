@@ -31,6 +31,12 @@ export interface CardLayoutValues {
   iconSize: number
   nameSize: number
   bannerSize: number
+  // Visual zoom multiplier applied to the whole card via CSS `zoom`.
+  // The other values describe the card's INTRINSIC layout; cardScale
+  // shrinks/enlarges the rendered output without changing proportions.
+  // Useful when the tuned card is too tall for the reward screen to
+  // fit its header + footer in the viewport.
+  cardScale: number
 }
 
 export const CARD_LAYOUT_DEFAULTS: CardLayoutValues = {
@@ -44,6 +50,7 @@ export const CARD_LAYOUT_DEFAULTS: CardLayoutValues = {
   iconSize: 136,
   nameSize: 16,
   bannerSize: 31,
+  cardScale: 0.65,
 }
 
 interface CardLayoutState extends CardLayoutValues {
@@ -55,7 +62,10 @@ export const useCardLayoutStore = create<CardLayoutState>()(
   persist(
     (set) => ({
       ...CARD_LAYOUT_DEFAULTS,
-      setValue: (key, value) => set({ [key]: value }),
+      // Float steps (e.g. cardScale at 0.05) accumulate FP error fast,
+      // so round to 2dp on write — keeps the stored value clean and
+      // matches what the slider visually snaps to.
+      setValue: (key, value) => set({ [key]: Math.round(value * 100) / 100 }),
       reset: () => set(CARD_LAYOUT_DEFAULTS),
     }),
     { name: 'card-layout-tweaks' },
