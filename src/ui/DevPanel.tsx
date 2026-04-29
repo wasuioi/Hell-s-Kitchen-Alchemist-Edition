@@ -1,39 +1,35 @@
 import { useState } from 'react'
 import { useDeckStore } from '../stores/deckStore'
-import { drawPerksWithRarity, MAX_PERK_TIER, RARITY_COLOR } from '../data/perks'
+import { drawPerksWithRarity } from '../data/perks'
 import type { PerkDefinition } from '../data/perks'
-import PerkIcon from './PerkIcon'
-import TierDots from './TierDots'
-import TierDiff from './TierDiff'
+import { useCardLayoutStore } from '../stores/cardLayoutStore'
+import PerkCard from './PerkCard'
+import CardLayoutTweaker from './CardLayoutTweaker'
 
 // ── DevPanel ────────────────────────────────────────────────────────────────
 // Cheat menu for fast iteration on perk-related work (VFX, balance, UI).
 // Mounts only in dev mode (see App.tsx). Lets you grant any perk to the
 // active deck without sitting through waves, reroll the picks an unlimited
-// number of times, and clear the deck to start over. The cards mirror
-// RewardScreen's layout so visual changes (rarity colour, hover blink,
-// tier diff text) match between the real reward flow and dev iteration.
+// number of times, and clear the deck to start over. Cards reuse the
+// shared <PerkCard> so visual changes only need to land in one file.
 // ────────────────────────────────────────────────────────────────────────────
 
-function withAlpha(hex: string, alpha: number): string {
-  const m = hex.replace('#', '')
-  const r = parseInt(m.slice(0, 2), 16)
-  const g = parseInt(m.slice(2, 4), 16)
-  const b = parseInt(m.slice(4, 6), 16)
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
-}
+const CARD_GAP = 12
+const PANEL_PADDING = 14
 
 export default function DevPanel() {
   const [open, setOpen] = useState(false)
   const [perks, setPerks] = useState<PerkDefinition[]>(() => drawPerksWithRarity(3))
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
   const activePerks = useDeckStore((s) => s.activePerks)
+  // Container is sized to exactly fit 3 PerkCards + gaps + padding.
+  // cardScale (CSS `zoom`) shrinks the card's visual+layout box, so
+  // we account for that here as well.
+  const cardWidth = useCardLayoutStore((s) => s.cardWidth)
+  const cardScale = useCardLayoutStore((s) => s.cardScale)
+  const panelInnerWidth = cardWidth * cardScale * 3 + CARD_GAP * 2
 
   function currentTierFor(perkId: string): number {
     return activePerks.find((p) => p.id === perkId)?.stackCount ?? 0
-  }
-  function tierAfterPick(perkId: string): number {
-    return Math.min(currentTierFor(perkId) + 1, MAX_PERK_TIER)
   }
 
   function pickPerk(perk: PerkDefinition) {
@@ -58,10 +54,16 @@ export default function DevPanel() {
       {open && (
         <div style={{
           marginTop: '4px', background: 'rgba(0,0,0,0.92)', borderRadius: '10px',
-          padding: '14px', color: 'white', fontSize: '11px',
+          padding: `${PANEL_PADDING}px`, color: 'white', fontSize: '11px',
           display: 'flex', flexDirection: 'column', gap: '12px',
-          width: '820px',
+          width: `${panelInnerWidth + PANEL_PADDING * 2}px`,
           border: '1px solid #22c55e',
+          // Constrain to the viewport and let the panel scroll internally —
+          // when the cards are tall and the tweaker is expanded the panel
+          // can otherwise spill past the bottom of the window with no way
+          // for the user to reach the sliders.
+          maxHeight: 'calc(100vh - 80px)',
+          overflowY: 'auto',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ color: '#22c55e', fontWeight: 'bold' }}>DEV — Perk Picker</span>
@@ -70,50 +72,15 @@ export default function DevPanel() {
             </span>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'stretch' }}>
-            {perks.map((perk) => {
-              const rarityColor = RARITY_COLOR[perk.rarity]
-              const isHovered = hoveredId === perk.id
-              return (
-                <button
-                  key={perk.id}
-                  onClick={() => pickPerk(perk)}
-                  onMouseEnter={() => setHoveredId(perk.id)}
-                  onMouseLeave={() => setHoveredId((id) => (id === perk.id ? null : id))}
-                  style={{
-                    flex: 1, padding: '20px 16px',
-                    background: isHovered ? withAlpha(rarityColor, 0.18) : withAlpha(rarityColor, 0.06),
-                    border: `2px solid ${isHovered ? rarityColor : withAlpha(rarityColor, 0.45)}`,
-                    borderRadius: '10px', color: 'white', cursor: 'pointer',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px',
-                    fontFamily: 'inherit', minHeight: '230px',
-                    transition: 'all 0.2s',
-                    transform: isHovered ? 'translateY(-2px)' : 'translateY(0)',
-                    boxShadow: isHovered ? `0 0 20px ${withAlpha(rarityColor, 0.4)}` : 'none',
-                  }}
-                >
-                  <span style={{
-                    fontSize: '10px', letterSpacing: '2px', textTransform: 'uppercase',
-                    color: rarityColor, fontWeight: 'bold', opacity: 0.9,
-                  }}>
-                    {perk.rarity}
-                  </span>
-                  <PerkIcon icon={perk.icon} size={56} />
-                  <span style={{ fontSize: '14px', fontWeight: 'bold' }}>{perk.name}</span>
-                  <div style={{ width: '100%' }}>
-                    <TierDiff perk={perk} currentTier={currentTierFor(perk.id)} />
-                  </div>
-                  <div style={{ marginTop: 'auto', paddingTop: '8px' }}>
-                    <TierDots
-                      current={currentTierFor(perk.id)}
-                      preview={tierAfterPick(perk.id)}
-                      hovered={isHovered}
-                      size="large"
-                    />
-                  </div>
-                </button>
-              )
-            })}
+          <div style={{ display: 'flex', gap: `${CARD_GAP}px`, alignItems: 'stretch' }}>
+            {perks.map((perk) => (
+              <PerkCard
+                key={perk.id}
+                perk={perk}
+                currentTier={currentTierFor(perk.id)}
+                onPick={() => pickPerk(perk)}
+              />
+            ))}
           </div>
 
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -138,6 +105,8 @@ export default function DevPanel() {
               Clear all perks
             </button>
           </div>
+
+          <CardLayoutTweaker />
         </div>
       )}
     </div>

@@ -1,25 +1,25 @@
 import type { PerkDefinition } from '../data/perks'
 import { MAX_PERK_TIER } from '../data/perks'
 
-// Body text for a perk reward card.
+// Upgrade preview text for a perk reward card. Renders only when the
+// perk has structured `tiers` data — non-tiered perks (the legacy
+// emoji ones) render nothing here, since their flat `description`
+// is already shown above by PerkCard.
 //
-// Behaviour depends on whether the perk has structured `tiers` data:
-//
-// - No tiers     → falls back to the flat `description` string. Most of
-//                  the legacy emoji perks land here.
 // - currentTier 0 (first pick)
-//                → shows the T1 stats and the human description, so the
-//                  player learns what the perk does at base.
+//                → shows the T1 base stats so the player learns what
+//                  numbers they're committing to. Plus the "+added"
+//                  effect line for T1 if the perk has one.
 // - currentTier 1..MAX-1 (upgrade pick)
-//                → shows numeric diffs `Damage: 15 → 25` with the new
-//                  value highlighted in red, plus a `+ <effect>` line
-//                  for the new gameplay effect introduced at that tier.
+//                → shows numeric diffs `Damage: 15 → 25` with the
+//                  new value highlighted in red, plus a `+ <effect>`
+//                  line for the gameplay added at that tier.
 // - currentTier ≥ MAX
-//                → shows a "max tier" hint so the player still knows
-//                  picking again is doing something (extra stacks).
+//                → "Max tier" hint so the player still knows picking
+//                  again is doing something (extra stacks).
 //
-// The red colour for the new value is the same `#ef4444` used elsewhere
-// in the UI for "high damage" feedback so it reads as an upgrade signal.
+// The red colour for the new value is the same `#ef4444` used
+// elsewhere in the UI for "high damage" feedback.
 
 interface TierDiffProps {
   perk: PerkDefinition
@@ -30,17 +30,13 @@ const NEW_VALUE_COLOR = '#ef4444'
 const ADDED_LINE_COLOR = '#fbbf24'
 
 export default function TierDiff({ perk, currentTier }: TierDiffProps) {
-  if (!perk.tiers) {
-    return (
-      <span style={{ fontSize: '13px', opacity: 0.75, textAlign: 'center', lineHeight: 1.45 }}>
-        {perk.description}
-      </span>
-    )
-  }
+  // Non-tiered perks: PerkCard already renders the description, so
+  // there's nothing additional to show here.
+  if (!perk.tiers) return null
 
   if (currentTier >= MAX_PERK_TIER) {
     return (
-      <span style={{ fontSize: '12px', color: ADDED_LINE_COLOR, textAlign: 'center', lineHeight: 1.4 }}>
+      <span style={{ fontSize: '13px', color: ADDED_LINE_COLOR, textAlign: 'center', lineHeight: 1.4, display: 'block' }}>
         Max tier — extra stacks add a small bonus
       </span>
     )
@@ -53,7 +49,7 @@ export default function TierDiff({ perk, currentTier }: TierDiffProps) {
   const oldStats = prev?.stats ?? null
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, lineHeight: 1.4 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 13, lineHeight: 1.4, width: '100%' }}>
       {Object.entries(newStats).map(([label, newVal]) => {
         const oldVal = oldStats?.[label]
         const changed = oldVal !== undefined && oldVal !== newVal
@@ -75,13 +71,8 @@ export default function TierDiff({ perk, currentTier }: TierDiffProps) {
         )
       })}
       {next.added && (
-        <div style={{ marginTop: 6, color: ADDED_LINE_COLOR, fontSize: 12, textAlign: 'left', lineHeight: 1.35 }}>
+        <div style={{ marginTop: 4, color: ADDED_LINE_COLOR, fontSize: 12, textAlign: 'left', lineHeight: 1.35 }}>
           + {next.added}
-        </div>
-      )}
-      {currentTier === 0 && (
-        <div style={{ marginTop: 8, opacity: 0.6, fontSize: 11, textAlign: 'center', lineHeight: 1.4, fontStyle: 'italic' }}>
-          {perk.description}
         </div>
       )}
     </div>
