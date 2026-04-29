@@ -31,6 +31,24 @@ function buildSpell(spellType: SpellType): SpellEffect {
     }
   }
 
+  // BoilingPoint perk: INFERNO consumes all banked Heat for bonus damage
+  // (and at T3, heals 1 HP per stack consumed before clearing).
+  if (spellType === 'INFERNO') {
+    const bpStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'boiling_point')?.stackCount || 0
+    if (bpStacks > 0) {
+      const heat = usePlayerStore.getState().heatStacks
+      if (heat > 0) {
+        const tier = Math.min(bpStacks, 3)
+        const basePerStack = [0.20, 0.20, 0.25][tier - 1]
+        const overflow = Math.max(0, bpStacks - 3) * 0.05
+        const perStack = basePerStack + overflow
+        damage = damage * (1 + perStack * heat)
+        if (tier >= 3) usePlayerStore.getState().heal(heat)
+        usePlayerStore.getState().consumeHeat()
+      }
+    }
+  }
+
   return {
     id: `spell_${spellId++}`, type: spellType, position: targetPos,
     radius, damage, duration: config.duration, elapsed: 0,
