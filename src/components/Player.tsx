@@ -56,6 +56,10 @@ export default function Player() {
   const lastSpellColor = useRef('#22c55e')
   const dashTrailColor = useRef('#22c55e')
 
+  const originalEmissives = useRef<Map<THREE.Material, THREE.Color>>(new Map())
+  const tintOn = useRef(false)
+  const lastBlinkAt = useRef(0)
+
   // Play idle animation on mount
   useEffect(() => {
     if (actions['Idle']) {
@@ -174,6 +178,45 @@ export default function Player() {
     if (groupRef.current) {
       scene.position.set(0, 0, 0)
     }
+  })
+
+  // Red tint blink on wizard model at Heat >= 5
+  useFrame(() => {
+    const heat = usePlayerStore.getState().heatStacks
+    const shouldBlink = heat >= 5
+    const blinkHz = heat === 5 ? 1 : heat === 6 ? 2 : heat >= 7 ? 4 : 0
+    const halfPeriodMs = blinkHz > 0 ? 500 / blinkHz : 0
+    const now = performance.now()
+
+    // Decide whether tint should be on this frame
+    let nextTintOn = false
+    if (shouldBlink && now - lastBlinkAt.current >= halfPeriodMs) {
+      nextTintOn = !tintOn.current
+      lastBlinkAt.current = now
+    } else if (shouldBlink) {
+      nextTintOn = tintOn.current
+    } else {
+      nextTintOn = false
+    }
+
+    if (nextTintOn === tintOn.current && shouldBlink) return
+    tintOn.current = nextTintOn
+
+    // Apply / restore emissive across all wizard materials
+    scene.traverse((obj) => {
+      const mesh = obj as THREE.Mesh
+      const mat = mesh.material as THREE.MeshStandardMaterial | undefined
+      if (!mat || !('emissive' in mat)) return
+      if (!originalEmissives.current.has(mat)) {
+        originalEmissives.current.set(mat, mat.emissive.clone())
+      }
+      const original = originalEmissives.current.get(mat)!
+      if (nextTintOn) {
+        mat.emissive.setRGB(1.0, 0.15, 0.15)
+      } else {
+        mat.emissive.copy(original)
+      }
+    })
   })
 
   const phase = useGameStore((s) => s.phase)
