@@ -11,7 +11,11 @@ import { PERK_POOL } from '../data/perks'
 // new Image() warms both the regular browser cache *and* Three.js's
 // TextureLoader cache, since TextureLoader internally uses HTMLImageElement.
 export function preloadGameAssets(): void {
-  const urls = new Set<string>()
+  const urls = new Set<string>([
+    // Reward / dev card stone-tablet frame — first reward screen shows 3
+    // copies at once, so a cold cache here is especially noticeable.
+    '/ui/card_frame.png',
+  ])
   for (const perk of PERK_POOL) {
     if (perk.icon.startsWith('/')) urls.add(perk.icon)
     if (perk.vfxSprite) urls.add(`/vfx/${perk.vfxSprite}.png`)

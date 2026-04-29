@@ -1,21 +1,12 @@
 import { useState } from 'react'
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
-import { drawPerksWithRarity, MAX_PERK_TIER, RARITY_COLOR } from '../data/perks'
+import { drawPerksWithRarity } from '../data/perks'
 import type { PerkDefinition } from '../data/perks'
-import PerkIcon from './PerkIcon'
-import TierDots from './TierDots'
-import TierDiff from './TierDiff'
+import PerkCard, { CARD_WIDTH } from './PerkCard'
 
-// Hex color → rgba(r,g,b,a) — used to tint card backgrounds with the
-// rarity colour without losing the dark base.
-function withAlpha(hex: string, alpha: number): string {
-  const m = hex.replace('#', '')
-  const r = parseInt(m.slice(0, 2), 16)
-  const g = parseInt(m.slice(2, 4), 16)
-  const b = parseInt(m.slice(4, 6), 16)
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
-}
+const CARD_GAP = 24
+const FOOTER_WIDTH = CARD_WIDTH * 3 + CARD_GAP * 2 // align with the card row above
 
 export default function RewardScreen() {
   const currentWave = useGameStore((s) => s.currentWave)
@@ -23,14 +14,9 @@ export default function RewardScreen() {
   const [perks, setPerks] = useState<PerkDefinition[]>(() => drawPerksWithRarity(3))
   const [rerollsLeft, setRerollsLeft] = useState(1)
   const [confirmingSkip, setConfirmingSkip] = useState(false)
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   function currentTierFor(perkId: string): number {
     return activePerks.find((p) => p.id === perkId)?.stackCount ?? 0
-  }
-
-  function tierAfterPick(perkId: string): number {
-    return Math.min(currentTierFor(perkId) + 1, MAX_PERK_TIER)
   }
 
   function pickPerk(perk: PerkDefinition) {
@@ -64,56 +50,20 @@ export default function RewardScreen() {
         Choose a perk to upgrade your kitchen
       </p>
 
-      <div style={{ display: 'flex', gap: '24px', alignItems: 'stretch' }}>
-        {perks.map((perk) => {
-          const rarityColor = RARITY_COLOR[perk.rarity]
-          const isHovered = hoveredId === perk.id
-          return (
-            <button
-              key={perk.id}
-              onClick={() => pickPerk(perk)}
-              onMouseEnter={() => setHoveredId(perk.id)}
-              onMouseLeave={() => setHoveredId((id) => (id === perk.id ? null : id))}
-              style={{
-                width: '260px', padding: '28px 22px',
-                background: isHovered ? withAlpha(rarityColor, 0.18) : withAlpha(rarityColor, 0.06),
-                border: `2px solid ${isHovered ? rarityColor : withAlpha(rarityColor, 0.45)}`,
-                borderRadius: '14px', color: 'white', cursor: 'pointer',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px',
-                transition: 'all 0.2s', fontFamily: 'inherit',
-                transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
-                boxShadow: isHovered ? `0 0 28px ${withAlpha(rarityColor, 0.45)}` : 'none',
-              }}
-            >
-              <span style={{
-                fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase',
-                color: rarityColor, fontWeight: 'bold', opacity: 0.9,
-              }}>
-                {perk.rarity}
-              </span>
-              <PerkIcon icon={perk.icon} size={72} />
-              <span style={{ fontSize: '17px', fontWeight: 'bold' }}>{perk.name}</span>
-
-              <div style={{ width: '100%' }}>
-                <TierDiff perk={perk} currentTier={currentTierFor(perk.id)} />
-              </div>
-
-              <div style={{ marginTop: 'auto', paddingTop: '14px' }}>
-                <TierDots
-                  current={currentTierFor(perk.id)}
-                  preview={tierAfterPick(perk.id)}
-                  hovered={isHovered}
-                  size="large"
-                />
-              </div>
-            </button>
-          )
-        })}
+      <div style={{ display: 'flex', gap: `${CARD_GAP}px`, alignItems: 'stretch' }}>
+        {perks.map((perk) => (
+          <PerkCard
+            key={perk.id}
+            perk={perk}
+            currentTier={currentTierFor(perk.id)}
+            onPick={() => pickPerk(perk)}
+          />
+        ))}
       </div>
 
       <div style={{
         display: 'flex', gap: '12px', marginTop: '28px',
-        width: '820px', justifyContent: 'space-between', alignItems: 'center',
+        width: `${FOOTER_WIDTH}px`, justifyContent: 'space-between', alignItems: 'center',
       }}>
         <button
           onClick={handleReroll}
