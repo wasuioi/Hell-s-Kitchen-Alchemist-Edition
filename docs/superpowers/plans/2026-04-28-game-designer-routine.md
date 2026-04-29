@@ -224,7 +224,7 @@ The cron may fire before today's overnight changes have been pulled locally. Alw
 Run, in order:
 1. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition fetch origin main`
 2. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition rev-parse --abbrev-ref HEAD` — output MUST equal `main`. If not, fail loudly with: "Expected /Users/pacas/Hell-s-Kitchen-Alchemist-Edition to be on `main`, got `<branch>`. Aborting cron run." Do NOT continue.
-3. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition pull --ff-only origin main` — if this fails (non-fast-forward, merge conflict, dirty-tree conflict, etc.), surface the exact stderr and STOP. Do NOT proceed with stale state.
+3. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition pull --ff-only origin main` — if this fails (any non-zero exit), **FAIL FAST**: print the exact stderr and EXIT THE TASK. Do NOT run any further git, shell, or other tool calls. Do NOT investigate. Do NOT attempt recovery.
 
 Only proceed past Step 0 once main is confirmed fast-forwarded (or already up to date).
 
@@ -312,7 +312,7 @@ The cron may fire before today's overnight changes have been pulled locally. Alw
 Run, in order:
 1. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition fetch origin main`
 2. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition rev-parse --abbrev-ref HEAD` — output MUST equal `main`. If not, fail loudly with: "Expected /Users/pacas/Hell-s-Kitchen-Alchemist-Edition to be on `main`, got `<branch>`. Aborting cron run." Do NOT continue.
-3. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition pull --ff-only origin main` — if this fails, surface the exact stderr and STOP.
+3. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition pull --ff-only origin main` — if this fails (any non-zero exit), **FAIL FAST**: print the exact stderr and EXIT THE TASK. Do NOT run any further git, shell, or other tool calls. Do NOT investigate. Do NOT attempt recovery.
 
 Only proceed once main is confirmed fast-forwarded (or already up to date).
 
@@ -415,7 +415,7 @@ The cron may fire before today's overnight changes have been pulled locally. Alw
 Run, in order:
 1. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition fetch origin main`
 2. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition rev-parse --abbrev-ref HEAD` — output MUST equal `main`. If not, fail loudly with: "Expected /Users/pacas/Hell-s-Kitchen-Alchemist-Edition to be on `main`, got `<branch>`. Aborting cron run." Do NOT continue.
-3. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition pull --ff-only origin main` — if this fails, surface the exact stderr and STOP.
+3. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition pull --ff-only origin main` — if this fails (any non-zero exit), **FAIL FAST**: print the exact stderr and EXIT THE TASK. Do NOT run any further git, shell, or other tool calls. Do NOT investigate. Do NOT attempt recovery.
 
 Only proceed once main is confirmed fast-forwarded (or already up to date).
 
@@ -516,7 +516,7 @@ The cron may fire before today's overnight changes have been pulled locally. Alw
 Run, in order:
 1. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition fetch origin main`
 2. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition rev-parse --abbrev-ref HEAD` — output MUST equal `main`. If not, fail loudly with: "Expected /Users/pacas/Hell-s-Kitchen-Alchemist-Edition to be on `main`, got `<branch>`. Aborting cron run." Do NOT continue.
-3. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition pull --ff-only origin main` — if this fails, surface the exact stderr and STOP.
+3. `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition pull --ff-only origin main` — if this fails (any non-zero exit), **FAIL FAST**: print the exact stderr and EXIT THE TASK. Do NOT run any further git, shell, or other tool calls. Do NOT investigate. Do NOT attempt recovery.
 
 Only proceed once main is confirmed fast-forwarded (or already up to date).
 
