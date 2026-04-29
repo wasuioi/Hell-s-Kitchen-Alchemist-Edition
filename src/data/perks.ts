@@ -52,8 +52,8 @@ export const PERK_POOL: PerkDefinition[] = [
     rarity: 'rare', vfxSprite: 'grease_fire',
     tiers: [
       { stats: { Damage: 15, Radius: 2.5, Cooldown: '2.0s' } },
-      { stats: { Damage: 25, Radius: 3.5, Cooldown: '1.5s' }, added: 'Soaks enemies for 1.5s' },
-      { stats: { Damage: 40, Radius: 4.5, Cooldown: '1.0s' }, added: 'Doubles damage on heavy hits, burns instead of soaks (3s DOT)' },
+      { stats: { Damage: 25, Radius: 3.5, Cooldown: '1.5s' } },
+      { stats: { Damage: 40, Radius: 4.5, Cooldown: '1.0s' }, added: 'Doubles damage on heavy hits, ignites enemies (Burn 3s DOT)' },
     ],
   },
 ]

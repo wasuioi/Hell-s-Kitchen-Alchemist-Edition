@@ -49,11 +49,11 @@ describe('triggerOnDamageTaken', () => {
     expect(useEnemyStore.getState().enemies[0].hp).toBe(15)
   })
 
-  it('applies soaked status at tier 2 (sets soakedUntil)', () => {
+  it('does not apply soaked at tier 2 (no status applied)', () => {
     addGreaseFire(2)
     useEnemyStore.getState().spawnEnemy('slow', { x: 1, z: 0 })
     triggerOnDamageTaken(10, CENTER)
-    expect(useEnemyStore.getState().enemies[0].soakedUntil).toBeGreaterThan(performance.now())
+    expect(useEnemyStore.getState().enemies[0].soakedUntil).toBe(0)
   })
 
   it('applies burning status at tier 3 (sets burningUntil)', () => {

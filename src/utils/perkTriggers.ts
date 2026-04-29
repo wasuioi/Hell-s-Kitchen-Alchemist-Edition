@@ -71,10 +71,8 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
     }
   }
 
-  if (tier >= 2) {
-    const status = tier >= 3 ? 'burning' : 'soaked'
-    const dur = tier >= 3 ? 3 : 1.5
-    useEnemyStore.getState().applyStatusInRadius(position, radius, status, dur)
+  if (tier >= 3) {
+    useEnemyStore.getState().applyStatusInRadius(position, radius, 'burning', 3)
   }
 
   // VFX layer — sprite-sheet if the perk defines one, else the generic
