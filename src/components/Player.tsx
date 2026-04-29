@@ -2,7 +2,7 @@ import { useRef, useState, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html, useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
-import { usePlayerStore } from '../stores/playerStore'
+import { usePlayerStore, BOILING_POINT_MAX_HEAT } from '../stores/playerStore'
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import { ARENA_SIZE } from './Arena'
@@ -20,6 +20,26 @@ if (typeof window !== 'undefined') {
 
 const WIZARD_MODEL_PATH = '/models/wizard/Wizard.gltf'
 const WIZARD_SCALE = 0.9
+
+if (typeof document !== 'undefined' && !document.getElementById('heat-shake-keyframes')) {
+  const style = document.createElement('style')
+  style.id = 'heat-shake-keyframes'
+  style.textContent = `
+    @keyframes heat-shake-light {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(-1px, 0); }
+      75% { transform: translate(1px, 0); }
+    }
+    @keyframes heat-shake-heavy {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-2px, -1px); }
+      40% { transform: translate(2px, 1px); }
+      60% { transform: translate(-2px, 1px); }
+      80% { transform: translate(2px, -1px); }
+    }
+  `
+  document.head.appendChild(style)
+}
 
 export default function Player() {
   const { scene, animations } = useGLTF(WIZARD_MODEL_PATH)
@@ -161,6 +181,9 @@ export default function Player() {
   const rotation = usePlayerStore((s) => s.rotation)
   const hp = usePlayerStore((s) => s.hp)
   const maxHp = usePlayerStore((s) => s.maxHp)
+  const heatStacks = usePlayerStore((s) => s.heatStacks)
+  const bpStacks = useDeckStore((s) => s.activePerks.find((p) => p.id === 'boiling_point')?.stackCount ?? 0)
+  const maxHeat = bpStacks > 0 ? BOILING_POINT_MAX_HEAT[Math.min(bpStacks, 3) - 1] : 0
 
   if (phase !== 'combat' && phase !== 'boss') return null
 
@@ -175,6 +198,21 @@ export default function Player() {
             <div style={{ width: `${(hp / maxHp) * 100}%`, height: '100%', background: hp / maxHp > 0.3 ? '#22c55e' : '#ef4444', borderRadius: '3px', transition: 'width 0.2s' }} />
           </div>
         </Html>
+        {heatStacks > 0 && (
+          <Html position={[0, 2.6, 0]} center>
+            <div
+              style={{
+                fontSize: '20px',
+                fontWeight: 'bold',
+                color: heatStackColor(heatStacks, maxHeat),
+                textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 6px currentColor',
+                animation: heatShakeAnimation(heatStacks, maxHeat),
+              }}
+            >
+              {heatStacks}
+            </div>
+          </Html>
+        )}
       </group>
       {/* Dash ghost trail — earlier ghosts fade faster for a smooth streaking effect */}
       {ghosts.map((ghost) => {
@@ -197,3 +235,22 @@ export default function Player() {
 }
 
 useGLTF.preload(WIZARD_MODEL_PATH)
+
+// Heat stack number color: yellow (low) → red (max)
+function heatStackColor(stacks: number, max: number): string {
+  if (max === 0) return '#fbbf24'
+  const t = Math.min(1, stacks / max)
+  const r = Math.round(251 + (239 - 251) * t) // 251 → 239
+  const g = Math.round(191 + (68 - 191) * t)  // 191 → 68
+  const b = Math.round(36 + (68 - 36) * t)    // 36 → 68
+  return `rgb(${r}, ${g}, ${b})`
+}
+
+// Increasing shake intensity as Heat approaches the cap.
+function heatShakeAnimation(stacks: number, max: number): string {
+  if (max === 0) return 'none'
+  const t = stacks / max
+  if (t < 0.4) return 'none'
+  if (t < 0.7) return 'heat-shake-light 0.6s infinite'
+  return 'heat-shake-heavy 0.15s infinite'
+}
