@@ -56,3 +56,66 @@ describe('playerStore dash', () => {
     expect(state.dashCooldownUntil).toBe(0)
   })
 })
+
+describe('playerStore heat', () => {
+  beforeEach(() => { usePlayerStore.getState().reset() })
+
+  it('starts with zero heat', () => {
+    expect(usePlayerStore.getState().heatStacks).toBe(0)
+    expect(usePlayerStore.getState().lastHitAt).toBe(0)
+  })
+
+  it('addHeat increments by 1 and stamps lastHitAt', () => {
+    const before = performance.now()
+    usePlayerStore.getState().addHeat(5)
+    const s = usePlayerStore.getState()
+    expect(s.heatStacks).toBe(1)
+    expect(s.lastHitAt).toBeGreaterThanOrEqual(before)
+  })
+
+  it('addHeat caps at maxStacks', () => {
+    for (let i = 0; i < 10; i++) usePlayerStore.getState().addHeat(5)
+    expect(usePlayerStore.getState().heatStacks).toBe(5)
+  })
+
+  it('consumeHeat returns the consumed count and clears heat', () => {
+    usePlayerStore.getState().addHeat(7)
+    usePlayerStore.getState().addHeat(7)
+    usePlayerStore.getState().addHeat(7)
+    const consumed = usePlayerStore.getState().consumeHeat()
+    expect(consumed).toBe(3)
+    expect(usePlayerStore.getState().heatStacks).toBe(0)
+  })
+
+  it('decayHeat does nothing if window has not elapsed', () => {
+    usePlayerStore.getState().addHeat(5)
+    usePlayerStore.getState().decayHeat(4000)
+    expect(usePlayerStore.getState().heatStacks).toBe(1)
+  })
+
+  it('decayHeat removes 1 stack when window elapsed and resets the timer', () => {
+    usePlayerStore.getState().addHeat(5)
+    usePlayerStore.getState().addHeat(5)
+    // Force lastHitAt into the past
+    usePlayerStore.setState({ lastHitAt: performance.now() - 5000 })
+    usePlayerStore.getState().decayHeat(4000)
+    const s = usePlayerStore.getState()
+    expect(s.heatStacks).toBe(1)
+    // lastHitAt should have been bumped to ~now so the next decay needs another window
+    expect(s.lastHitAt).toBeGreaterThan(performance.now() - 1000)
+  })
+
+  it('decayHeat at 0 stacks is a no-op', () => {
+    usePlayerStore.getState().decayHeat(4000)
+    expect(usePlayerStore.getState().heatStacks).toBe(0)
+  })
+
+  it('reset clears heat state', () => {
+    usePlayerStore.getState().addHeat(5)
+    usePlayerStore.setState({ lastHitAt: 12345 })
+    usePlayerStore.getState().reset()
+    const s = usePlayerStore.getState()
+    expect(s.heatStacks).toBe(0)
+    expect(s.lastHitAt).toBe(0)
+  })
+})

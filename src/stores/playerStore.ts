@@ -12,11 +12,17 @@ interface PlayerState {
   dashDirection: Position | null
   dashCooldownUntil: number
   dashEndTime: number
+  // Heat state (BoilingPoint perk)
+  heatStacks: number
+  lastHitAt: number
   // Actions
   setPosition: (pos: Position) => void; setRotation: (rot: number) => void
   takeDamage: (amount: number) => void; heal: (amount: number) => void
   setStatus: (status: StatusEffect) => void
   startDash: (direction: Position) => void; endDash: () => void
+  addHeat: (maxStacks: number) => void
+  consumeHeat: () => number
+  decayHeat: (decayMs: number) => void
   reset: () => void
 }
 
@@ -27,6 +33,7 @@ export const PLAYER_DASH_COOLDOWN_MS = DASH_COOLDOWN_MS
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   position: { x: 0, z: 0 }, rotation: 0, hp: 100, maxHp: 100, status: 'normal',
   isDashing: false, dashDirection: null, dashCooldownUntil: 0, dashEndTime: 0,
+  heatStacks: 0, lastHitAt: 0,
   setPosition: (pos) => set({ position: pos }),
   setRotation: (rot) => set({ rotation: rot }),
   takeDamage: (amount) => {
@@ -46,8 +53,24 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     })
   },
   endDash: () => set({ isDashing: false, dashDirection: null }),
+  addHeat: (maxStacks) => set((s) => ({
+    heatStacks: Math.min(maxStacks, s.heatStacks + 1),
+    lastHitAt: performance.now(),
+  })),
+  consumeHeat: () => {
+    const consumed = get().heatStacks
+    set({ heatStacks: 0 })
+    return consumed
+  },
+  decayHeat: (decayMs) => {
+    const s = get()
+    if (s.heatStacks === 0) return
+    if (performance.now() - s.lastHitAt < decayMs) return
+    set({ heatStacks: s.heatStacks - 1, lastHitAt: performance.now() })
+  },
   reset: () => set({
     position: { x: 0, z: 0 }, rotation: 0, hp: 100, maxHp: 100, status: 'normal',
     isDashing: false, dashDirection: null, dashCooldownUntil: 0, dashEndTime: 0,
+    heatStacks: 0, lastHitAt: 0,
   }),
 }))
