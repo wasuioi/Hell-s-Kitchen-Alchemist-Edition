@@ -1,9 +1,10 @@
 import { useDeckStore } from '../stores/deckStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
+import { useWorldStore } from '../stores/worldStore'
 import { PERK_POOL } from '../data/perks'
 import { spawnExplosionVfx, spawnSpriteVfx, spawnDamageNumberVfx } from './spawnVfx'
-import type { Position } from '../types'
+import type { Enemy, Position } from '../types'
 
 // Convention for future on-trigger perks: alongside the gameplay logic
 // (damage, status, etc.), spawn visible feedback so the player actually
@@ -92,4 +93,53 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
 
 export function resetGreaseFireCooldown() {
   lastGreaseFireAt = -Infinity
+}
+
+const CARAMELIZE_TIERS = [
+  { dropChance: 0.5, radius: 2.0, lifetimeS: 3.0, dmgPerSecond: 5, slowMul: 0.7, appliesSoaked: false, growOnKill: false },
+  { dropChance: 0.7, radius: 2.5, lifetimeS: 4.0, dmgPerSecond: 8, slowMul: 0.6, appliesSoaked: true,  growOnKill: false },
+  { dropChance: 1.0, radius: 2.5, lifetimeS: 5.0, dmgPerSecond: 12, slowMul: 0.5, appliesSoaked: true, growOnKill: true  },
+]
+
+export function triggerOnEnemyDeath(enemy: Enemy) {
+  const stacks = useDeckStore.getState().activePerks.find((p) => p.id === 'caramelize')?.stackCount ?? 0
+  if (stacks === 0) return
+
+  const tier = Math.min(stacks, 3)
+  const cfg = CARAMELIZE_TIERS[tier - 1]
+  const { x, z } = enemy.position
+
+  // T3 capstone: if this kill happened inside an existing pool, grow that pool instead
+  if (tier >= 3) {
+    const pools = useWorldStore.getState().pools
+    const hit = pools.find((p) => Math.hypot(p.x - x, p.z - z) <= p.radius)
+    if (hit) {
+      useWorldStore.getState().growCaramelPool(hit.id, 0.5, cfg.lifetimeS)
+      return
+    }
+  }
+
+  if (Math.random() > cfg.dropChance) return
+
+  useWorldStore.getState().spawnCaramelPool({
+    x, z,
+    radius: cfg.radius,
+    lifetimeS: cfg.lifetimeS,
+    dmgPerSecond: cfg.dmgPerSecond,
+    slowMul: cfg.slowMul,
+    appliesSoaked: cfg.appliesSoaked,
+    growOnKill: cfg.growOnKill,
+  })
+
+  const def = PERK_POOL.find((p) => p.id === 'caramelize')
+  if (def?.vfxSprite) {
+    spawnSpriteVfx(def.vfxSprite, x, z, cfg.radius * 2.5)
+  } else {
+    spawnExplosionVfx(x, z)
+  }
+}
+
+export function resetCaramelizeState() {
+  // No module-level state for caramelize (unlike grease_fire cooldown).
+  // Exposed for test symmetry so beforeEach can call a consistent reset shape.
 }

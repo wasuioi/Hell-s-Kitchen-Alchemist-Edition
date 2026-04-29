@@ -12,6 +12,7 @@ import DamageNumbers from './DamageNumbers'
 import GroundCracks from './GroundCracks'
 import ExplosionEffects from './ExplosionEffect'
 import SpriteVfxEffects from './SpriteVfxEffect'
+import CaramelPools from './CaramelPool'
 
 export default function Scene() {
   const phase = useGameStore((s) => s.phase)
@@ -34,6 +35,7 @@ export default function Scene() {
         <DamageNumbers />
         <ExplosionEffects />
         <SpriteVfxEffects />
+        <CaramelPools />
         {/* Pre-load drei Text font to prevent black flash on first damage number */}
         <Suspense fallback={null}>
           <Text position={[0, -100, 0]} fontSize={0.1}>.</Text>

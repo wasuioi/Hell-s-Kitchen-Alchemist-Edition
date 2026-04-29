@@ -68,3 +68,16 @@ export interface SpellEffect {
   duration: number
   elapsed: number
 }
+
+export interface CaramelPool {
+  id: string
+  x: number
+  z: number
+  radius: number
+  spawnedAt: number
+  lifetimeS: number
+  dmgPerSecond: number
+  slowMul: number
+  appliesSoaked: boolean
+  growOnKill: boolean
+}

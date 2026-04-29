@@ -63,6 +63,16 @@ export const PERK_POOL: PerkDefinition[] = [
     rarity: 'epic',
   },
   {
+    id: 'caramelize', name: 'Caramelize', icon: '/icons/caramelize.png',
+    description: 'Killed enemies leave burning caramel pools that damage and slow.',
+    rarity: 'epic', vfxSprite: 'caramelize_pool_idle',
+    tiers: [
+      { stats: { DropChance: '50%', Radius: '2.0', Lifetime: '3.0s', DmgPerSec: 5, Slow: '-30%' } },
+      { stats: { DropChance: '70%', Radius: '2.5', Lifetime: '4.0s', DmgPerSec: 8, Slow: '-40%' }, added: 'Pools also apply Soaked while enemies stand in them' },
+      { stats: { DropChance: '100%', Radius: '2.5+', Lifetime: '5.0s', DmgPerSec: 12, Slow: '-50%' }, added: 'Killing an enemy inside a pool grows it +0.5u (cap 5.0) and refreshes lifetime' },
+    ],
+  },
+  {
     id: 'grease_fire', name: 'Grease Fire', icon: '/icons/grease_fire.png',
     description: 'Taking damage erupts a fiery grease burst around you, scorching nearby enemies. 2s cooldown.',
     rarity: 'rare', vfxSprite: 'grease_fire',
