@@ -156,19 +156,40 @@ This applies to every perk card, not just BoilingPoint. Bundled with this spec b
 5. TierDots
 
 **New layout:**
-1. ~~Rarity label removed~~
-2. **Perk name** — bold (~22px), colored with `RARITY_COLOR[perk.rarity]`. Takes the slot the rarity label used to occupy.
-3. PerkIcon (72px)
-4. TierDiff body
-5. TierDots
+
+The perk name moves **above the card border** — it floats as a title outside the bordered area, not inside the button. The rarity label is removed; the name is colored with `RARITY_COLOR[perk.rarity]` so rarity is still readable at a glance. Inside the button starts directly with the icon.
+
+```
+   Boiling Point                ← name OUTSIDE the border, colored by rarity
+   ┌──────────────────────────┐
+   │           🍳              │   ← icon is now the top element inside
+   │                          │
+   │   [stat rows]            │
+   │                          │
+   │   + added line           │
+   │                          │
+   │        ● ● ●             │
+   └──────────────────────────┘
+```
+
+Order:
+1. **Perk name** — bold (~22px), `RARITY_COLOR[perk.rarity]`, sits outside the button as a header
+2. Button (the bordered card) wraps:
+   - PerkIcon (72px) — now the first element inside
+   - TierDiff body
+   - TierDots
 
 The rarity is still readable from the border + glow + name color (gray / blue / purple / gold), so the explicit text label is redundant.
 
+**Implementation note:** This requires wrapping the existing `<button>` in a parent `<div>` that contains both the name span and the button — not a simple in-place style edit. The hover lift (`translateY(-4px)`) and shadow stay on the button; the name stays static above so it doesn't bob with the card.
+
 **Files affected:**
-- `src/ui/RewardScreen.tsx` — replace lines 88-95 (the rarity span + name span pair) with a single colored name span at the top.
+- `src/ui/RewardScreen.tsx` — replace lines 88-95 (the rarity span + name span pair) and wrap the button so the name floats above it.
 - `src/ui/DevPanel.tsx` — same change at lines 95-102.
 
 The two files share the layout intentionally (DevPanel mirrors RewardScreen so dev iteration matches the real reward flow — see the comment block at the top of `DevPanel.tsx`). Keep them in sync.
+
+This layout pattern (name-above-card, rarity-as-color) will also be propagated to the perk-ideation routine prompt at `.claude/routine-prompts/perk-ideation.md` later, so future generated perk proposals describe their reward card with this convention.
 
 ### Tests (`src/__tests__/`)
 - `addHeat` caps at the passed `maxStacks`.
