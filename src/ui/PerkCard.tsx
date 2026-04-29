@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { RARITY_COLOR } from '../data/perks'
+import { MAX_PERK_TIER, RARITY_COLOR } from '../data/perks'
 import type { PerkDefinition } from '../data/perks'
 import { useCardLayoutStore } from '../stores/cardLayoutStore'
 import PerkIcon from './PerkIcon'
+import TierDots from './TierDots'
 
 // ── PerkCard ────────────────────────────────────────────────────────────────
 //
@@ -39,9 +40,10 @@ interface PerkCardProps {
   onPick: () => void
 }
 
-export default function PerkCard({ perk, onPick }: PerkCardProps) {
+export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
   const [hovered, setHovered] = useState(false)
   const rarityColor = RARITY_COLOR[perk.rarity]
+  const previewTier = Math.min(currentTier + 1, MAX_PERK_TIER)
 
   const cardWidth = useCardLayoutStore((s) => s.cardWidth)
   const cardHeight = useCardLayoutStore((s) => s.cardHeight)
@@ -121,8 +123,9 @@ export default function PerkCard({ perk, onPick }: PerkCardProps) {
           }}
         />
 
-        {/* Inside the frame — icon at the top, short description below.
-            Nothing else for now. */}
+        {/* Inside the frame — icon and description grouped together
+            in the middle of the safe area, TierDots pinned to the
+            bottom as the upgrade-tier preview. */}
         <div
           style={{
             position: 'absolute',
@@ -131,22 +134,43 @@ export default function PerkCard({ perk, onPick }: PerkCardProps) {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
           }}
         >
-          <PerkIcon icon={perk.icon} size={iconSize} />
-
+          {/* icon + description grouped tight, centred vertically in
+              the remaining space above the dots. */}
           <div
             style={{
-              fontSize: `${nameSize}px`,
-              opacity: 0.85,
-              textAlign: 'center',
-              lineHeight: 1.4,
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '14px',
+              width: '100%',
             }}
           >
-            {perk.description}
+            <PerkIcon icon={perk.icon} size={iconSize} />
+
+            <div
+              style={{
+                fontSize: `${nameSize}px`,
+                opacity: 0.85,
+                textAlign: 'center',
+                lineHeight: 1.4,
+              }}
+            >
+              {perk.description}
+            </div>
           </div>
+
+          {/* Tier preview dots — bottom anchor. Hover blink shows the
+              tier the player would advance to if they pick the card. */}
+          <TierDots
+            current={currentTier}
+            preview={previewTier}
+            hovered={hovered}
+            size="large"
+          />
         </div>
       </div>
     </button>

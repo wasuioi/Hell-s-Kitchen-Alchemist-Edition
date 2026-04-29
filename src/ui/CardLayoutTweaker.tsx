@@ -27,16 +27,16 @@ interface SliderConfig {
 }
 
 const SLIDERS: SliderConfig[] = [
-  { key: 'cardWidth',    label: 'Card width',     min: 220, max: 480, step: 4 },
-  { key: 'cardHeight',   label: 'Card height',    min: 320, max: 700, step: 4 },
-  { key: 'bannerHeight', label: 'Banner height',  min: 16,  max: 60,  step: 1 },
-  { key: 'bannerGap',    label: 'Banner ↔ frame', min: 0,   max: 24,  step: 1 },
-  { key: 'padX',         label: 'Padding X',      min: 0,   max: 80,  step: 1 },
-  { key: 'padTop',       label: 'Padding top',    min: 0,   max: 80,  step: 1 },
-  { key: 'padBottom',    label: 'Padding bottom', min: 0,   max: 80,  step: 1 },
-  { key: 'iconSize',     label: 'Icon size',      min: 32,  max: 160, step: 2 },
-  { key: 'nameSize',     label: 'Name font',      min: 12,  max: 32,  step: 1 },
-  { key: 'bannerSize',   label: 'Banner font',    min: 8,   max: 24,  step: 1 },
+  { key: 'cardWidth',    label: 'Card width',     min: 220, max: 600,  step: 4 },
+  { key: 'cardHeight',   label: 'Card height',    min: 320, max: 1000, step: 4 },
+  { key: 'bannerHeight', label: 'Banner height',  min: 8,   max: 120,  step: 1 },
+  { key: 'bannerGap',    label: 'Banner ↔ frame', min: 0,   max: 60,   step: 1 },
+  { key: 'padX',         label: 'Padding X',      min: 0,   max: 200,  step: 1 },
+  { key: 'padTop',       label: 'Padding top',    min: 0,   max: 200,  step: 1 },
+  { key: 'padBottom',    label: 'Padding bottom', min: 0,   max: 200,  step: 1 },
+  { key: 'iconSize',     label: 'Icon size',      min: 32,  max: 240,  step: 2 },
+  { key: 'nameSize',     label: 'Name font',      min: 10,  max: 48,   step: 1 },
+  { key: 'bannerSize',   label: 'Banner font',    min: 8,   max: 60,   step: 1 },
 ]
 
 export default function CardLayoutTweaker() {
