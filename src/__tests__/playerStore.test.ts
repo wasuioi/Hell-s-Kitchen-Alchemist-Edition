@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { usePlayerStore } from '../stores/playerStore'
+import { useDeckStore } from '../stores/deckStore'
 
 describe('usePlayerStore', () => {
   beforeEach(() => { usePlayerStore.getState().reset() })
@@ -117,5 +118,57 @@ describe('playerStore heat', () => {
     const s = usePlayerStore.getState()
     expect(s.heatStacks).toBe(0)
     expect(s.lastHitAt).toBe(0)
+  })
+})
+
+describe('playerStore takeDamage + boiling_point integration', () => {
+  beforeEach(() => {
+    usePlayerStore.getState().reset()
+    useDeckStore.getState().reset()
+  })
+
+  function addBoilingPoint(stacks: number) {
+    for (let i = 0; i < stacks; i++) {
+      useDeckStore.getState().addPerk({
+        id: 'boiling_point', name: 'Boiling Point', icon: '/icons/boiling_point.png',
+        description: '', stackCount: 1,
+      })
+    }
+  }
+
+  it('does not gain heat when boiling_point is not active', () => {
+    usePlayerStore.getState().takeDamage(10)
+    expect(usePlayerStore.getState().heatStacks).toBe(0)
+  })
+
+  it('gains heat per hit when boiling_point is active', () => {
+    addBoilingPoint(1)
+    usePlayerStore.getState().takeDamage(10)
+    usePlayerStore.getState().takeDamage(10)
+    expect(usePlayerStore.getState().heatStacks).toBe(2)
+  })
+
+  it('caps at 5 stacks at T1', () => {
+    addBoilingPoint(1)
+    for (let i = 0; i < 10; i++) usePlayerStore.getState().takeDamage(5)
+    expect(usePlayerStore.getState().heatStacks).toBe(5)
+  })
+
+  it('caps at 7 stacks at T2', () => {
+    addBoilingPoint(2)
+    for (let i = 0; i < 10; i++) usePlayerStore.getState().takeDamage(5)
+    expect(usePlayerStore.getState().heatStacks).toBe(7)
+  })
+
+  it('caps at 7 stacks at T3', () => {
+    addBoilingPoint(3)
+    for (let i = 0; i < 10; i++) usePlayerStore.getState().takeDamage(5)
+    expect(usePlayerStore.getState().heatStacks).toBe(7)
+  })
+
+  it('does not gain heat from a 0-damage call', () => {
+    addBoilingPoint(1)
+    usePlayerStore.getState().takeDamage(0)
+    expect(usePlayerStore.getState().heatStacks).toBe(0)
   })
 })

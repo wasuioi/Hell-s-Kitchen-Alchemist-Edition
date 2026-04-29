@@ -1,9 +1,12 @@
 import { create } from 'zustand'
 import type { Position, StatusEffect } from '../types'
 import { triggerOnDamageTaken } from '../utils/perkTriggers'
+import { useDeckStore } from './deckStore'
 
 const DASH_COOLDOWN_MS = 2500
 const DASH_DURATION_MS = 150
+// BoilingPoint Heat caps per perk-tier (index = tier - 1)
+export const BOILING_POINT_MAX_HEAT = [5, 7, 7]
 
 interface PlayerState {
   position: Position; rotation: number; hp: number; maxHp: number; status: StatusEffect
@@ -37,7 +40,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setPosition: (pos) => set({ position: pos }),
   setRotation: (rot) => set({ rotation: rot }),
   takeDamage: (amount) => {
-    if (amount > 0) triggerOnDamageTaken(amount, get().position)
+    if (amount > 0) {
+      triggerOnDamageTaken(amount, get().position)
+      const bpStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'boiling_point')?.stackCount ?? 0
+      if (bpStacks > 0) {
+        const tier = Math.min(bpStacks, 3)
+        get().addHeat(BOILING_POINT_MAX_HEAT[tier - 1])
+      }
+    }
     set((s) => ({ hp: Math.max(0, s.hp - amount) }))
   },
   heal: (amount) => set((s) => ({ hp: Math.min(s.maxHp, s.hp + amount) })),
