@@ -80,19 +80,18 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
         color: 'white',
         cursor: 'pointer',
         fontFamily: 'inherit',
-        transition: 'transform 0.2s, filter 0.2s',
-        transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
-        // Tint the rarity color through the frame on hover so the player
-        // sees which card they're focusing on without changing the frame
-        // image itself.
-        filter: hovered
-          ? `drop-shadow(0 0 24px ${rarityColor}aa)`
-          : `drop-shadow(0 0 8px ${rarityColor}55)`,
+        // Hover juice is just a subtle lift + scale. The stone frame's
+        // built-in lava glow already reads as "this card is alive" — no
+        // extra coloured halo around the rectangle. Rarity is shown by
+        // the label / trigger pill INSIDE the frame.
+        transition: 'transform 0.2s',
+        transform: hovered ? 'translateY(-6px) scale(1.03)' : 'translateY(0) scale(1)',
       }}
     >
       {/* Stone-tablet frame as the bottom layer. The frame's interior
           fades to dark — content placed on top reads cleanly without
-          needing a separate dark fill. */}
+          needing a separate dark fill. brightness goes up on hover so
+          the lava rim "heats up" instead of getting an extra halo. */}
       <img
         src="/ui/card_frame.png"
         alt=""
@@ -105,6 +104,8 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
           // pointerEvents off so clicks pass to the button
           pointerEvents: 'none',
           userSelect: 'none',
+          filter: hovered ? 'brightness(1.18)' : 'brightness(1)',
+          transition: 'filter 0.2s',
         }}
       />
 
