@@ -26,15 +26,15 @@ describe('triggerOnDamageTaken', () => {
 
   it('damages enemies in radius at tier 1', () => {
     addGreaseFire(1)
-    useEnemyStore.getState().spawnEnemy('slow', { x: 3, z: 0 })
+    useEnemyStore.getState().spawnEnemy('slow', { x: 2, z: 0 })
     triggerOnDamageTaken(10, CENTER)
-    // tier 1: 15 damage, radius 4
+    // tier 1: 15 damage, radius 2.5
     expect(useEnemyStore.getState().enemies[0].hp).toBe(15)
   })
 
   it('does not damage enemies outside tier 1 radius', () => {
     addGreaseFire(1)
-    useEnemyStore.getState().spawnEnemy('slow', { x: 5, z: 0 })
+    useEnemyStore.getState().spawnEnemy('slow', { x: 3, z: 0 })
     triggerOnDamageTaken(10, CENTER)
     expect(useEnemyStore.getState().enemies[0].hp).toBe(30)
   })

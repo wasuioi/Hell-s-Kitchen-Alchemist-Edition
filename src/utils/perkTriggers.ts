@@ -30,7 +30,10 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
   lastGreaseFireAt = now
 
   const baseDmg = [15, 25, 40][tier - 1] + 8 * Math.max(0, stacks - tier)
-  const radius = [4, 5, 6][tier - 1]
+  // Tighter AOE so grease_fire feels like a "self-defence ring" the
+  // player has to position into, not a free arena-clear. Tier-stat data
+  // in src/data/perks.ts mirrors these numbers.
+  const radius = [2.5, 3.5, 4.5][tier - 1]
   const dmg = tier === 3 && amount >= 15 ? baseDmg * 2 : baseDmg
 
   // Per-enemy: damage + hit flash + floating number + death check.
@@ -76,10 +79,12 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
 
   // VFX layer — sprite-sheet if the perk defines one, else the generic
   // fireburst. Screen flash + shake on every trigger so the player feels
-  // the burst even when no enemies are in range.
+  // the burst even when no enemies are in range. The sprite size scales
+  // with the AOE radius (×2.5: ~80% of the plane is visible fire, so a
+  // plane that big has its rim land at the radius).
   const def = PERK_POOL.find((p) => p.id === 'grease_fire')
   if (def?.vfxSprite) {
-    spawnSpriteVfx(def.vfxSprite, position.x, position.z)
+    spawnSpriteVfx(def.vfxSprite, position.x, position.z, radius * 2.5)
   } else {
     spawnExplosionVfx(position.x, position.z)
   }

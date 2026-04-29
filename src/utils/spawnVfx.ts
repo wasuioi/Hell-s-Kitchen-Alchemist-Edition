@@ -10,7 +10,7 @@ import type { DamageNumber } from '../types'
 declare global {
   interface Window {
     __spawnExplosion?: (arg: { x: number; z: number; chainDepth?: number }) => void
-    __spawnSpriteVfx?: (arg: { x: number; z: number; spriteSlug: string }) => void
+    __spawnSpriteVfx?: (arg: { x: number; z: number; spriteSlug: string; size?: number }) => void
     __spawnDamageNumber?: (dmg: DamageNumber) => void
   }
 }
@@ -23,11 +23,15 @@ export function spawnExplosionVfx(x: number, z: number, chainDepth = 0): void {
 }
 
 // Plays a sprite-sheet VFX at the given position. The sprite sheet must
-// live at `public/vfx/<slug>.png` and follow the 4×4 / 16-frame format
+// live at `public/vfx/<slug>.png` and follow the 6×4 / 24-frame format
 // expected by SpriteVfxEffect (see that file for details).
-export function spawnSpriteVfx(slug: string, x: number, z: number): void {
+//
+// `size` is the plane diameter in world units. With the visible fire
+// reaching ~80% of the sprite, pass `radius * 2.5` to get a bloom whose
+// rim aligns with the AOE damage radius.
+export function spawnSpriteVfx(slug: string, x: number, z: number, size?: number): void {
   if (typeof window === 'undefined') return
-  window.__spawnSpriteVfx?.({ x, z, spriteSlug: slug })
+  window.__spawnSpriteVfx?.({ x, z, spriteSlug: slug, size })
 }
 
 // Spawns a floating damage number at the world position. Mirrors what
