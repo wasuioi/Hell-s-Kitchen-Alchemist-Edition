@@ -4,6 +4,7 @@ import type { PerkDefinition } from '../data/perks'
 import { useCardLayoutStore } from '../stores/cardLayoutStore'
 import PerkIcon from './PerkIcon'
 import TierDots from './TierDots'
+import TierDiff from './TierDiff'
 
 // ── PerkCard ────────────────────────────────────────────────────────────────
 //
@@ -136,8 +137,10 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
             alignItems: 'center',
           }}
         >
-          {/* icon + description grouped tight, centred vertically in
-              the remaining space above the dots. */}
+          {/* icon + description + tier upgrade preview, all grouped
+              centred vertically in the remaining space above the dots.
+              TierDiff renders nothing for non-tiered perks, so the
+              description carries all the info there. */}
           <div
             style={{
               flex: 1,
@@ -145,7 +148,7 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '14px',
+              gap: '12px',
               width: '100%',
             }}
           >
@@ -161,6 +164,8 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
             >
               {perk.description}
             </div>
+
+            <TierDiff perk={perk} currentTier={currentTier} />
           </div>
 
           {/* Tier preview dots — bottom anchor. Hover blink shows the
