@@ -1,30 +1,5 @@
 export type PerkRarity = 'common' | 'rare' | 'epic' | 'legendary'
 
-// When a perk fires. Used for the trigger badge on reward cards so the
-// player can tell at a glance whether the perk procs on hit, on death,
-// when they take damage, etc.
-export type PerkTrigger =
-  | 'passive'
-  | 'on-cast'
-  | 'on-hit'
-  | 'on-kill'
-  | 'on-damage-taken'
-  | 'on-pickup'
-  | 'low-hp'
-  | 'active'
-
-// Human-readable label for the trigger badge on cards.
-export const TRIGGER_LABEL: Record<PerkTrigger, string> = {
-  'passive': 'PASSIVE',
-  'on-cast': 'ON CAST',
-  'on-hit': 'ON HIT',
-  'on-kill': 'ON KILL',
-  'on-damage-taken': 'ON DAMAGE TAKEN',
-  'on-pickup': 'ON PICKUP',
-  'low-hp': 'LOW HP',
-  'active': 'ACTIVE',
-}
-
 // Stats shown on the reward card per tier. Numeric stats are diffed
 // against the previous tier so the player sees "Damage 15 → 25" with
 // the new value highlighted. `added` is a one-line note describing the
@@ -45,15 +20,10 @@ export interface PerkTierStats {
 // `tiers` (optional) — three-tier stat data for the reward-card diff display.
 // Perks without tiers fall back to the flat `description` string regardless
 // of stack count.
-//
-// `trigger` / `tags` (optional) — surfaced on the reward card so the player
-// can scan the perk's archetype at a glance.
 export interface PerkDefinition {
   id: string; name: string; icon: string; description: string; rarity: PerkRarity
   vfxSprite?: string
   tiers?: [PerkTierStats, PerkTierStats, PerkTierStats]
-  trigger?: PerkTrigger
-  tags?: string[]
 }
 
 export const MAX_PERK_TIER = 3
@@ -75,33 +45,32 @@ export const PERK_POOL: PerkDefinition[] = [
   {
     id: 'extra_spicy', name: 'Extra Spicy', icon: '🌶️',
     description: 'Chili spells +20% damage, smaller AOE',
-    rarity: 'common', trigger: 'passive', tags: ['chili', 'damage'],
+    rarity: 'common',
   },
   {
     id: 'deep_freeze', name: 'Deep Freeze', icon: '🧊',
     description: 'Bottle spells stun enemies for 2 seconds',
-    rarity: 'rare', trigger: 'on-cast', tags: ['water', 'control'],
+    rarity: 'rare',
   },
   {
     id: 'heavy_salt', name: 'Heavy Salt', icon: '🪨',
     description: 'Salt spells push enemies 2x further',
-    rarity: 'common', trigger: 'on-cast', tags: ['salt', 'control'],
+    rarity: 'common',
   },
   {
     id: 'fast_prep', name: 'Fast Prep', icon: '⚡',
     description: 'Cook cooldown reduced by 0.5s',
-    rarity: 'rare', trigger: 'passive', tags: ['utility', 'speed'],
+    rarity: 'rare',
   },
   {
     id: 'double_batch', name: 'Double Batch', icon: '🧪',
     description: '10% chance spell triggers twice',
-    rarity: 'epic', trigger: 'on-cast', tags: ['proc', 'damage'],
+    rarity: 'epic',
   },
   {
     id: 'grease_fire', name: 'Grease Fire', icon: '/icons/grease_fire.png',
     description: 'Taking damage erupts a fiery grease burst around you, scorching nearby enemies. 2s cooldown.',
     rarity: 'rare', vfxSprite: 'grease_fire',
-    trigger: 'on-damage-taken', tags: ['fire', 'defense', 'risky'],
     tiers: [
       { stats: { Damage: 15, Radius: 2.5, Cooldown: '2.0s' } },
       { stats: { Damage: 25, Radius: 3.5, Cooldown: '1.5s' }, added: 'Soaks enemies for 1.5s' },
