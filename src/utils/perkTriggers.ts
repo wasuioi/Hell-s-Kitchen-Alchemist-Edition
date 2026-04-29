@@ -72,8 +72,8 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
   }
 
   if (tier >= 2) {
-    const status = tier >= 3 ? 'stunned' : 'soaked'
-    const dur = tier >= 3 ? 0.5 : 1.5
+    const status = tier >= 3 ? 'burning' : 'soaked'
+    const dur = tier >= 3 ? 3 : 1.5
     useEnemyStore.getState().applyStatusInRadius(position, radius, status, dur)
   }
 

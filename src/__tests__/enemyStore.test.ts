@@ -87,14 +87,24 @@ describe('applyStatusInRadius', () => {
     expect(useEnemyStore.getState().enemies[0].soakedUntil).toBe(0)
   })
 
-  it('maps legacy stunned to frozenUntil with the requested duration', () => {
+  it('applies stunned to enemies (sets stunnedUntil with requested duration)', () => {
     useEnemyStore.getState().spawnEnemy('slow', { x: 0, z: 0 })
     const before = performance.now()
     useEnemyStore.getState().applyStatusInRadius({ x: 0, z: 0 }, 4, 'stunned', 1)
     const after = performance.now()
     const enemy = useEnemyStore.getState().enemies[0]
-    expect(enemy.frozenUntil).toBeGreaterThanOrEqual(before + 1000)
-    expect(enemy.frozenUntil).toBeLessThanOrEqual(after + 1000)
+    expect(enemy.stunnedUntil).toBeGreaterThanOrEqual(before + 1000)
+    expect(enemy.stunnedUntil).toBeLessThanOrEqual(after + 1000)
+  })
+
+  it('applies burning to enemies (sets burningUntil with requested duration)', () => {
+    useEnemyStore.getState().spawnEnemy('slow', { x: 0, z: 0 })
+    const before = performance.now()
+    useEnemyStore.getState().applyStatusInRadius({ x: 0, z: 0 }, 4, 'burning', 2)
+    const after = performance.now()
+    const enemy = useEnemyStore.getState().enemies[0]
+    expect(enemy.burningUntil).toBeGreaterThanOrEqual(before + 2000)
+    expect(enemy.burningUntil).toBeLessThanOrEqual(after + 2000)
   })
 })
 

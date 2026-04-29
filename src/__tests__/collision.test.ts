@@ -11,7 +11,7 @@ describe('isInRange', () => {
   it('returns true when exactly at radius', () => { expect(isInRange({ x: 0, z: 0 }, { x: 3, z: 4 }, 5)).toBe(true) })
 })
 describe('findNearestEnemy', () => {
-  const base = { hp: 10, maxHp: 10, type: 'slow' as const, soakedUntil: 0, frozenUntil: 0, burningUntil: 0, poisonedUntil: 0, slowedUntil: 0, knockback: null, hitFlashUntil: 0, dying: false, detonating: false }
+  const base = { hp: 10, maxHp: 10, type: 'slow' as const, soakedUntil: 0, frozenUntil: 0, burningUntil: 0, poisonedUntil: 0, slowedUntil: 0, stunnedUntil: 0, knockback: null, hitFlashUntil: 0, dying: false, detonating: false }
   const enemies = [
     { id: 'a', position: { x: 10, z: 0 }, ...base },
     { id: 'b', position: { x: 2, z: 0 }, ...base },

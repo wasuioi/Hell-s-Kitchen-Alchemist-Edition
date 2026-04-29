@@ -44,8 +44,13 @@ export default function Enemy({ enemy }: Props) {
   const deathTimer = useRef(0)
   const [visualScale, setVisualScale] = useState(1)
   const burnTickRef = useRef(0)
+  const stunRingRef = useRef<THREE.Group>(null)
 
   useFrame((_, delta) => {
+    if (stunRingRef.current) {
+      stunRingRef.current.rotation.y = performance.now() / 400
+    }
+
     const phase = useGameStore.getState().phase
     if (phase !== 'combat' && phase !== 'boss') return
 
@@ -131,9 +136,10 @@ export default function Enemy({ enemy }: Props) {
 
     const now = performance.now()
     const isFrozen = now < enemy.frozenUntil
+    const isStunned = now < enemy.stunnedUntil
     const isSoaked = now < enemy.soakedUntil
     const isSlowed = now < enemy.slowedUntil
-    const statusMultiplier = isFrozen ? 0 : (isSoaked || isSlowed) ? 0.5 : 1
+    const statusMultiplier = (isFrozen || isStunned) ? 0 : (isSoaked || isSlowed) ? 0.5 : 1
     const speed = SPEED[enemy.type] * statusMultiplier * timeScale
     const dx = playerPos.x - enemy.position.x
     const dz = playerPos.z - enemy.position.z
@@ -217,6 +223,7 @@ export default function Enemy({ enemy }: Props) {
   const renderNow = performance.now()
   const isFlashing = enemy.hitFlashUntil > renderNow
   const isFrozenVisual = renderNow < enemy.frozenUntil
+  const isStunnedVisual = renderNow < enemy.stunnedUntil
   const isSoakedVisual = renderNow < enemy.soakedUntil && !isFrozenVisual
   const isBurningVisual = renderNow < enemy.burningUntil
   const isPoisonedVisual = renderNow < enemy.poisonedUntil && !isFrozenVisual
@@ -314,6 +321,25 @@ export default function Enemy({ enemy }: Props) {
             <coneGeometry args={[0.13, 0.22, 6]} />
             <meshBasicMaterial color="#ea580c" />
           </mesh>
+        </group>
+      )}
+      {/* Stunned: yellow stars orbiting the head — scales with enemy size */}
+      {isStunnedVisual && !enemy.dying && (
+        <group
+          ref={stunRingRef}
+          position={[0, enemySize * 2.5 + 0.3, 0]}
+          rotation={[0, renderNow / 400, 0]}
+          scale={enemySize / 0.4}
+        >
+          {[0, 1, 2].map((i) => {
+            const angle = (i * Math.PI * 2) / 3
+            return (
+              <mesh key={i} position={[Math.cos(angle) * 0.4, 0, Math.sin(angle) * 0.4]}>
+                <sphereGeometry args={[0.1, 8, 8]} />
+                <meshBasicMaterial color="#fbbf24" />
+              </mesh>
+            )
+          })}
         </group>
       )}
       {/* Poisoned: green teardrops dripping from above to the ground */}

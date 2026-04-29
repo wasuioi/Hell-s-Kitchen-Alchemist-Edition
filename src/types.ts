@@ -29,6 +29,7 @@ export interface Enemy {
   burningUntil: number
   poisonedUntil: number
   slowedUntil: number
+  stunnedUntil: number
   knockback: Knockback | null
   hitFlashUntil: number
   dying: boolean
