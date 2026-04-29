@@ -37,6 +37,7 @@ Tasks are stored as `~/.claude/scheduled-tasks/{taskId}/SKILL.md` files. Each ru
 
 ### Per-run flow
 
+0. **Sync local `main` from origin** (must run before any file read). Cron may fire before today's overnight changes have been pulled locally; without this step the task reads stale config files and fails. Run `git -C /Users/pacas/Hell-s-Kitchen-Alchemist-Edition fetch origin main`, verify HEAD is on `main` (fail loudly otherwise), then `git -C ... pull --ff-only origin main`. If the pull is not a clean fast-forward, surface the exact stderr and stop — do NOT proceed with stale state.
 1. `cd /Users/pacas/Hell-s-Kitchen-Alchemist-Edition` (main repo, not the worktree).
 2. Determine current date and day-of-week.
 3. Read `docs/game-design/themes.md` → extract today's theme + focus areas + suggested files. On Sat/Sun (free critique), the task picks any theme it judges most relevant given the recent code changes.
@@ -191,8 +192,9 @@ Each entry: what it does well + which themes it best informs.
 - **Morning critique missing when proposal task fires** (e.g. 09:00 task failed): proposal task proceeds without the critique reference, omitting the "uses critique from" line.
 - **Config file missing**: task fails loudly with a message instructing the developer to restore the file. Does not silently skip.
 - **`gh` not authed**: task fails loudly. Does not silently skip.
+- **Local main not on the latest origin/main** (e.g. cron fires before the developer has pulled today's merges): Step 0 in the per-run flow runs `git fetch` + `git pull --ff-only origin main` to bring local main current. If the pull cannot fast-forward (uncommitted conflict, divergent history, wrong branch checked out at the main repo path), the task fails loudly and creates no issue.
 - **Free-critique day (Sat/Sun)**: task picks any theme + reference combination it judges most useful, ideally one that hasn't been covered earlier in the week (best-effort, not enforced — no past-issue lookup beyond the same day).
-- **Repo on a non-main branch**: tasks read from the working tree as-is. They do not check out branches or stash work.
+- **Repo on a non-main branch**: Step 0 in the per-run flow checks `git rev-parse --abbrev-ref HEAD`; if it is not `main`, the task aborts with a clear error rather than reading whatever stale branch is checked out.
 
 ## Setup steps (one-time)
 
