@@ -4,6 +4,7 @@ import { Html, useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
 import { usePlayerStore } from '../stores/playerStore'
 import { useGameStore } from '../stores/gameStore'
+import { useDeckStore } from '../stores/deckStore'
 import { ARENA_SIZE } from './Arena'
 
 const PLAYER_SPEED = 8
@@ -66,6 +67,12 @@ export default function Player() {
 
     const phase = useGameStore.getState().phase
     if (phase !== 'combat' && phase !== 'boss') return
+
+    // BoilingPoint Heat decay — fires every frame, but `decayHeat` is a
+    // no-op until the 4s window since the last hit has elapsed.
+    const bpStacksTick = useDeckStore.getState().activePerks.find((p) => p.id === 'boiling_point')?.stackCount ?? 0
+    if (bpStacksTick > 0) usePlayerStore.getState().decayHeat(4000)
+
     const timeScale = useGameStore.getState().timeScale
     const { status, isDashing, dashDirection, dashEndTime } = usePlayerStore.getState()
 
