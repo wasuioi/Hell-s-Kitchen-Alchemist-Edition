@@ -19,22 +19,29 @@ import { PERK_POOL } from '../data/perks'
 const COLS = 6
 const ROWS = 4
 const TOTAL_FRAMES = COLS * ROWS
-// 1.2s playback paired with the easeInOut frame curve below gives a wave-
-// like rhythm: slow expand → quick peak transit → slow ember fade. Bumping
-// to 1.2 (vs 1.0) lets both the rise and the fall feel deliberate without
-// dragging the trigger reaction.
-const PLAYBACK_DURATION = 1.2
+// Total playback length. The phase-split timing below means the rise
+// (expand) takes ~0.36s and the fall (fade) takes ~0.50s with a 50ms
+// peak transit between — a "wave that crashes" rather than a fireball
+// that lingers.
+const PLAYBACK_DURATION = 0.9
 const LIFETIME = PLAYBACK_DURATION + 0.05
 // Default plane size when a spawn doesn't specify one. Most callers pass
 // a per-spawn size derived from their own AOE radius — see spawnSpriteVfx.
 const DEFAULT_SIZE = 7
 
-// Slow-in / slow-out timing. Maps linear playback progress (0..1) to
-// frame-index progress (0..1) so the player perceives the burst as a
-// wave: slow rise, smooth crest with no hold, slow fade.
-function easeInOutSine(t: number): number {
-  return (1 - Math.cos(Math.PI * t)) / 2
-}
+// Phase split — chosen so the player sees the expansion clearly, the
+// peak frames blur past in a single beat (just enough for visual
+// continuity), and the fade is the longest phase so the burst recedes
+// rather than disappears.
+//
+// Maps to the source sprite sheet:
+//   frames 0..6  → expand     (40% of playback)
+//   frames 7..11 → peak       ( 5% of playback)   ← was the "hold" feel
+//   frames 12..23 → fade      (55% of playback)
+const FRAME_EXPAND_END = 6
+const FRAME_FADE_START = 12
+const PHASE_EXPAND = 0.40
+const PHASE_PEAK = 0.05
 
 interface SpriteVfx {
   id: string
@@ -76,9 +83,30 @@ function SpriteVfxInstance({ vfx }: { vfx: SpriteVfx }) {
     // list changes, so passing `age` as a prop would freeze on the first
     // frame and never animate.
     const age = (performance.now() - vfx.createdAt) / 1000
-    const linearT = Math.min(1, age / PLAYBACK_DURATION)
-    const eased = easeInOutSine(linearT)
-    const frameIdx = Math.min(TOTAL_FRAMES - 1, Math.floor(eased * TOTAL_FRAMES))
+    const t = Math.min(1, age / PLAYBACK_DURATION)
+
+    // Phase-split frame mapping: expand → quick peak transit → fade. The
+    // peak phase only consumes 5% of playback so the player no longer
+    // sees frames 7..11 hang at the same look — they flash past for
+    // visual continuity, then the fade frames take over.
+    let frameIdx: number
+    if (t < PHASE_EXPAND) {
+      // Expand: frames 0..6
+      const phaseT = t / PHASE_EXPAND
+      frameIdx = Math.floor(phaseT * (FRAME_EXPAND_END + 1))
+    } else if (t < PHASE_EXPAND + PHASE_PEAK) {
+      // Peak transit: frames 7..(FRAME_FADE_START-1)
+      const phaseT = (t - PHASE_EXPAND) / PHASE_PEAK
+      const peakLen = FRAME_FADE_START - (FRAME_EXPAND_END + 1)
+      frameIdx = (FRAME_EXPAND_END + 1) + Math.floor(phaseT * peakLen)
+    } else {
+      // Fade: frames 12..23
+      const phaseT = (t - PHASE_EXPAND - PHASE_PEAK) / (1 - PHASE_EXPAND - PHASE_PEAK)
+      const fadeLen = TOTAL_FRAMES - FRAME_FADE_START
+      frameIdx = FRAME_FADE_START + Math.floor(phaseT * fadeLen)
+    }
+    frameIdx = Math.min(TOTAL_FRAMES - 1, Math.max(0, frameIdx))
+
     const col = frameIdx % COLS
     const row = Math.floor(frameIdx / COLS)
     // Three.js UV origin is bottom-left, but image rows read top-to-bottom,
