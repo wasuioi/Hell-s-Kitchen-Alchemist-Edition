@@ -102,10 +102,10 @@ describe('castSpell + boiling_point', () => {
 })
 
 describe('castSpell + boiling_point VFX', () => {
-  it('spawns both consume + spell VFX when Heat is consumed on INFERNO', async () => {
+  it('spawns both consume + spell VFX when Heat is at threshold (5+) on INFERNO', async () => {
     const { castSpell } = await import('../utils/castSpell')
     addBoilingPoint(1)
-    usePlayerStore.getState().addHeat(5)
+    for (let i = 0; i < 5; i++) usePlayerStore.getState().addHeat(5) // 5 heat — at threshold
     castSpell('INFERNO')
     const calls = (window as any).__spawnSpriteVfx.mock.calls
     const slugs = calls.map((c: any[]) => c[0].spriteSlug)
@@ -130,5 +130,31 @@ describe('castSpell + boiling_point VFX', () => {
     const calls = (window as any).__spawnSpriteVfx.mock.calls
     const slugs = calls.map((c: any[]) => c[0].spriteSlug)
     expect(slugs).not.toContain('boiling_point_consume')
+  })
+
+  it('does NOT spawn VFX when Heat is below 5 on INFERNO', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addBoilingPoint(1)
+    usePlayerStore.getState().addHeat(5)
+    usePlayerStore.getState().addHeat(5)
+    usePlayerStore.getState().addHeat(5)
+    usePlayerStore.getState().addHeat(5) // 4 heat — below threshold
+    castSpell('INFERNO')
+    const calls = (window as any).__spawnSpriteVfx.mock.calls
+    const slugs = calls.map((c: any[]) => c[0].spriteSlug)
+    expect(slugs).not.toContain('boiling_point_consume')
+    expect(slugs).not.toContain('boiling_point_spell')
+  })
+
+  it('still applies damage multiplier when Heat is below 5 (no VFX)', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addBoilingPoint(1)
+    usePlayerStore.getState().addHeat(5)
+    usePlayerStore.getState().addHeat(5) // 2 heat
+    castSpell('INFERNO')
+    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    // 40 × (1 + 0.20 × 2) = 40 × 1.4 = 56 — multiplier still works
+    expect(spell.damage).toBeCloseTo(56, 5)
+    expect(usePlayerStore.getState().heatStacks).toBe(0) // Heat still consumes
   })
 })

@@ -46,9 +46,14 @@ function buildSpell(spellType: SpellType): SpellEffect {
         damage = damage * (1 + perStack * heat)
         if (tier >= 3) usePlayerStore.getState().heal(heat)
         usePlayerStore.getState().consumeHeat()
-        // VFX: burst on the player + heat aura on the spell target
-        spawnSpriteVfx('boiling_point_consume', playerPos.x, playerPos.z, 5)
-        spawnSpriteVfx('boiling_point_spell', targetPos.x, targetPos.z, radius * 2.5)
+        // VFX only fires on the "big release" — Heat ≥5 (where the player
+        // is in the visible danger zone with the red tint blink). Below
+        // that, INFERNO still consumes Heat and gets the damage bonus, but
+        // the cast doesn't get the theatrical two-burst treatment.
+        if (heat >= 5) {
+          spawnSpriteVfx('boiling_point_consume', playerPos.x, playerPos.z, 5)
+          spawnSpriteVfx('boiling_point_spell', targetPos.x, targetPos.z, radius * 2.5)
+        }
       }
     }
   }
