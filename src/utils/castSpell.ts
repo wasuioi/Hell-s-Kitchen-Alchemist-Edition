@@ -5,6 +5,7 @@ import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useDeckStore } from '../stores/deckStore'
 import { findNearestEnemy } from './collision'
+import { spawnSpriteVfx } from './spawnVfx'
 
 let spellId = 0
 
@@ -45,6 +46,9 @@ function buildSpell(spellType: SpellType): SpellEffect {
         damage = damage * (1 + perStack * heat)
         if (tier >= 3) usePlayerStore.getState().heal(heat)
         usePlayerStore.getState().consumeHeat()
+        // VFX: burst on the player + heat aura on the spell target
+        spawnSpriteVfx('boiling_point_consume', playerPos.x, playerPos.z, 5)
+        spawnSpriteVfx('boiling_point_spell', targetPos.x, targetPos.z, radius * 2.5)
       }
     }
   }

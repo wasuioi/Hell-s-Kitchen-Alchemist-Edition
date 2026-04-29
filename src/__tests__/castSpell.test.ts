@@ -100,3 +100,35 @@ describe('castSpell + boiling_point', () => {
     expect(usePlayerStore.getState().hp).toBe(50) // 1 heat consumed but no heal at T1
   })
 })
+
+describe('castSpell + boiling_point VFX', () => {
+  it('spawns both consume + spell VFX when Heat is consumed on INFERNO', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addBoilingPoint(1)
+    usePlayerStore.getState().addHeat(5)
+    castSpell('INFERNO')
+    const calls = (window as any).__spawnSpriteVfx.mock.calls
+    const slugs = calls.map((c: any[]) => c[0].spriteSlug)
+    expect(slugs).toContain('boiling_point_consume')
+    expect(slugs).toContain('boiling_point_spell')
+  })
+
+  it('does not spawn VFX when no Heat is banked', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addBoilingPoint(1)
+    castSpell('INFERNO')
+    const calls = (window as any).__spawnSpriteVfx.mock.calls
+    const slugs = calls.map((c: any[]) => c[0].spriteSlug)
+    expect(slugs).not.toContain('boiling_point_consume')
+  })
+
+  it('does not spawn VFX when casting non-INFERNO with banked Heat', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addBoilingPoint(1)
+    usePlayerStore.getState().addHeat(5)
+    castSpell('TIDAL_WAVE')
+    const calls = (window as any).__spawnSpriteVfx.mock.calls
+    const slugs = calls.map((c: any[]) => c[0].spriteSlug)
+    expect(slugs).not.toContain('boiling_point_consume')
+  })
+})
