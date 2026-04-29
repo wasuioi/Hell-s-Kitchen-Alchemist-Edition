@@ -34,16 +34,16 @@ export interface CardLayoutValues {
 }
 
 export const CARD_LAYOUT_DEFAULTS: CardLayoutValues = {
-  cardWidth: 320,
-  cardHeight: 480,
-  bannerHeight: 28,
-  bannerGap: 4,
-  padX: 30,
-  padTop: 30,
-  padBottom: 38,
-  iconSize: 96,
-  nameSize: 21,
-  bannerSize: 14,
+  cardWidth: 340,
+  cardHeight: 564,
+  bannerHeight: 16,
+  bannerGap: 0,
+  padX: 80,
+  padTop: 80,
+  padBottom: 74,
+  iconSize: 82,
+  nameSize: 17,
+  bannerSize: 24,
 }
 
 interface CardLayoutState extends CardLayoutValues {
