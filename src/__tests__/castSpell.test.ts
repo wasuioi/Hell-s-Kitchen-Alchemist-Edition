@@ -18,7 +18,7 @@ function addBoilingPoint(stacks: number) {
   for (let i = 0; i < stacks; i++) {
     useDeckStore.getState().addPerk({
       id: 'boiling_point', name: 'Boiling Point', icon: '/icons/boiling_point.png',
-      description: '', rarity: 'epic', stackCount: 1,
+      description: '', stackCount: 1,
     })
   }
 }
