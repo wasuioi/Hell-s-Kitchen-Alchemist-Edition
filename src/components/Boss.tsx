@@ -1,4 +1,4 @@
-import { useRef, useState, useMemo } from 'react'
+import { useRef, useState, useMemo, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useGLTF } from '@react-three/drei'
@@ -37,6 +37,12 @@ export default function Boss() {
     bbox.getSize(size)
     return size.y > 0 ? 3 / size.y : 1
   }, [scene])
+
+  const faceBoneRef = useRef<THREE.Object3D | null>(null)
+
+  useEffect(() => {
+    faceBoneRef.current = scene.getObjectByName('face') ?? null
+  }, [scene])
   const phase = useGameStore((s) => s.phase)
 
   const attackTimer = useRef(0)
@@ -65,6 +71,15 @@ export default function Boss() {
 
   useFrame((_, delta) => {
     if (!boss || phase !== 'boss') return
+
+    const playerPos = usePlayerStore.getState().position
+    const face = faceBoneRef.current
+    if (face) {
+      face.rotation.y = Math.atan2(
+        playerPos.x - boss.position.x,
+        playerPos.z - boss.position.z,
+      )
+    }
 
     const bossPos = boss.position
 
