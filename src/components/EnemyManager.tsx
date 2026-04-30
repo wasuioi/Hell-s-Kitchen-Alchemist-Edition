@@ -63,11 +63,10 @@ export default function EnemyManager() {
     if (phase !== 'combat') return
     const dt = delta * timeScale
 
-    // Register global detonation callback so Spell.tsx and Enemy.tsx can queue detonations
-    if (!(window as any).__queueDetonation) {
-      ;(window as any).__queueDetonation = (enemyId: string, chainDepth = 0) => {
-        pendingDetonations.current.set(enemyId, { time: performance.now() + DETONATION_DELAY, chainDepth })
-      }
+    // Register global detonation callback so Spell.tsx and Enemy.tsx can queue detonations.
+    // Re-register every frame so HMR / remounts always point to the live pendingDetonations Map.
+    ;(window as any).__queueDetonation = (enemyId: string, chainDepth = 0) => {
+      pendingDetonations.current.set(enemyId, { time: performance.now() + DETONATION_DELAY, chainDepth })
     }
 
     // Process pending detonations
