@@ -41,11 +41,15 @@ export default function Boss() {
   const faceBoneRef = useRef<THREE.Object3D | null>(null)
   const upperArmLRef = useRef<THREE.Object3D | null>(null)
   const upperArmRRef = useRef<THREE.Object3D | null>(null)
+  const forearmLRef = useRef<THREE.Object3D | null>(null)
+  const forearmRRef = useRef<THREE.Object3D | null>(null)
 
   useEffect(() => {
     faceBoneRef.current = scene.getObjectByName('face') ?? null
     upperArmLRef.current = scene.getObjectByName('upper_arm.L') ?? null
     upperArmRRef.current = scene.getObjectByName('upper_arm.R') ?? null
+    forearmLRef.current = scene.getObjectByName('forearm.L') ?? null
+    forearmRRef.current = scene.getObjectByName('forearm.R') ?? null
   }, [scene])
   const phase = useGameStore((s) => s.phase)
 
@@ -109,7 +113,9 @@ export default function Boss() {
       useEnemyStore.getState().spawnEnemy('slow', getEdgeSpawnPosition())
     }
 
-    // Arm slam animation (stone_slam)
+    // Arm animation — both stone_slam (rotation.x) and hand_lance (rotation.z)
+    // targets are computed every frame and written every frame, so transitioning
+    // between attacks resets cleanly without residual rotations.
     let slamArmAngle = 0 // 0 = rest (arms down), -1.4 ≈ raised overhead
     if (currentAttack.current === 'stone_slam') {
       if (attackPhase.current === 'telegraph') {
@@ -127,10 +133,29 @@ export default function Boss() {
       }
     }
 
+    let lanceExtendT = 0 // 0 = rest, 1 = fully extended outward
+    if (
+      currentAttack.current === 'hand_lance' &&
+      attackPhase.current === 'attack'
+    ) {
+      // Eases in over the first 0.4s of the attack, then holds at 1 for the rest
+      lanceExtendT = Math.min(attackPhaseTimer.current / 0.4, 1)
+    }
+
     const upL = upperArmLRef.current
     const upR = upperArmRRef.current
-    if (upL) upL.rotation.x = slamArmAngle
-    if (upR) upR.rotation.x = slamArmAngle
+    const fL = forearmLRef.current
+    const fR = forearmRRef.current
+    if (upL) {
+      upL.rotation.x = slamArmAngle
+      upL.rotation.z = lanceExtendT * 1.5
+    }
+    if (upR) {
+      upR.rotation.x = slamArmAngle
+      upR.rotation.z = lanceExtendT * -1.5
+    }
+    if (fL) fL.rotation.x = -lanceExtendT * 0.3
+    if (fR) fR.rotation.x = -lanceExtendT * 0.3
 
     // Attack state machine
     if (attackPhase.current === 'idle') {
