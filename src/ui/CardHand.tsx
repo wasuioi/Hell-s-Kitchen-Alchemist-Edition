@@ -1,7 +1,11 @@
 import { useDeckStore } from '../stores/deckStore'
 import type { Ingredient } from '../types'
 
-const ICON: Record<Ingredient, string> = { CHILI: '🌶️', BOTTLE: '🧴', SALT: '🧂' }
+const ICON: Record<Ingredient, string> = {
+  CHILI: '/icons/chili.png',
+  BOTTLE: '/icons/bottle.png',
+  SALT: '/icons/salt.png',
+}
 const LABEL: Record<Ingredient, string> = { CHILI: 'Chili', BOTTLE: 'Bottle', SALT: 'Salt' }
 const GRADIENT: Record<Ingredient, string> = {
   CHILI: 'linear-gradient(135deg, #7f1d1d, #ef4444)',
@@ -28,7 +32,7 @@ export default function CardHand() {
           onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-4px)' }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)' }}
         >
-          <span style={{ fontSize: '28px' }}>{ICON[ingredient]}</span>
+          <img src={ICON[ingredient]} alt={LABEL[ingredient]} width={48} height={48} style={{ objectFit: 'contain' }} />
           <span style={{ fontSize: '11px', fontWeight: 'bold' }}>{LABEL[ingredient]}</span>
           <span style={{ fontSize: '11px', opacity: 0.7 }}>[{i + 1}/{['J','K','L'][i]}]</span>
         </button>

@@ -56,10 +56,10 @@ export default function MainMenu() {
         Combine ingredients in your cauldron to unleash magical recipes. Survive wave after wave, defeat the Hungry Golem, and prove your alchemical mastery.
       </p>
 
-      <div style={{ display: 'flex', gap: '20px', fontSize: '36px', margin: '4px 0' }}>
-        <span title="Chili">🌶️</span>
-        <span title="Bottle">🧴</span>
-        <span title="Salt">🧂</span>
+      <div style={{ display: 'flex', gap: '20px', margin: '4px 0' }}>
+        <img src="/icons/chili.png" alt="Chili" title="Chili" width={56} height={56} style={{ objectFit: 'contain' }} />
+        <img src="/icons/bottle.png" alt="Bottle" title="Bottle" width={56} height={56} style={{ objectFit: 'contain' }} />
+        <img src="/icons/salt.png" alt="Salt" title="Salt" width={56} height={56} style={{ objectFit: 'contain' }} />
       </div>
 
       <button
