@@ -5,7 +5,11 @@ import { getRecipe } from '../data/recipes'
 import { castSpell } from '../utils/castSpell'
 import type { Ingredient } from '../types'
 
-const ICON: Record<Ingredient, string> = { CHILI: '🌶️', BOTTLE: '🧴', SALT: '🧂' }
+const ICON: Record<Ingredient, string> = {
+  CHILI: '/icons/chili.png',
+  BOTTLE: '/icons/bottle.png',
+  SALT: '/icons/salt.png',
+}
 
 const SPELL_LABELS: Record<string, string> = {
   INFERNO: 'Inferno 🔥', TIDAL_WAVE: 'Tidal Wave 🌊', SALT_SPEED: 'Salt Speed 👟',
@@ -65,11 +69,11 @@ export default function CauldronUI() {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <div style={slotStyle(slotA !== null)}>
-          {slotA ? ICON[slotA] : 'A'}
+          {slotA ? <img src={ICON[slotA]} alt={slotA} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'A'}
         </div>
         <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '20px' }}>+</span>
         <div style={slotStyle(slotB !== null)}>
-          {slotB ? ICON[slotB] : 'B'}
+          {slotB ? <img src={ICON[slotB]} alt={slotB} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'B'}
         </div>
       </div>
 
