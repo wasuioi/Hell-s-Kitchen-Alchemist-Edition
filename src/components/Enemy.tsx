@@ -272,6 +272,12 @@ export default function Enemy({ enemy }: Props) {
   const scale = MODEL_SCALE[enemy.type] * visualScale
   const enemySize = SIZE[enemy.type]
 
+  // Boss is visually rendered by <Boss> using a .glb model.
+  // We still need this Enemy component mounted so its useFrame runs the
+  // movement / AI / collision logic that drives `enemy.position` — just
+  // skip drawing the slime mesh for boss type.
+  if (enemy.type === 'boss') return null
+
   return (
     <group position={[enemy.position.x, 0, enemy.position.z]}>
       <primitive

@@ -46,14 +46,26 @@ export default function Boss() {
   const upperArmRRef = useRef<THREE.Object3D | null>(null)
   const forearmLRef = useRef<THREE.Object3D | null>(null)
   const forearmRRef = useRef<THREE.Object3D | null>(null)
+  // Snapshot of each bone's rest-pose rotation so we can apply animation as a
+  // delta. Without this, writing `rotation.x = 0` would force-zero the rig's
+  // natural rest pose and the model would freeze in T-pose.
+  type RestPose = { x: number; y: number; z: number }
+  const restPose = useRef<{ upL?: RestPose; upR?: RestPose; fL?: RestPose; fR?: RestPose }>({})
 
   // GLTFLoader strips dots from bone names (`.` is a path separator in three.js
   // animation tracks), so the source `upper_arm.L` becomes `upper_armL`, etc.
   useEffect(() => {
-    upperArmLRef.current = scene.getObjectByName('upper_armL') ?? null
-    upperArmRRef.current = scene.getObjectByName('upper_armR') ?? null
-    forearmLRef.current = scene.getObjectByName('forearmL') ?? null
-    forearmRRef.current = scene.getObjectByName('forearmR') ?? null
+    const upL = scene.getObjectByName('upper_armL') ?? null
+    const upR = scene.getObjectByName('upper_armR') ?? null
+    const fL = scene.getObjectByName('forearmL') ?? null
+    const fR = scene.getObjectByName('forearmR') ?? null
+    upperArmLRef.current = upL
+    upperArmRRef.current = upR
+    forearmLRef.current = fL
+    forearmRRef.current = fR
+    const snap = (b: THREE.Object3D | null): RestPose | undefined =>
+      b ? { x: b.rotation.x, y: b.rotation.y, z: b.rotation.z } : undefined
+    restPose.current = { upL: snap(upL), upR: snap(upR), fL: snap(fL), fR: snap(fR) }
   }, [scene])
   const phase = useGameStore((s) => s.phase)
 
@@ -146,20 +158,23 @@ export default function Boss() {
       lanceExtendT = Math.min(attackPhaseTimer.current / 0.4, 1)
     }
 
+    // Apply animation as deltas on top of the snapshotted rest pose so that
+    // writing 0 at idle returns the bones to their natural rig pose.
     const upL = upperArmLRef.current
     const upR = upperArmRRef.current
     const fL = forearmLRef.current
     const fR = forearmRRef.current
-    if (upL) {
-      upL.rotation.x = slamArmAngle
-      upL.rotation.z = lanceExtendT * 1.5
+    const rp = restPose.current
+    if (upL && rp.upL) {
+      upL.rotation.x = rp.upL.x + slamArmAngle
+      upL.rotation.z = rp.upL.z + lanceExtendT * 1.5
     }
-    if (upR) {
-      upR.rotation.x = slamArmAngle
-      upR.rotation.z = lanceExtendT * -1.5
+    if (upR && rp.upR) {
+      upR.rotation.x = rp.upR.x + slamArmAngle
+      upR.rotation.z = rp.upR.z + lanceExtendT * -1.5
     }
-    if (fL) fL.rotation.x = -lanceExtendT * 0.3
-    if (fR) fR.rotation.x = -lanceExtendT * 0.3
+    if (fL && rp.fL) fL.rotation.x = rp.fL.x + -lanceExtendT * 0.3
+    if (fR && rp.fR) fR.rotation.x = rp.fR.x + -lanceExtendT * 0.3
 
     // Attack state machine
     if (attackPhase.current === 'idle') {
