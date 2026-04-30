@@ -14,20 +14,24 @@ export default function HUD() {
   const stats = useGameStore((s) => s.stats)
   const activePerks = useDeckStore((s) => s.activePerks)
   const dashCooldownUntil = usePlayerStore((s) => s.dashCooldownUntil)
+  const speedBuffUntil = usePlayerStore((s) => s.speedBuffUntil)
 
   // Update dash cooldown display on an interval (avoids performance.now() in render)
   const [dashReady, setDashReady] = useState(true)
   const [dashProgress, setDashProgress] = useState(100)
+  const [speedBuffSecondsLeft, setSpeedBuffSecondsLeft] = useState(0)
   useEffect(() => {
     const update = () => {
       const remaining = Math.max(0, dashCooldownUntil - performance.now())
       setDashProgress(Math.max(0, Math.min(100, (1 - remaining / 2500) * 100)))
       setDashReady(remaining <= 0)
+      const buffMs = Math.max(0, speedBuffUntil - performance.now())
+      setSpeedBuffSecondsLeft(buffMs / 1000)
     }
     update()
     const interval = setInterval(update, 50)
     return () => clearInterval(interval)
-  }, [dashCooldownUntil])
+  }, [dashCooldownUntil, speedBuffUntil])
 
   return (
     <>
@@ -94,6 +98,20 @@ export default function HUD() {
           }} />
         </div>
       </div>
+      {/* Speed buff indicator */}
+      {speedBuffSecondsLeft > 0 && (
+        <div style={{
+          position: 'absolute', bottom: '70px', right: '24px', zIndex: 10,
+          background: 'rgba(0,0,0,0.6)', borderRadius: '8px', padding: '6px 10px',
+          color: 'white', fontSize: '18px', fontWeight: 'bold',
+          display: 'flex', alignItems: 'center', gap: '6px',
+          boxShadow: '0 0 8px rgba(34,197,94,0.6)',
+        }}>
+          <span>👟</span>
+          <span style={{ color: '#22c55e', fontSize: '16px' }}>↑</span>
+          <span style={{ color: '#22c55e', fontSize: '13px', minWidth: '28px' }}>{speedBuffSecondsLeft.toFixed(1)}s</span>
+        </div>
+      )}
       <ScreenFlash />
     </>
   )

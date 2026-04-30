@@ -1,6 +1,5 @@
 import type { SpellType, SpellEffect } from '../types'
-import { SPELL_CONFIG } from '../data/recipes'
-import { PARTICLE_CONFIG } from '../data/particleConfig'
+import { SPELL_CONFIG, SPEED_BUFF_DURATION_MS } from '../data/recipes'
 import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useDeckStore } from '../stores/deckStore'
@@ -64,11 +63,20 @@ function buildSpell(spellType: SpellType): SpellEffect {
   }
 }
 
+function applySaltSpeedBuff() {
+  const now = performance.now()
+  const currentUntil = usePlayerStore.getState().speedBuffUntil
+  const base = Math.max(now, currentUntil)
+  usePlayerStore.getState().setSpeedBuff(base + SPEED_BUFF_DURATION_MS)
+}
+
 export function castSpell(spellType: SpellType) {
   const spell = buildSpell(spellType)
   ;(window as any).__castSpell?.(spell)
-  ;(window as any).__setLastSpellColor?.(PARTICLE_CONFIG[spellType].color)
   ;(window as any).__playerAttack?.()
+
+  // Salt Speed: grant the player a speed buff (stacks duration if cast again)
+  if (spellType === 'SALT_SPEED') applySaltSpeedBuff()
 
   // Double Batch perk: chance to cast again after 200ms
   const doubleBatchStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'double_batch')?.stackCount || 0
@@ -76,6 +84,7 @@ export function castSpell(spellType: SpellType) {
     setTimeout(() => {
       const bonusSpell = buildSpell(spellType)
       ;(window as any).__castSpell?.(bonusSpell)
+      if (spellType === 'SALT_SPEED') applySaltSpeedBuff()
     }, 200)
   }
 }

@@ -28,3 +28,8 @@ dist-ssr
 
 # Superpowers brainstorm files
 .superpowers
+
+# Claude Code per-machine permission allowlist — auto-modified by the CLI when
+# the user accepts "always allow" on a tool prompt. Tracking it causes pull
+# conflicts when sessions auto-append patterns. Each machine keeps its own copy.
+.claude/settings.local.json

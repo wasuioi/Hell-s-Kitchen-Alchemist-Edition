@@ -1,6 +1,6 @@
 export type Ingredient = 'CHILI' | 'BOTTLE' | 'SALT'
 
-export type SpellType = 'INFERNO' | 'TIDAL_WAVE' | 'FORTRESS' | 'STEAM' | 'METEOR' | 'MUD'
+export type SpellType = 'INFERNO' | 'TIDAL_WAVE' | 'SALT_SPEED' | 'STEAM' | 'METEOR' | 'MUD'
 
 export type EnemyType = 'slow' | 'fast' | 'tanky' | 'boss' | 'exploder'
 

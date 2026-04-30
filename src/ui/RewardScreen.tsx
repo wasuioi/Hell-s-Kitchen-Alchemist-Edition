@@ -1,36 +1,29 @@
 import { useState } from 'react'
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
-import { drawPerksWithRarity, MAX_PERK_TIER, RARITY_COLOR } from '../data/perks'
+import { drawPerksWithRarity } from '../data/perks'
 import type { PerkDefinition } from '../data/perks'
-import PerkIcon from './PerkIcon'
-import TierDots from './TierDots'
-import TierDiff from './TierDiff'
+import { useCardLayoutStore } from '../stores/cardLayoutStore'
+import PerkCard from './PerkCard'
 
-// Hex color → rgba(r,g,b,a) — used to tint card backgrounds with the
-// rarity colour without losing the dark base.
-function withAlpha(hex: string, alpha: number): string {
-  const m = hex.replace('#', '')
-  const r = parseInt(m.slice(0, 2), 16)
-  const g = parseInt(m.slice(2, 4), 16)
-  const b = parseInt(m.slice(4, 6), 16)
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
-}
+const CARD_GAP = 24
 
 export default function RewardScreen() {
   const currentWave = useGameStore((s) => s.currentWave)
   const activePerks = useDeckStore((s) => s.activePerks)
+  // Footer width tracks the card row above it — reactive so the dev
+  // panel slider can resize the cards and the footer stays aligned.
+  // cardScale (CSS `zoom`) shrinks the card's visual+layout box, so
+  // the row's actual width is cardWidth × scale × 3 + gaps.
+  const cardWidth = useCardLayoutStore((s) => s.cardWidth)
+  const cardScale = useCardLayoutStore((s) => s.cardScale)
+  const footerWidth = cardWidth * cardScale * 3 + CARD_GAP * 2
   const [perks, setPerks] = useState<PerkDefinition[]>(() => drawPerksWithRarity(3))
   const [rerollsLeft, setRerollsLeft] = useState(1)
   const [confirmingSkip, setConfirmingSkip] = useState(false)
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   function currentTierFor(perkId: string): number {
     return activePerks.find((p) => p.id === perkId)?.stackCount ?? 0
-  }
-
-  function tierAfterPick(perkId: string): number {
-    return Math.min(currentTierFor(perkId) + 1, MAX_PERK_TIER)
   }
 
   function pickPerk(perk: PerkDefinition) {
@@ -56,6 +49,11 @@ export default function RewardScreen() {
       position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
       background: 'rgba(0,0,0,0.85)', zIndex: 20,
+      // Safety net for tall card scales: if the cards + header + footer
+      // overflow the viewport, scroll inside the overlay rather than
+      // hiding the reroll/skip buttons.
+      overflowY: 'auto',
+      padding: '24px 16px',
     }}>
       <h1 style={{ color: '#fcd34d', fontSize: '36px', fontWeight: 'bold', marginBottom: '8px' }}>
         WAVE {currentWave} CLEARED!
@@ -64,55 +62,20 @@ export default function RewardScreen() {
         Choose a perk to upgrade your kitchen
       </p>
 
-      <div style={{ display: 'flex', gap: '24px', alignItems: 'stretch' }}>
-        {perks.map((perk) => {
-          const rarityColor = RARITY_COLOR[perk.rarity]
-          const isHovered = hoveredId === perk.id
-          return (
-            <button
-              key={perk.id}
-              onClick={() => pickPerk(perk)}
-              onMouseEnter={() => setHoveredId(perk.id)}
-              onMouseLeave={() => setHoveredId((id) => (id === perk.id ? null : id))}
-              style={{
-                width: '260px', padding: '28px 22px',
-                background: isHovered ? withAlpha(rarityColor, 0.18) : withAlpha(rarityColor, 0.06),
-                border: `2px solid ${isHovered ? rarityColor : withAlpha(rarityColor, 0.45)}`,
-                borderRadius: '14px', color: 'white', cursor: 'pointer',
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px',
-                transition: 'all 0.2s', fontFamily: 'inherit',
-                transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
-                boxShadow: isHovered ? `0 0 28px ${withAlpha(rarityColor, 0.45)}` : 'none',
-              }}
-            >
-              <span style={{
-                fontSize: '22px', fontWeight: 'bold', color: rarityColor,
-                textShadow: `0 0 12px ${withAlpha(rarityColor, 0.4)}`,
-              }}>
-                {perk.name}
-              </span>
-              <PerkIcon icon={perk.icon} size={72} />
-
-              <div style={{ width: '100%' }}>
-                <TierDiff perk={perk} currentTier={currentTierFor(perk.id)} />
-              </div>
-
-              <div style={{ marginTop: 'auto', paddingTop: '14px' }}>
-                <TierDots
-                  current={currentTierFor(perk.id)}
-                  preview={tierAfterPick(perk.id)}
-                  hovered={isHovered}
-                  size="large"
-                />
-              </div>
-            </button>
-          )
-        })}
+      <div style={{ display: 'flex', gap: `${CARD_GAP}px`, alignItems: 'stretch' }}>
+        {perks.map((perk) => (
+          <PerkCard
+            key={perk.id}
+            perk={perk}
+            currentTier={currentTierFor(perk.id)}
+            onPick={() => pickPerk(perk)}
+          />
+        ))}
       </div>
 
       <div style={{
         display: 'flex', gap: '12px', marginTop: '28px',
-        width: '820px', justifyContent: 'space-between', alignItems: 'center',
+        width: `${footerWidth}px`, justifyContent: 'space-between', alignItems: 'center',
       }}>
         <button
           onClick={handleReroll}

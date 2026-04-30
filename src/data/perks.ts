@@ -42,10 +42,26 @@ export const RARITY_WEIGHTS: Record<PerkRarity, number> = {
 }
 
 export const PERK_POOL: PerkDefinition[] = [
-  { id: 'extra_spicy', name: 'Extra Spicy', icon: '🌶️', description: 'Chili spells +20% damage, smaller AOE; ignites enemies (Burn 🔥)', rarity: 'common' },
-  { id: 'deep_freeze', name: 'Deep Freeze', icon: '🧊', description: 'Bottle spells Freeze enemies for 2s (immobilized)', rarity: 'rare' },
-  { id: 'fast_prep', name: 'Fast Prep', icon: '⚡', description: 'Cook cooldown reduced by 0.5s', rarity: 'rare' },
-  { id: 'double_batch', name: 'Double Batch', icon: '🧪', description: '10% chance spell triggers twice', rarity: 'epic' },
+  {
+    id: 'extra_spicy', name: 'Extra Spicy', icon: '🌶️',
+    description: 'Chili spells +20% damage, smaller AOE; ignites enemies (Burn 🔥)',
+    rarity: 'common',
+  },
+  {
+    id: 'deep_freeze', name: 'Deep Freeze', icon: '🧊',
+    description: 'Bottle spells Freeze enemies for 2s (immobilized)',
+    rarity: 'rare',
+  },
+  {
+    id: 'fast_prep', name: 'Fast Prep', icon: '⚡',
+    description: 'Cook cooldown reduced by 0.5s',
+    rarity: 'rare',
+  },
+  {
+    id: 'double_batch', name: 'Double Batch', icon: '🧪',
+    description: '10% chance spell triggers twice',
+    rarity: 'epic',
+  },
   {
     id: 'grease_fire', name: 'Grease Fire', icon: '/icons/grease_fire.png',
     description: 'Taking damage erupts a fiery grease burst around you, scorching nearby enemies. 2s cooldown.',

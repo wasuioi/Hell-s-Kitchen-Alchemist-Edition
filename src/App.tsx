@@ -61,9 +61,9 @@ export default function App() {
           if (playerKeys['d'] || playerKeys['arrowright']) dx += 1
         }
         if (dx === 0 && dz === 0) {
-          // Fall back to rotation
+          // Fall back to rotation (Player.setRotation = atan2(dx, dz), so dz = cos)
           dx = Math.sin(ps.rotation)
-          dz = -Math.cos(ps.rotation)
+          dz = Math.cos(ps.rotation)
         }
         const len = Math.sqrt(dx * dx + dz * dz)
         ps.startDash({ x: dx / len, z: dz / len })

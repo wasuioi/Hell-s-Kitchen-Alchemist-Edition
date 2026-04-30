@@ -5,9 +5,10 @@ import * as THREE from 'three'
 import { usePlayerStore, BOILING_POINT_MAX_HEAT } from '../stores/playerStore'
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
+import { SPEED_BUFF_MULTIPLIER } from '../data/recipes'
 import { ARENA_SIZE } from './Arena'
 
-const PLAYER_SPEED = 8
+const PLAYER_SPEED = 6
 const PLAYER_RADIUS = 0.5
 const BOUNDARY = ARENA_SIZE / 2 - PLAYER_RADIUS - 0.5
 
@@ -53,8 +54,8 @@ export default function Player() {
   const ghostsRef = useRef<{ x: number; z: number; time: number; index: number }[]>([])
   const [ghosts, setGhosts] = useState<{ x: number; z: number; time: number; index: number }[]>([])
   const ghostIndex = useRef(0)
-  const lastSpellColor = useRef('#22c55e')
-  const dashTrailColor = useRef('#22c55e')
+  const dashTrailColor = useRef('#9ca3af')
+  const lastBuffGhost = useRef(0)
 
   // Cache original `color` per material so we can restore on blink-off.
   // The wizard GLTF uses MeshBasicMaterial which has no `emissive` — we
@@ -73,9 +74,6 @@ export default function Player() {
 
   useFrame((_, delta) => {
     // Register global callbacks
-    if (!(window as any).__setLastSpellColor) {
-      ; (window as any).__setLastSpellColor = (color: string) => { lastSpellColor.current = color }
-    }
     if (!(window as any).__playerAttack) {
       ; (window as any).__playerAttack = () => {
         isAttacking.current = true
@@ -101,7 +99,7 @@ export default function Player() {
     if (bpStacksTick > 0) usePlayerStore.getState().decayHeat(4000)
 
     const timeScale = useGameStore.getState().timeScale
-    const { status, isDashing, dashDirection, dashEndTime } = usePlayerStore.getState()
+    const { status, isDashing, dashDirection, dashEndTime, speedBuffUntil } = usePlayerStore.getState()
 
     // Check if dash should end
     if (isDashing && performance.now() >= dashEndTime) {
@@ -117,8 +115,7 @@ export default function Player() {
       // Capture trail color on first frame of dash
       if (ghostsRef.current.length === 0) {
         ghostIndex.current = 0
-        const playerStatus = usePlayerStore.getState().status
-        dashTrailColor.current = playerStatus === 'soaked' ? '#3b82f6' : lastSpellColor.current
+        dashTrailColor.current = '#9ca3af'
       }
       // Record ghost position for trail
       ghostsRef.current.push({ x: pos.x, z: pos.z, time: performance.now(), index: ghostIndex.current++ })
@@ -128,7 +125,8 @@ export default function Player() {
     }
 
     // Normal movement
-    const speedMult = status === 'soaked' ? 0.5 : status === 'stunned' ? 0 : 1
+    const buffActive = performance.now() < speedBuffUntil
+    const speedMult = (status === 'soaked' ? 0.5 : status === 'stunned' ? 0 : 1) * (buffActive ? SPEED_BUFF_MULTIPLIER : 1)
     let dx = 0, dz = 0
     if (keys['w'] || keys['arrowup']) dz -= 1
     if (keys['s'] || keys['arrowdown']) dz += 1
@@ -139,6 +137,15 @@ export default function Player() {
     const pos = usePlayerStore.getState().position
     const newX = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.x + dx * PLAYER_SPEED * speedMult * timeScale * delta))
     const newZ = Math.max(-BOUNDARY, Math.min(BOUNDARY, pos.z + dz * PLAYER_SPEED * speedMult * timeScale * delta))
+
+    // Speed buff trail: gray ghost ~every 60ms while moving
+    if (buffActive && performance.now() - lastBuffGhost.current > 60) {
+      lastBuffGhost.current = performance.now()
+      dashTrailColor.current = '#9ca3af'
+      ghostsRef.current.push({ x: pos.x, z: pos.z, time: performance.now(), index: ghostIndex.current++ })
+      setGhosts([...ghostsRef.current])
+    }
+
     usePlayerStore.getState().setPosition({ x: newX, z: newZ })
     usePlayerStore.getState().setRotation(Math.atan2(dx, dz))
 
