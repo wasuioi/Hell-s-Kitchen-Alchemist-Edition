@@ -16,6 +16,34 @@ const SPEED: Record<string, number> = { slow: 2, fast: 4, tanky: 1.5, boss: 1, e
 const SIZE: Record<string, number> = { slow: 0.4, fast: 0.35, tanky: 0.6, boss: 1.2, exploder: 0.3 }
 const ENEMY_BOUNDARY = ARENA_SIZE / 2 - 0.5
 const MODEL_SCALE: Record<string, number> = { slow: 16, fast: 13, tanky: 24, boss: 10, exploder: 11 }
+const BASE_COLOR: Record<string, string> = {
+  slow: '#5cb85c',
+  fast: '#f00f0f',
+  tanky: '#6b7280',
+  exploder: '#301c1c',
+  boss: '#dc2626',
+}
+const EMISSIVE_COLOR: Record<string, string> = {
+  slow: '#44ff44',
+  fast: '#ffeb3b',
+  tanky: '#9ca3af',
+  exploder: '#120d02',
+  boss: '#7f1d1d',
+}
+const EMISSIVE_INTENSITY: Record<string, number> = {
+  slow: 0.30,
+  fast: 0.65,
+  tanky: 0.30,
+  exploder: 0.80,
+  boss: 0.30,
+}
+
+const TANKY_PLATES = [
+  { x:  0.60, y: 0.70, z: -0.05, rx: 0.00, ry: 0.00, rz: 1.95, sx: 0.69, sy: 0.29, sz: 0.57, color: '#4b5563' },
+  { x: -0.25, y: 0.60, z:  0.60, rx: 0.30, ry: 0.90, rz: 0.75, sx: 0.49, sy: 0.15, sz: 0.57, color: '#4f6078' },
+  { x: -0.35, y: 0.80, z: -0.40, rx: 3.05, ry: 3.95, rz: 0.90, sx: 0.37, sy: 0.21, sz: 0.61, color: '#756961' },
+] as const
+
 const PLAYER_RADIUS = 0.5
 const CONTACT_DAMAGE = 10
 const CONTACT_COOLDOWN = 1
@@ -31,24 +59,35 @@ export default function Enemy({ enemy }: Props) {
     clone.traverse((child) => {
       if (child instanceof THREE.Mesh && child.material) {
         const mat = child.material.clone()
+        mat.map = null
         mat.emissiveMap = null
-        mat.emissive = new THREE.Color(0x44ff44)
-        mat.emissiveIntensity = 0.3
+        mat.color = new THREE.Color(BASE_COLOR[enemy.type] ?? '#5cb85c')
+        mat.emissive = new THREE.Color(EMISSIVE_COLOR[enemy.type] ?? '#44ff44')
+        mat.emissiveIntensity = EMISSIVE_INTENSITY[enemy.type] ?? 0.3
         child.material = mat
       }
     })
     return clone
-  }, [scene])
+  }, [scene, enemy.type])
 
   const lastContactTime = useRef(0)
   const deathTimer = useRef(0)
   const [visualScale, setVisualScale] = useState(1)
   const burnTickRef = useRef(0)
   const stunRingRef = useRef<THREE.Group>(null)
+  const facingGroupRef = useRef<THREE.Group>(null)
 
   useFrame((_, delta) => {
     if (stunRingRef.current) {
       stunRingRef.current.rotation.y = performance.now() / 400
+    }
+
+    if (facingGroupRef.current && enemy.type === 'tanky') {
+      const facingPlayer = usePlayerStore.getState().position
+      facingGroupRef.current.rotation.y = Math.atan2(
+        facingPlayer.x - enemy.position.x,
+        facingPlayer.z - enemy.position.z,
+      )
     }
 
     const phase = useGameStore.getState().phase
@@ -209,7 +248,8 @@ export default function Enemy({ enemy }: Props) {
       return
     }
 
-    if (dist < 1 && !isDashing) {
+    const contactDist = Math.max(1, combinedRadius + 0.1)
+    if (dist < contactDist && !isDashing) {
       const now = performance.now() / 1000
       if (now - lastContactTime.current > CONTACT_COOLDOWN) {
         lastContactTime.current = now
@@ -238,6 +278,36 @@ export default function Enemy({ enemy }: Props) {
         object={slimeModel}
         scale={[scale, scale, scale]}
       />
+      {/* Tanky stone plates — 3 baked plates around upper body */}
+      {enemy.type === 'tanky' && (
+        <group ref={facingGroupRef}>
+          {TANKY_PLATES.map((p, i) => (
+            <mesh
+              key={i}
+              position={[p.x, p.y, p.z]}
+              rotation={[p.rx, p.ry, p.rz]}
+            >
+              <boxGeometry args={[p.sx, p.sy, p.sz]} />
+              <meshStandardMaterial color={p.color} roughness={0.95} />
+            </mesh>
+          ))}
+        </group>
+      )}
+
+      {/* Exploder: single pulsing red dot on top of head */}
+      {enemy.type === 'exploder' && !enemy.dying && !enemy.detonating && (
+        <mesh
+          position={[0, enemySize * 1.7, 0]}
+          scale={1 + Math.sin(renderNow / 220) * 0.25}
+        >
+          <sphereGeometry args={[enemySize * 0.24, 14, 14]} />
+          <meshStandardMaterial
+            color="#ff3b1a"
+            emissive="#ff0000"
+            emissiveIntensity={2.5 + Math.sin(renderNow / 220) * 1.5}
+          />
+        </mesh>
+      )}
       {/* Hit flash overlay — white sphere over the enemy */}
       {isFlashing && (
         <mesh position={[0, SIZE[enemy.type], 0]}>
