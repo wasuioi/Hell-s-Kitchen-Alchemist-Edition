@@ -61,9 +61,9 @@ export const PERK_POOL: PerkDefinition[] = [
     description: 'Taking damage builds Heat. Your next INFERNO cast consumes all Heat for bonus damage.',
     rarity: 'epic', vfxSprite: 'boiling_point_consume',
     tiers: [
-      { stats: { Spell: 'INFERNO', 'Max Heat': 5, 'Per Stack': '+20%', Decay: '4.0s' } },
-      { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+20%', Decay: '4.0s' } },
-      { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+25%', Decay: '4.0s' }, added: 'Heal +1 HP per Heat stack consumed' },
+      { stats: { Spell: 'INFERNO', 'Max Heat': 5, 'Per Stack': '+10%', Decay: '4.0s' } },
+      { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+12%', Decay: '4.0s' } },
+      { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+15%', Decay: '4.0s' }, added: 'Heal +1 HP per Heat stack consumed' },
     ],
   },
 ]

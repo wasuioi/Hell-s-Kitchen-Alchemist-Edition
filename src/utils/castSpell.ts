@@ -40,7 +40,7 @@ function buildSpell(spellType: SpellType): SpellEffect {
       const heat = usePlayerStore.getState().heatStacks
       if (heat > 0) {
         const tier = Math.min(bpStacks, 3)
-        const basePerStack = [0.20, 0.20, 0.25][tier - 1]
+        const basePerStack = [0.10, 0.12, 0.15][tier - 1]
         const overflow = Math.max(0, bpStacks - 3) * 0.05
         const perStack = basePerStack + overflow
         damage = damage * (1 + perStack * heat)

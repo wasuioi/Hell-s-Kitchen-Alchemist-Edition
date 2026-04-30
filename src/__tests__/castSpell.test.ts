@@ -33,24 +33,24 @@ describe('castSpell + boiling_point', () => {
     expect(spell.damage).toBe(40)
   })
 
-  it('multiplies INFERNO damage by +20% per Heat stack at T1', async () => {
+  it('multiplies INFERNO damage by +10% per Heat stack at T1', async () => {
     const { castSpell } = await import('../utils/castSpell')
     addBoilingPoint(1)
     for (let i = 0; i < 5; i++) usePlayerStore.getState().addHeat(5) // 5 heat
     castSpell('INFERNO')
     const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
-    // 40 × (1 + 0.20 × 5) = 40 × 2.0 = 80
-    expect(spell.damage).toBeCloseTo(80, 5)
+    // 40 × (1 + 0.10 × 5) = 40 × 1.5 = 60
+    expect(spell.damage).toBeCloseTo(60, 5)
   })
 
-  it('multiplies INFERNO damage by +25% per Heat stack at T3', async () => {
+  it('multiplies INFERNO damage by +15% per Heat stack at T3', async () => {
     const { castSpell } = await import('../utils/castSpell')
     addBoilingPoint(3)
     for (let i = 0; i < 7; i++) usePlayerStore.getState().addHeat(7) // 7 heat
     castSpell('INFERNO')
     const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
-    // 40 × (1 + 0.25 × 7) = 40 × 2.75 = 110
-    expect(spell.damage).toBeCloseTo(110, 5)
+    // 40 × (1 + 0.15 × 7) = 40 × 2.05 = 82
+    expect(spell.damage).toBeCloseTo(82, 5)
   })
 
   it('overflow stacks add +5%/Heat per perk stack beyond T3', async () => {
@@ -59,9 +59,9 @@ describe('castSpell + boiling_point', () => {
     for (let i = 0; i < 7; i++) usePlayerStore.getState().addHeat(7)
     castSpell('INFERNO')
     const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
-    // perStack = 0.25 + 0.05 × 1 = 0.30
-    // 40 × (1 + 0.30 × 7) = 40 × 3.10 = 124
-    expect(spell.damage).toBeCloseTo(124, 5)
+    // perStack = 0.15 + 0.05 × 1 = 0.20
+    // 40 × (1 + 0.20 × 7) = 40 × 2.40 = 96
+    expect(spell.damage).toBeCloseTo(96, 5)
   })
 
   it('clears heat after INFERNO is cast', async () => {
@@ -153,8 +153,8 @@ describe('castSpell + boiling_point VFX', () => {
     usePlayerStore.getState().addHeat(5) // 2 heat
     castSpell('INFERNO')
     const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
-    // 40 × (1 + 0.20 × 2) = 40 × 1.4 = 56 — multiplier still works
-    expect(spell.damage).toBeCloseTo(56, 5)
+    // 40 × (1 + 0.10 × 2) = 40 × 1.2 = 48 — multiplier still works
+    expect(spell.damage).toBeCloseTo(48, 5)
     expect(usePlayerStore.getState().heatStacks).toBe(0) // Heat still consumes
   })
 })
