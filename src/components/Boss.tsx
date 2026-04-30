@@ -1,6 +1,7 @@
-import { useRef, useState } from 'react'
+import { useRef, useState, useMemo } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { useGLTF } from '@react-three/drei'
 import { useEnemyStore } from '../stores/enemyStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useGameStore } from '../stores/gameStore'
@@ -29,8 +30,14 @@ function getEdgeSpawnPosition(): { x: number; z: number } {
 
 export default function Boss() {
   const boss = useEnemyStore((s) => s.enemies.find((e) => e.type === 'boss'))
+  const { scene } = useGLTF('/models/boss/boss.glb')
+  const fittedScale = useMemo(() => {
+    const bbox = new THREE.Box3().setFromObject(scene)
+    const size = new THREE.Vector3()
+    bbox.getSize(size)
+    return size.y > 0 ? 3 / size.y : 1
+  }, [scene])
   const phase = useGameStore((s) => s.phase)
-  const faceGroupRef = useRef<THREE.Group>(null)
 
   const attackTimer = useRef(0)
   const attackPhaseTimer = useRef(0)
@@ -60,14 +67,6 @@ export default function Boss() {
     if (!boss || phase !== 'boss') return
 
     const bossPos = boss.position
-
-    if (faceGroupRef.current) {
-      const playerPos = usePlayerStore.getState().position
-      faceGroupRef.current.rotation.y = Math.atan2(
-        playerPos.x - bossPos.x,
-        playerPos.z - bossPos.z,
-      )
-    }
 
     // Check boss death
     if (boss.hp <= 0) {
@@ -215,49 +214,11 @@ export default function Boss() {
 
   return (
     <group>
-      {/* Boss body */}
-      <mesh position={[boss.position.x, 1.5, boss.position.z]} castShadow>
-        <sphereGeometry args={[1.5, 24, 24]} />
-        <meshStandardMaterial color="#dc2626" emissive="#7f1d1d" emissiveIntensity={0.3} />
-      </mesh>
-
-      {/* Boss face — eyes / mouth / fangs, rotates to face the player */}
-      <group ref={faceGroupRef} position={[boss.position.x, 1.5, boss.position.z]}>
-        {/* Left eye white */}
-        <mesh position={[-0.5, 0.5, 1.3]}>
-          <sphereGeometry args={[0.3, 16, 16]} />
-          <meshStandardMaterial color="#ffffff" emissive="#fbbf24" emissiveIntensity={1.2} />
-        </mesh>
-        {/* Left pupil */}
-        <mesh position={[-0.5, 0.5, 1.55]}>
-          <sphereGeometry args={[0.13, 12, 12]} />
-          <meshBasicMaterial color="#000000" />
-        </mesh>
-        {/* Right eye white */}
-        <mesh position={[0.5, 0.5, 1.3]}>
-          <sphereGeometry args={[0.3, 16, 16]} />
-          <meshStandardMaterial color="#ffffff" emissive="#fbbf24" emissiveIntensity={1.2} />
-        </mesh>
-        {/* Right pupil */}
-        <mesh position={[0.5, 0.5, 1.55]}>
-          <sphereGeometry args={[0.13, 12, 12]} />
-          <meshBasicMaterial color="#000000" />
-        </mesh>
-        {/* Mouth — wide dark slit */}
-        <mesh position={[0, -0.5, 1.4]}>
-          <boxGeometry args={[1.1, 0.12, 0.08]} />
-          <meshBasicMaterial color="#1a0a0a" />
-        </mesh>
-        {/* Fangs — two cones poking down from the mouth */}
-        <mesh position={[-0.3, -0.7, 1.4]} rotation={[0, 0, Math.PI]}>
-          <coneGeometry args={[0.08, 0.28, 4]} />
-          <meshBasicMaterial color="#fef3c7" />
-        </mesh>
-        <mesh position={[0.3, -0.7, 1.4]} rotation={[0, 0, Math.PI]}>
-          <coneGeometry args={[0.08, 0.28, 4]} />
-          <meshBasicMaterial color="#fef3c7" />
-        </mesh>
-      </group>
+      <primitive
+        object={scene}
+        position={[boss.position.x, 0, boss.position.z]}
+        scale={fittedScale}
+      />
 
       {/* Heat wave telegraph ring */}
       {showHeatRing && (
@@ -328,3 +289,5 @@ export default function Boss() {
     </group>
   )
 }
+
+useGLTF.preload('/models/boss/boss.glb')
