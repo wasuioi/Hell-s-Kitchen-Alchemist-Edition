@@ -121,14 +121,13 @@ These compute target euler angles per bone per frame; no animation library neede
 
 ### File deltas
 
-- `public/models/boss/boss.glb` — already added (this PR / branch). Add `public/models/boss/` to any committed-asset linter ignore list if one exists; check existing patterns for slime / wizard.
-- `src/components/Boss.tsx` — heavy rewrite of the JSX return block (model + bone refs replace the sphere/face mesh tree) and animation-driving useFrame logic. Attack timing, damage, and state machine flow are preserved.
-- `src/types.ts` — `AttackType` (currently in `Boss.tsx` as a local type, line 11) stays local; rename `'heat_wave' | 'salt_rain' | 'deep_soak'` → `'stone_slam' | 'stone_spikes' | 'hand_lance'`. No store-level type changes (boss attacks are not stored in Zustand).
-- `src/utils/preloadAssets.ts` — add boss model preload alongside existing icon / VFX preloads, so the first transition into the boss phase doesn't hitch.
+- `public/models/boss/boss.glb` — already added (this PR / branch).
+- `src/components/Boss.tsx` — heavy rewrite of the JSX return block (model + bone refs replace the sphere/face mesh tree) and animation-driving useFrame logic. Attack timing, damage, and state machine flow are preserved. `AttackType` (the local type at line 11) is renamed `'heat_wave' | 'salt_rain' | 'deep_soak'` → `'stone_slam' | 'stone_spikes' | 'hand_lance'`. No store-level type changes (boss attacks are not stored in Zustand).
+- No other files are modified.
 
 ### Preload
 
-`useGLTF.preload('/models/boss/boss.glb')` at module scope handles render-time, but to fully warm the cache before the player ever enters the boss room (first transition often hitches on a 14MB binary), also add the URL to the existing preload list in `src/utils/preloadAssets.ts`.
+`useGLTF.preload('/models/boss/boss.glb')` at module scope of `Boss.tsx`, matching the established pattern in `Player.tsx:301` and `Enemy.tsx:464`. `Boss.tsx` is imported eagerly via `Scene.tsx`, so the preload fires at app mount even though the boss component itself is conditionally rendered. `src/utils/preloadAssets.ts` is image-only (uses `new Image()` to warm the texture cache); model preloads stay in their respective component files.
 
 ## Out of scope
 
