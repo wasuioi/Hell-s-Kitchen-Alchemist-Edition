@@ -106,7 +106,7 @@ export default function ParticleSystem({ type, duration, radius }: ParticleSyste
       const phi = Math.acos(2 * Math.random() - 1)
       const vx = Math.sin(phi) * Math.cos(theta)
       let vy = Math.sin(phi) * Math.sin(theta)
-      let vz = Math.cos(phi)
+      const vz = Math.cos(phi)
 
       // Hemisphere for stone spells — force vy upward
       if (config.burstDirection === 'hemisphere') {
