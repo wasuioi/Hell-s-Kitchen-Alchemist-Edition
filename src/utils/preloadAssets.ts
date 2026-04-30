@@ -20,6 +20,12 @@ export function preloadGameAssets(): void {
     if (perk.icon.startsWith('/')) urls.add(perk.icon)
     if (perk.vfxSprite) urls.add(`/vfx/${perk.vfxSprite}.png`)
   }
+  // Secondary VFX sprites not bound to a perk's `vfxSprite` field.
+  // BoilingPoint spawns TWO sprites on consume: `boiling_point_consume`
+  // (covered by the perk.vfxSprite loop above) and `boiling_point_spell`
+  // (only spawned at trigger time in castSpell.ts). Mirror it here so the
+  // browser cache + Three.js warmup paths stay consistent.
+  urls.add('/vfx/boiling_point_spell.png')
   for (const url of urls) {
     const img = new Image()
     img.src = url
