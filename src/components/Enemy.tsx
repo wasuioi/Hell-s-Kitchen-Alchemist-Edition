@@ -19,6 +19,12 @@ const TANKY_TELEGRAPH_MS = 1000
 const TANKY_CHARGE_MS = 700
 const TANKY_CHARGE_MULT = 6
 const TANKY_COOLDOWN_MS = 3000
+// Exploder telegraph: total wind-up window must match INITIAL_DETONATION_DELAY_MS
+// in EnemyManager.tsx so the visual ramp ends exactly when the explosion fires.
+const EXPLODER_TELEGRAPH_MS = 1500
+const EXPLODER_PAUSE_MS = 500
+const EXPLODER_SPRINT_MULT = 1.9
+const EXPLODER_TRIGGER_RANGE = 4
 const ENEMY_BOUNDARY = ARENA_SIZE / 2 - 0.5
 const MODEL_SCALE: Record<string, number> = { slow: 16, fast: 13, tanky: 24, boss: 10, exploder: 11 }
 const BASE_COLOR: Record<string, string> = {
@@ -144,16 +150,41 @@ export default function Enemy({ enemy }: Props) {
       return // skip movement while dying
     }
 
-    // --- Detonating (exploder only) — skip movement ---
-    if (enemy.detonating) {
-      // Rapid flash: toggle scale between 1.0 and 1.2 every 50ms
-      const flashPhase = Math.floor(performance.now() / 50) % 2
-      setVisualScale(flashPhase === 0 ? 1.0 : 1.2)
-      return
-    }
-
     const timeScale = useGameStore.getState().timeScale
     const playerPos = usePlayerStore.getState().position
+
+    // --- Detonating (exploder only) — body visibly swells over the wind-up
+    // window. First EXPLODER_PAUSE_MS the exploder freezes ("locked on"),
+    // then sprints toward the player at boosted speed for the rest of the
+    // window so a stationary player can't simply walk away. Chain
+    // reactions also enter this branch — their CHAIN_DETONATION_DELAY_MS
+    // is shorter so they fire while the visual ramp is still partway.
+    if (enemy.detonating) {
+      const detElapsed = performance.now() - enemy.detonationStartTime
+      const progress = Math.min(1, detElapsed / EXPLODER_TELEGRAPH_MS)
+      const swell = 1.0 + progress * 0.5
+      const jitterAmt = 0.05 + progress * 0.15
+      const flashPhase = Math.floor(performance.now() / 50) % 2
+      setVisualScale(swell + (flashPhase === 0 ? -jitterAmt : jitterAmt))
+
+      if (detElapsed < EXPLODER_PAUSE_MS) return // lock-on freeze
+
+      const detNow = performance.now()
+      const detFrozen = detNow < enemy.frozenUntil
+      const detStunned = detNow < enemy.stunnedUntil
+      const detSoaked = detNow < enemy.soakedUntil
+      const detSlowed = detNow < enemy.slowedUntil
+      const detMult = (detFrozen || detStunned) ? 0 : (detSoaked || detSlowed) ? 0.5 : 1
+      const sdx = playerPos.x - enemy.position.x
+      const sdz = playerPos.z - enemy.position.z
+      const sdist = Math.sqrt(sdx * sdx + sdz * sdz) || 1
+      const sprintSpeed = SPEED.exploder * EXPLODER_SPRINT_MULT * detMult * timeScale
+      useEnemyStore.getState().updateEnemyPosition(enemy.id, {
+        x: enemy.position.x + (sdx / sdist) * sprintSpeed * delta,
+        z: enemy.position.z + (sdz / sdist) * sprintSpeed * delta,
+      })
+      return
+    }
     // Animate knockback with friction. Tanky shrugs it off during the
     // telegraph + charge windows — clear the impulse so the player can't
     // cancel a committed wind-up with a single spell hit.
@@ -293,7 +324,7 @@ export default function Enemy({ enemy }: Props) {
     const isDashing = usePlayerStore.getState().isDashing
 
     // Exploder: self-detonate when close to player
-    if (enemy.type === 'exploder' && dist < 2.5 && !enemy.detonating && !enemy.dying) {
+    if (enemy.type === 'exploder' && dist < EXPLODER_TRIGGER_RANGE && !enemy.detonating && !enemy.dying) {
       useEnemyStore.getState().setEnemyDetonating(enemy.id)
         ; (window as any).__queueDetonation?.(enemy.id)
       return
@@ -370,6 +401,26 @@ export default function Enemy({ enemy }: Props) {
           />
         </mesh>
       )}
+
+      {/* Exploder telegraph aura — red sphere that grows + brightens over the
+          wind-up window so the threat reads from across the arena. */}
+      {enemy.type === 'exploder' && enemy.detonating && !enemy.dying && (() => {
+        const elapsed = renderNow - enemy.detonationStartTime
+        const progress = Math.min(1, elapsed / EXPLODER_TELEGRAPH_MS)
+        const auraRadius = enemySize * (1.4 + progress * 1.4)
+        const auraOpacity = 0.20 + progress * 0.55
+        return (
+          <mesh position={[0, enemySize, 0]}>
+            <sphereGeometry args={[auraRadius, 20, 20]} />
+            <meshBasicMaterial
+              color="#ff2200"
+              transparent
+              opacity={auraOpacity}
+              depthWrite={false}
+            />
+          </mesh>
+        )
+      })()}
       {/* Hit flash overlay — white sphere over the enemy */}
       {isFlashing && (
         <mesh position={[0, SIZE[enemy.type], 0]}>
@@ -506,19 +557,31 @@ export default function Enemy({ enemy }: Props) {
           distance={2}
         />
       )}
-      {/* Exploder danger zone ring during detonation */}
-      {isExploder && enemy.detonating && (
-        <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[2.7, 3, 48]} />
-          <meshBasicMaterial
-            color="#ef4444"
-            transparent
-            opacity={0.3 + Math.sin(performance.now() / 80) * 0.15}
-            side={THREE.DoubleSide}
-            depthWrite={false}
-          />
-        </mesh>
-      )}
+      {/* Exploder danger zone ring during detonation — opacity + ring scale
+          ramp with telegraph progress so the threat builds. */}
+      {isExploder && enemy.detonating && (() => {
+        const elapsed = renderNow - enemy.detonationStartTime
+        const progress = Math.min(1, elapsed / EXPLODER_TELEGRAPH_MS)
+        const pulseFreq = 80 - progress * 40 // 80ms → 40ms
+        const baseOpacity = 0.10 + progress * 0.75 // 0.10 → 0.85
+        const ringScale = 1.0 + progress * 0.18 // grows ~18% as it builds
+        return (
+          <mesh
+            position={[0, 0.03, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            scale={ringScale}
+          >
+            <ringGeometry args={[2.7, 3, 48]} />
+            <meshBasicMaterial
+              color="#ef4444"
+              transparent
+              opacity={baseOpacity + Math.sin(performance.now() / pulseFreq) * 0.12}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+        )
+      })()}
     </group>
   )
 }

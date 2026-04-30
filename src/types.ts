@@ -40,6 +40,7 @@ export interface Enemy {
   hitFlashUntil: number
   dying: boolean
   detonating: boolean
+  detonationStartTime: number
   ai: AiState
 }
 
