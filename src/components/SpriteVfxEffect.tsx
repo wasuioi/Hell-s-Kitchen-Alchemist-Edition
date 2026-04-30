@@ -1,7 +1,20 @@
-import { useRef, useState, useCallback, useMemo, Suspense } from 'react'
+import { useRef, useState, useCallback, useMemo, Suspense, Component, type ReactNode } from 'react'
 import { useFrame, useLoader } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PERK_POOL } from '../data/perks'
+
+// Swallow texture-load errors per slug so a missing /vfx/<slug>.png doesn't
+// crash the whole <Canvas>. Without this, useLoader rethrows the 404 through
+// Suspense → R3F unmounts the canvas → black screen. We'd rather lose the
+// VFX for that one perk than the entire 3D scene.
+class VfxErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch(err: unknown) {
+    console.warn('[VFX] dropping sprite — asset missing or failed to load:', err)
+  }
+  render() { return this.state.hasError ? null : this.props.children }
+}
 
 // ── Sprite-sheet VFX player ─────────────────────────────────────────────────
 //
@@ -190,11 +203,21 @@ export default function SpriteVfxEffects() {
   })
 
   return (
-    <Suspense fallback={null}>
-      {WARMUP_SLUGS.map((slug) => <VfxWarmup key={`warmup-${slug}`} slug={slug} />)}
-      {list.map((v) => (
-        <SpriteVfxInstance key={v.id} vfx={v} />
+    <>
+      {WARMUP_SLUGS.map((slug) => (
+        <VfxErrorBoundary key={`warmup-${slug}`}>
+          <Suspense fallback={null}>
+            <VfxWarmup slug={slug} />
+          </Suspense>
+        </VfxErrorBoundary>
       ))}
-    </Suspense>
+      {list.map((v) => (
+        <VfxErrorBoundary key={v.id}>
+          <Suspense fallback={null}>
+            <SpriteVfxInstance vfx={v} />
+          </Suspense>
+        </VfxErrorBoundary>
+      ))}
+    </>
   )
 }
