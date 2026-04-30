@@ -40,7 +40,7 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
       enemies: [...s.enemies, {
         id: `enemy_${nextId++}`, position, hp, maxHp: hp, type,
         soakedUntil: 0, frozenUntil: 0, burningUntil: 0, poisonedUntil: 0, slowedUntil: 0, stunnedUntil: 0,
-        knockback: null, hitFlashUntil: 0, dying: false, detonating: false, ai,
+        knockback: null, hitFlashUntil: 0, dying: false, detonating: false, detonationStartTime: 0, ai,
       }],
     }))
   },
@@ -77,7 +77,10 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
   setEnemyKnockback: (id, knockback) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, knockback } : e) })),
   setEnemyHitFlash: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, hitFlashUntil: until } : e) })),
   setEnemyDying: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, dying: true } : e) })),
-  setEnemyDetonating: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, detonating: true } : e) })),
+  setEnemyDetonating: (id) => {
+    const startTime = performance.now()
+    set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, detonating: true, detonationStartTime: startTime } : e) }))
+  },
   setEnemyAi: (id, ai) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, ai } : e) })),
   reset: () => set({ enemies: [] }),
 }))

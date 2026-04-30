@@ -15,7 +15,8 @@ const ENEMIES_PER_WAVE = 20
 const EXPLODER_RADIUS = 3
 const EXPLODER_PLAYER_DAMAGE = 15
 const EXPLODER_ENEMY_DAMAGE = 20
-const DETONATION_DELAY = 400 // ms
+const INITIAL_DETONATION_DELAY_MS = 1500 // player-triggered wind-up — long enough to read + dodge
+const CHAIN_DETONATION_DELAY_MS = 400 // chain reaction — kept tight so chains feel quick
 
 function getSpawnPosition(): { x: number; z: number } {
   const edge = Math.floor(Math.random() * 4)
@@ -66,7 +67,8 @@ export default function EnemyManager() {
     // Register global detonation callback so Spell.tsx and Enemy.tsx can queue detonations.
     // Re-register every frame so HMR / remounts always point to the live pendingDetonations Map.
     ;(window as any).__queueDetonation = (enemyId: string, chainDepth = 0) => {
-      pendingDetonations.current.set(enemyId, { time: performance.now() + DETONATION_DELAY, chainDepth })
+      const delay = chainDepth === 0 ? INITIAL_DETONATION_DELAY_MS : CHAIN_DETONATION_DELAY_MS
+      pendingDetonations.current.set(enemyId, { time: performance.now() + delay, chainDepth })
     }
 
     // Process pending detonations
@@ -91,7 +93,7 @@ export default function EnemyManager() {
             const updated = useEnemyStore.getState().enemies.find((e) => e.id === other.id)
             if (updated && updated.hp <= 0 && updated.type === 'exploder' && !updated.detonating) {
               useEnemyStore.getState().setEnemyDetonating(other.id)
-              pendingDetonations.current.set(other.id, { time: now + DETONATION_DELAY, chainDepth: det.chainDepth + 1 })
+              pendingDetonations.current.set(other.id, { time: now + CHAIN_DETONATION_DELAY_MS, chainDepth: det.chainDepth + 1 })
             } else if (updated && updated.hp <= 0 && !updated.dying) {
               useEnemyStore.getState().setEnemyDying(updated.id)
               useGameStore.getState().recordEnemyDefeated()
