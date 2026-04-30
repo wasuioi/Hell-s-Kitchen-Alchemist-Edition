@@ -31,21 +31,23 @@ function getEdgeSpawnPosition(): { x: number; z: number } {
 export default function Boss() {
   const boss = useEnemyStore((s) => s.enemies.find((e) => e.type === 'boss'))
   const { scene } = useGLTF('/models/boss/boss.glb')
-  const fittedScale = useMemo(() => {
+  // Auto-fit: scale model to 3 units tall, then offset Y so its lowest point sits at y=0
+  const { fittedScale, floorOffset } = useMemo(() => {
     const bbox = new THREE.Box3().setFromObject(scene)
     const size = new THREE.Vector3()
     bbox.getSize(size)
-    return size.y > 0 ? 3 / size.y : 1
+    const scale = size.y > 0 ? 3 / size.y : 1
+    const offset = -bbox.min.y * scale
+    return { fittedScale: scale, floorOffset: offset }
   }, [scene])
 
-  const faceBoneRef = useRef<THREE.Object3D | null>(null)
+  const bossGroupRef = useRef<THREE.Group>(null)
   const upperArmLRef = useRef<THREE.Object3D | null>(null)
   const upperArmRRef = useRef<THREE.Object3D | null>(null)
   const forearmLRef = useRef<THREE.Object3D | null>(null)
   const forearmRRef = useRef<THREE.Object3D | null>(null)
 
   useEffect(() => {
-    faceBoneRef.current = scene.getObjectByName('face') ?? null
     upperArmLRef.current = scene.getObjectByName('upper_arm.L') ?? null
     upperArmRRef.current = scene.getObjectByName('upper_arm.R') ?? null
     forearmLRef.current = scene.getObjectByName('forearm.L') ?? null
@@ -80,10 +82,10 @@ export default function Boss() {
   useFrame((_, delta) => {
     if (!boss || phase !== 'boss') return
 
+    // Rotate the whole boss body to face the player (Y-axis only)
     const playerPos = usePlayerStore.getState().position
-    const face = faceBoneRef.current
-    if (face) {
-      face.rotation.y = Math.atan2(
+    if (bossGroupRef.current) {
+      bossGroupRef.current.rotation.y = Math.atan2(
         playerPos.x - boss.position.x,
         playerPos.z - boss.position.z,
       )
@@ -285,11 +287,9 @@ export default function Boss() {
 
   return (
     <group>
-      <primitive
-        object={scene}
-        position={[boss.position.x, 0, boss.position.z]}
-        scale={fittedScale}
-      />
+      <group ref={bossGroupRef} position={[boss.position.x, floorOffset, boss.position.z]}>
+        <primitive object={scene} scale={fittedScale} />
+      </group>
 
       {/* Heat wave telegraph ring */}
       {showHeatRing && (
