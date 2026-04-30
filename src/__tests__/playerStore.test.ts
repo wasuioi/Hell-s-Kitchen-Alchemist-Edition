@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { usePlayerStore } from '../stores/playerStore'
+import { useDeckStore } from '../stores/deckStore'
 
 describe('usePlayerStore', () => {
   beforeEach(() => { usePlayerStore.getState().reset() })
@@ -54,5 +55,120 @@ describe('playerStore dash', () => {
     expect(state.isDashing).toBe(false)
     expect(state.dashDirection).toBeNull()
     expect(state.dashCooldownUntil).toBe(0)
+  })
+})
+
+describe('playerStore heat', () => {
+  beforeEach(() => { usePlayerStore.getState().reset() })
+
+  it('starts with zero heat', () => {
+    expect(usePlayerStore.getState().heatStacks).toBe(0)
+    expect(usePlayerStore.getState().lastHitAt).toBe(0)
+  })
+
+  it('addHeat increments by 1 and stamps lastHitAt', () => {
+    const before = performance.now()
+    usePlayerStore.getState().addHeat(5)
+    const s = usePlayerStore.getState()
+    expect(s.heatStacks).toBe(1)
+    expect(s.lastHitAt).toBeGreaterThanOrEqual(before)
+  })
+
+  it('addHeat caps at maxStacks', () => {
+    for (let i = 0; i < 10; i++) usePlayerStore.getState().addHeat(5)
+    expect(usePlayerStore.getState().heatStacks).toBe(5)
+  })
+
+  it('consumeHeat returns the consumed count and clears heat', () => {
+    usePlayerStore.getState().addHeat(7)
+    usePlayerStore.getState().addHeat(7)
+    usePlayerStore.getState().addHeat(7)
+    const consumed = usePlayerStore.getState().consumeHeat()
+    expect(consumed).toBe(3)
+    expect(usePlayerStore.getState().heatStacks).toBe(0)
+  })
+
+  it('decayHeat does nothing if window has not elapsed', () => {
+    usePlayerStore.getState().addHeat(5)
+    usePlayerStore.getState().decayHeat(4000)
+    expect(usePlayerStore.getState().heatStacks).toBe(1)
+  })
+
+  it('decayHeat removes 1 stack when window elapsed and resets the timer', () => {
+    usePlayerStore.getState().addHeat(5)
+    usePlayerStore.getState().addHeat(5)
+    // Force lastHitAt into the past
+    usePlayerStore.setState({ lastHitAt: performance.now() - 5000 })
+    usePlayerStore.getState().decayHeat(4000)
+    const s = usePlayerStore.getState()
+    expect(s.heatStacks).toBe(1)
+    // lastHitAt should have been bumped to ~now so the next decay needs another window
+    expect(s.lastHitAt).toBeGreaterThan(performance.now() - 1000)
+  })
+
+  it('decayHeat at 0 stacks is a no-op', () => {
+    usePlayerStore.getState().decayHeat(4000)
+    expect(usePlayerStore.getState().heatStacks).toBe(0)
+  })
+
+  it('reset clears heat state', () => {
+    usePlayerStore.getState().addHeat(5)
+    usePlayerStore.setState({ lastHitAt: 12345 })
+    usePlayerStore.getState().reset()
+    const s = usePlayerStore.getState()
+    expect(s.heatStacks).toBe(0)
+    expect(s.lastHitAt).toBe(0)
+  })
+})
+
+describe('playerStore takeDamage + boiling_point integration', () => {
+  beforeEach(() => {
+    usePlayerStore.getState().reset()
+    useDeckStore.getState().reset()
+  })
+
+  function addBoilingPoint(stacks: number) {
+    for (let i = 0; i < stacks; i++) {
+      useDeckStore.getState().addPerk({
+        id: 'boiling_point', name: 'Boiling Point', icon: '/icons/boiling_point.png',
+        description: '', stackCount: 1,
+      })
+    }
+  }
+
+  it('does not gain heat when boiling_point is not active', () => {
+    usePlayerStore.getState().takeDamage(10)
+    expect(usePlayerStore.getState().heatStacks).toBe(0)
+  })
+
+  it('gains heat per hit when boiling_point is active', () => {
+    addBoilingPoint(1)
+    usePlayerStore.getState().takeDamage(10)
+    usePlayerStore.getState().takeDamage(10)
+    expect(usePlayerStore.getState().heatStacks).toBe(2)
+  })
+
+  it('caps at 5 stacks at T1', () => {
+    addBoilingPoint(1)
+    for (let i = 0; i < 10; i++) usePlayerStore.getState().takeDamage(5)
+    expect(usePlayerStore.getState().heatStacks).toBe(5)
+  })
+
+  it('caps at 7 stacks at T2', () => {
+    addBoilingPoint(2)
+    for (let i = 0; i < 10; i++) usePlayerStore.getState().takeDamage(5)
+    expect(usePlayerStore.getState().heatStacks).toBe(7)
+  })
+
+  it('caps at 7 stacks at T3', () => {
+    addBoilingPoint(3)
+    for (let i = 0; i < 10; i++) usePlayerStore.getState().takeDamage(5)
+    expect(usePlayerStore.getState().heatStacks).toBe(7)
+  })
+
+  it('does not gain heat from a 0-damage call', () => {
+    addBoilingPoint(1)
+    usePlayerStore.getState().takeDamage(0)
+    expect(usePlayerStore.getState().heatStacks).toBe(0)
   })
 })

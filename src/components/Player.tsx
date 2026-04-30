@@ -2,8 +2,9 @@ import { useRef, useState, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Html, useGLTF, useAnimations } from '@react-three/drei'
 import * as THREE from 'three'
-import { usePlayerStore } from '../stores/playerStore'
+import { usePlayerStore, BOILING_POINT_MAX_HEAT } from '../stores/playerStore'
 import { useGameStore } from '../stores/gameStore'
+import { useDeckStore } from '../stores/deckStore'
 import { SPEED_BUFF_MULTIPLIER } from '../data/recipes'
 import { ARENA_SIZE } from './Arena'
 
@@ -21,6 +22,26 @@ if (typeof window !== 'undefined') {
 const WIZARD_MODEL_PATH = '/models/wizard/Wizard.gltf'
 const WIZARD_SCALE = 0.9
 
+if (typeof document !== 'undefined' && !document.getElementById('heat-shake-keyframes')) {
+  const style = document.createElement('style')
+  style.id = 'heat-shake-keyframes'
+  style.textContent = `
+    @keyframes heat-shake-light {
+      0%, 100% { transform: translate(0, 0); }
+      25% { transform: translate(-1px, 0); }
+      75% { transform: translate(1px, 0); }
+    }
+    @keyframes heat-shake-heavy {
+      0%, 100% { transform: translate(0, 0); }
+      20% { transform: translate(-2px, -1px); }
+      40% { transform: translate(2px, 1px); }
+      60% { transform: translate(-2px, 1px); }
+      80% { transform: translate(2px, -1px); }
+    }
+  `
+  document.head.appendChild(style)
+}
+
 export default function Player() {
   const { scene, animations } = useGLTF(WIZARD_MODEL_PATH)
   const groupRef = useRef<THREE.Group>(null)
@@ -35,6 +56,13 @@ export default function Player() {
   const ghostIndex = useRef(0)
   const dashTrailColor = useRef('#9ca3af')
   const lastBuffGhost = useRef(0)
+
+  // Cache original `color` per material so we can restore on blink-off.
+  // The wizard GLTF uses MeshBasicMaterial which has no `emissive` — we
+  // tint via `color` (multiplied with the diffuse texture) instead.
+  const originalColors = useRef<Map<THREE.Material, THREE.Color>>(new Map())
+  const tintOn = useRef(false)
+  const lastBlinkAt = useRef(0)
 
   // Play idle animation on mount
   useEffect(() => {
@@ -64,6 +92,12 @@ export default function Player() {
 
     const phase = useGameStore.getState().phase
     if (phase !== 'combat' && phase !== 'boss') return
+
+    // BoilingPoint Heat decay — fires every frame, but `decayHeat` is a
+    // no-op until the 4s window since the last hit has elapsed.
+    const bpStacksTick = useDeckStore.getState().activePerks.find((p) => p.id === 'boiling_point')?.stackCount ?? 0
+    if (bpStacksTick > 0) usePlayerStore.getState().decayHeat(4000)
+
     const timeScale = useGameStore.getState().timeScale
     const { status, isDashing, dashDirection, dashEndTime, speedBuffUntil } = usePlayerStore.getState()
 
@@ -156,11 +190,64 @@ export default function Player() {
     }
   })
 
+  // Red tint blink on wizard model at Heat >= 5
+  useFrame(() => {
+    const heat = usePlayerStore.getState().heatStacks
+    const shouldBlink = heat >= 5
+    const blinkHz = heat === 5 ? 1 : heat === 6 ? 2 : heat >= 7 ? 4 : 0
+    const halfPeriodMs = blinkHz > 0 ? 500 / blinkHz : 0
+    const now = performance.now()
+
+    // Decide whether tint should be on this frame
+    let nextTintOn = false
+    if (shouldBlink && now - lastBlinkAt.current >= halfPeriodMs) {
+      nextTintOn = !tintOn.current
+      lastBlinkAt.current = now
+    } else if (shouldBlink) {
+      nextTintOn = tintOn.current
+    } else {
+      nextTintOn = false
+    }
+
+    if (nextTintOn === tintOn.current && shouldBlink) return
+    tintOn.current = nextTintOn
+
+    // Apply / restore color tint across all wizard materials. Handles both
+    // single material and Material[] (multi-material meshes from GLTF).
+    // Tint via `color` (multiplied with the texture) — works on
+    // MeshBasicMaterial / MeshStandardMaterial / MeshPhongMaterial alike.
+    const apply = (mat: THREE.Material) => {
+      const m = mat as THREE.MeshBasicMaterial
+      if (!('color' in m)) return
+      if (!originalColors.current.has(m)) {
+        originalColors.current.set(m, m.color.clone())
+      }
+      const original = originalColors.current.get(m)!
+      if (nextTintOn) {
+        // Multiplier red — kills green/blue channels of the texture so the
+        // visible result reads as bright red even on dark or saturated bases.
+        m.color.setRGB(1.0, 0.2, 0.2)
+      } else {
+        m.color.copy(original)
+      }
+    }
+    scene.traverse((obj) => {
+      const mesh = obj as THREE.Mesh
+      const mat = mesh.material as THREE.Material | THREE.Material[] | undefined
+      if (!mat) return
+      if (Array.isArray(mat)) mat.forEach(apply)
+      else apply(mat)
+    })
+  })
+
   const phase = useGameStore((s) => s.phase)
   const position = usePlayerStore((s) => s.position)
   const rotation = usePlayerStore((s) => s.rotation)
   const hp = usePlayerStore((s) => s.hp)
   const maxHp = usePlayerStore((s) => s.maxHp)
+  const heatStacks = usePlayerStore((s) => s.heatStacks)
+  const bpStacks = useDeckStore((s) => s.activePerks.find((p) => p.id === 'boiling_point')?.stackCount ?? 0)
+  const maxHeat = bpStacks > 0 ? BOILING_POINT_MAX_HEAT[Math.min(bpStacks, 3) - 1] : 0
 
   if (phase !== 'combat' && phase !== 'boss') return null
 
@@ -175,6 +262,21 @@ export default function Player() {
             <div style={{ width: `${(hp / maxHp) * 100}%`, height: '100%', background: hp / maxHp > 0.3 ? '#22c55e' : '#ef4444', borderRadius: '3px', transition: 'width 0.2s' }} />
           </div>
         </Html>
+        {heatStacks > 0 && (
+          <Html position={[0, 2.6, 0]} center>
+            <div
+              style={{
+                fontSize: '20px',
+                fontWeight: 'bold',
+                color: heatStackColor(heatStacks, maxHeat),
+                textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 6px currentColor',
+                animation: heatShakeAnimation(heatStacks, maxHeat),
+              }}
+            >
+              {heatStacks}
+            </div>
+          </Html>
+        )}
       </group>
       {/* Dash ghost trail — earlier ghosts fade faster for a smooth streaking effect */}
       {ghosts.map((ghost) => {
@@ -197,3 +299,22 @@ export default function Player() {
 }
 
 useGLTF.preload(WIZARD_MODEL_PATH)
+
+// Heat stack number color: yellow (low) → red (max)
+function heatStackColor(stacks: number, max: number): string {
+  if (max === 0) return '#fbbf24'
+  const t = Math.min(1, stacks / max)
+  const r = Math.round(251 + (239 - 251) * t) // 251 → 239
+  const g = Math.round(191 + (68 - 191) * t)  // 191 → 68
+  const b = Math.round(36 + (68 - 36) * t)    // 36 → 68
+  return `rgb(${r}, ${g}, ${b})`
+}
+
+// Increasing shake intensity as Heat approaches the cap.
+function heatShakeAnimation(stacks: number, max: number): string {
+  if (max === 0) return 'none'
+  const t = stacks / max
+  if (t < 0.4) return 'none'
+  if (t < 0.7) return 'heat-shake-light 0.6s infinite'
+  return 'heat-shake-heavy 0.15s infinite'
+}

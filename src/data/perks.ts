@@ -72,6 +72,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { Damage: 40, Radius: 4.5, Cooldown: '2.0s' }, added: 'Doubles damage on heavy hits, ignites enemies (Burn 3s DOT)' },
     ],
   },
+  {
+    id: 'boiling_point', name: 'Boiling Point', icon: '/icons/boiling_point.png',
+    description: 'Taking damage builds Heat. Your next INFERNO cast consumes all Heat for bonus damage.',
+    rarity: 'epic', vfxSprite: 'boiling_point_consume',
+    tiers: [
+      { stats: { Spell: 'INFERNO', 'Max Heat': 5, 'Per Stack': '+10%', Decay: '4.0s' } },
+      { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+12%', Decay: '4.0s' } },
+      { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+15%', Decay: '4.0s' }, added: 'Heal +2 HP per Heat stack consumed' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

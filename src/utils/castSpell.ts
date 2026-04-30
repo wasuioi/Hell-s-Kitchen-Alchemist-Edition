@@ -4,6 +4,7 @@ import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useDeckStore } from '../stores/deckStore'
 import { findNearestEnemy } from './collision'
+import { spawnSpriteVfx } from './spawnVfx'
 
 let spellId = 0
 
@@ -27,6 +28,32 @@ function buildSpell(spellType: SpellType): SpellEffect {
     if (extraSpicyStacks > 0) {
       damage = damage * (1 + 0.2 * extraSpicyStacks)
       radius = Math.max(0.5, radius * (1 - 0.1 * extraSpicyStacks))
+    }
+  }
+
+  // BoilingPoint perk: INFERNO consumes all banked Heat for bonus damage
+  // (and at T3, heals 1 HP per stack consumed before clearing).
+  if (spellType === 'INFERNO') {
+    const bpStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'boiling_point')?.stackCount || 0
+    if (bpStacks > 0) {
+      const heat = usePlayerStore.getState().heatStacks
+      if (heat > 0) {
+        const tier = Math.min(bpStacks, 3)
+        const basePerStack = [0.10, 0.12, 0.15][tier - 1]
+        const overflow = Math.max(0, bpStacks - 3) * 0.05
+        const perStack = basePerStack + overflow
+        damage = damage * (1 + perStack * heat)
+        if (tier >= 3) usePlayerStore.getState().heal(heat * 2)
+        usePlayerStore.getState().consumeHeat()
+        // VFX only fires on the "big release" — Heat ≥5 (where the player
+        // is in the visible danger zone with the red tint blink). Below
+        // that, INFERNO still consumes Heat and gets the damage bonus, but
+        // the cast doesn't get the theatrical two-burst treatment.
+        if (heat >= 5) {
+          spawnSpriteVfx('boiling_point_consume', playerPos.x, playerPos.z, 5)
+          spawnSpriteVfx('boiling_point_spell', targetPos.x, targetPos.z, radius * 2.5)
+        }
+      }
     }
   }
 
