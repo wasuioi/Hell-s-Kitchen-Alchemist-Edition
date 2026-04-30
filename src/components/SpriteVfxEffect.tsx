@@ -169,7 +169,7 @@ function VfxWarmup({ slug }: { slug: string }) {
 // `boiling_point_consume` AT the player AND `boiling_point_spell` at
 // the spell target on the same trigger). Without preloading the second
 // slug, the first INFERNO consume hitches while it uploads the texture.
-const EXTRA_WARMUP_SLUGS = ['boiling_point_spell']
+const EXTRA_WARMUP_SLUGS = ['boiling_point_spell', 'embers_patch_ignite']
 
 const WARMUP_SLUGS = Array.from(new Set([
   ...PERK_POOL.flatMap((p) => (p.vfxSprite ? [p.vfxSprite] : [])),

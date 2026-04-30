@@ -3,6 +3,7 @@ import { SPELL_CONFIG, SPEED_BUFF_DURATION_MS } from '../data/recipes'
 import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useDeckStore } from '../stores/deckStore'
+import { useWorldStore } from '../stores/worldStore'
 import { findNearestEnemy } from './collision'
 import { spawnSpriteVfx } from './spawnVfx'
 
@@ -86,5 +87,13 @@ export function castSpell(spellType: SpellType) {
       ;(window as any).__castSpell?.(bonusSpell)
       if (spellType === 'SALT_SPEED') applySaltSpeedBuff()
     }, 200)
+  }
+
+  // Lingering Embers perk: CHILI spells spawn a burning ground patch at impact
+  const embersStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'lingering_embers')?.stackCount ?? 0
+  if (embersStacks > 0 && CHILI_SPELLS.includes(spellType)) {
+    const tier = Math.min(embersStacks, 3)
+    useWorldStore.getState().spawnEmberPatch(spell.position.x, spell.position.z, tier)
+    spawnSpriteVfx('embers_patch_ignite', spell.position.x, spell.position.z, 4)
   }
 }

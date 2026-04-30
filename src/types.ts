@@ -76,3 +76,13 @@ export interface SpellEffect {
   duration: number
   elapsed: number
 }
+
+export interface EmberPatch {
+  id: string
+  x: number
+  z: number
+  radius: number
+  lifetimeRemaining: number
+  totalLifetime: number
+  tier: number
+}

@@ -82,6 +82,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+15%', Decay: '4.0s' }, added: 'Heal +2 HP per Heat stack consumed' },
     ],
   },
+  {
+    id: 'lingering_embers', name: 'Lingering Embers', icon: '/icons/lingering_embers.png',
+    description: 'CHILI spells leave a burning patch on the ground. Higher tiers steam-cook soaked enemies and snowball on kill.',
+    rarity: 'epic', vfxSprite: 'embers_patch_idle',
+    tiers: [
+      { stats: { Radius: '2.5', Lifetime: '3.0s', DoT: '6/s', MaxPatches: 4 } },
+      { stats: { Radius: '3.5', Lifetime: '4.0s', DoT: '9/s', MaxPatches: 5 }, added: '+50% DoT vs soaked enemies' },
+      { stats: { Radius: '4.0', Lifetime: '5.0s', DoT: '13/s', MaxPatches: 6 }, added: 'Kills inside a patch reset its lifetime and grow radius +0.75 (cap 6)' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {
