@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Enemy, EnemyType, Knockback, Position, StatusEffect } from '../types'
+import type { AiState, Enemy, EnemyType, Knockback, Position, StatusEffect } from '../types'
 import { isInRange } from '../utils/collision'
 
 const BASE_HP = 30
@@ -27,6 +27,7 @@ interface EnemyState {
   setEnemyHitFlash: (id: string, until: number) => void
   setEnemyDying: (id: string) => void
   setEnemyDetonating: (id: string) => void
+  setEnemyAi: (id: string, ai: AiState) => void
   reset: () => void
 }
 
@@ -34,11 +35,12 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
   enemies: [],
   spawnEnemy: (type, position) => {
     const hp = BASE_HP * HP_MULTIPLIER[type]
+    const ai: AiState = type === 'tanky' ? { kind: 'tanky_idle' } : { kind: 'chase' }
     set((s) => ({
       enemies: [...s.enemies, {
         id: `enemy_${nextId++}`, position, hp, maxHp: hp, type,
         soakedUntil: 0, frozenUntil: 0, burningUntil: 0, poisonedUntil: 0, slowedUntil: 0, stunnedUntil: 0,
-        knockback: null, hitFlashUntil: 0, dying: false, detonating: false,
+        knockback: null, hitFlashUntil: 0, dying: false, detonating: false, ai,
       }],
     }))
   },
@@ -76,5 +78,6 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
   setEnemyHitFlash: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, hitFlashUntil: until } : e) })),
   setEnemyDying: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, dying: true } : e) })),
   setEnemyDetonating: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, detonating: true } : e) })),
+  setEnemyAi: (id, ai) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, ai } : e) })),
   reset: () => set({ enemies: [] }),
 }))

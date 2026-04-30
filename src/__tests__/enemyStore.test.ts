@@ -42,6 +42,39 @@ describe('enemyStore juice + exploder', () => {
     useEnemyStore.getState().setEnemyDetonating(id)
     expect(useEnemyStore.getState().enemies[0].detonating).toBe(true)
   })
+
+  it('tanky spawns with tanky_idle ai state', () => {
+    useEnemyStore.getState().spawnEnemy('tanky', { x: 0, z: 0 })
+    const enemy = useEnemyStore.getState().enemies[0]
+    expect(enemy.ai).toEqual({ kind: 'tanky_idle' })
+  })
+
+  it('non-tanky spawns with chase ai state', () => {
+    useEnemyStore.getState().spawnEnemy('slow', { x: 0, z: 0 })
+    useEnemyStore.getState().spawnEnemy('fast', { x: 1, z: 0 })
+    useEnemyStore.getState().spawnEnemy('exploder', { x: 2, z: 0 })
+    useEnemyStore.getState().spawnEnemy('boss', { x: 3, z: 0 })
+    for (const enemy of useEnemyStore.getState().enemies) {
+      expect(enemy.ai).toEqual({ kind: 'chase' })
+    }
+  })
+
+  it('setEnemyAi transitions through tanky charge cycle', () => {
+    useEnemyStore.getState().spawnEnemy('tanky', { x: 0, z: 0 })
+    const id = useEnemyStore.getState().enemies[0].id
+    const get = () => useEnemyStore.getState().enemies[0].ai
+
+    useEnemyStore.getState().setEnemyAi(id, { kind: 'tanky_telegraph', until: 1000 })
+    expect(get()).toEqual({ kind: 'tanky_telegraph', until: 1000 })
+
+    useEnemyStore.getState().setEnemyAi(id, {
+      kind: 'tanky_charge', until: 2000, vx: 9, vz: 0,
+    })
+    expect(get()).toEqual({ kind: 'tanky_charge', until: 2000, vx: 9, vz: 0 })
+
+    useEnemyStore.getState().setEnemyAi(id, { kind: 'tanky_idle' })
+    expect(get()).toEqual({ kind: 'tanky_idle' })
+  })
 })
 
 describe('damageEnemiesInRadius', () => {
