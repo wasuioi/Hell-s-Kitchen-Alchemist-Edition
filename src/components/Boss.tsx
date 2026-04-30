@@ -47,23 +47,13 @@ export default function Boss() {
   const forearmLRef = useRef<THREE.Object3D | null>(null)
   const forearmRRef = useRef<THREE.Object3D | null>(null)
 
+  // GLTFLoader strips dots from bone names (`.` is a path separator in three.js
+  // animation tracks), so the source `upper_arm.L` becomes `upper_armL`, etc.
   useEffect(() => {
-    upperArmLRef.current = scene.getObjectByName('upper_arm.L') ?? null
-    upperArmRRef.current = scene.getObjectByName('upper_arm.R') ?? null
-    forearmLRef.current = scene.getObjectByName('forearm.L') ?? null
-    forearmRRef.current = scene.getObjectByName('forearm.R') ?? null
-    // Diagnostic: confirm bones were found and list any that weren't
-    const found = {
-      upper_arm_L: !!upperArmLRef.current,
-      upper_arm_R: !!upperArmRRef.current,
-      forearm_L: !!forearmLRef.current,
-      forearm_R: !!forearmRRef.current,
-    }
-    if (Object.values(found).some((v) => !v)) {
-      const allNames: string[] = []
-      scene.traverse((o) => { if (o.name) allNames.push(o.name) })
-      console.warn('[Boss] missing bone(s):', found, '— available:', allNames)
-    }
+    upperArmLRef.current = scene.getObjectByName('upper_armL') ?? null
+    upperArmRRef.current = scene.getObjectByName('upper_armR') ?? null
+    forearmLRef.current = scene.getObjectByName('forearmL') ?? null
+    forearmRRef.current = scene.getObjectByName('forearmR') ?? null
   }, [scene])
   const phase = useGameStore((s) => s.phase)
 
