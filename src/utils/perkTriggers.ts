@@ -3,7 +3,7 @@ import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
 import { PERK_POOL } from '../data/perks'
 import { spawnExplosionVfx, spawnSpriteVfx, spawnDamageNumberVfx } from './spawnVfx'
-import type { Position } from '../types'
+import type { Enemy as EnemyType, Position } from '../types'
 
 // Convention for future on-trigger perks: alongside the gameplay logic
 // (damage, status, etc.), spawn visible feedback so the player actually
@@ -92,4 +92,53 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
 
 export function resetGreaseFireCooldown() {
   lastGreaseFireAt = -Infinity
+}
+
+export function triggerOnKnockbackCollision(roller: EnemyType, pos: Position) {
+  const stacks = useDeckStore.getState().activePerks.find((p) => p.id === 'rolling_pin')?.stackCount ?? 0
+  if (stacks === 0) return
+  const tier = Math.min(stacks, 3)
+  const dmg = [12, 18, 26][tier - 1] + 4 * Math.max(0, stacks - tier)
+  const radius = [1.2, 1.5, 1.8][tier - 1]
+  const stunMs = tier === 2 ? 600 : tier >= 3 ? 1000 : 0
+  const kb = roller.knockback!
+  kb.alreadyStruck ??= new Set<string>()
+
+  for (const e of useEnemyStore.getState().enemies) {
+    if (e.id === roller.id || kb.alreadyStruck.has(e.id) || e.dying || e.detonating) continue
+    const dx = e.position.x - pos.x
+    const dz = e.position.z - pos.z
+    if (Math.hypot(dx, dz) > radius) continue
+    kb.alreadyStruck.add(e.id)
+
+    useEnemyStore.getState().damageEnemy(e.id, dmg)
+    useEnemyStore.getState().setEnemyHitFlash(e.id, performance.now() + 100)
+    spawnDamageNumberVfx(e.position.x, e.position.z, dmg, '#ffffff')
+    spawnSpriteVfx('rolling_pin_thump', e.position.x, e.position.z, radius * 2.0)
+    if (stunMs > 0) useEnemyStore.getState().setEnemyStunned(e.id, performance.now() + stunMs)
+
+    const updated = useEnemyStore.getState().enemies.find((x) => x.id === e.id)
+    if (updated && updated.hp <= 0) {
+      if (updated.type === 'exploder') {
+        useEnemyStore.getState().setEnemyDetonating(updated.id)
+        ;(window as any).__queueDetonation?.(updated.id)
+      } else {
+        useEnemyStore.getState().setEnemyDying(updated.id)
+        useGameStore.getState().recordEnemyDefeated()
+        if (updated.type === 'boss') {
+          useEnemyStore.getState().reset()
+          useGameStore.getState().triggerVictory()
+          return
+        }
+      }
+    }
+
+    if (tier >= 3 && !kb.chained && updated && updated.hp > 0) {
+      kb.chained = true
+      useEnemyStore.getState().setEnemyKnockback(e.id, {
+        vx: kb.vx * 0.6, vz: kb.vz * 0.6, chained: true,
+      })
+      break
+    }
+  }
 }

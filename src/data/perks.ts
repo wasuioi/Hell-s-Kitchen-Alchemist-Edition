@@ -82,6 +82,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+15%', Decay: '4.0s' }, added: 'Heal +2 HP per Heat stack consumed' },
     ],
   },
+  {
+    id: 'rolling_pin', name: 'Rolling Pin', icon: '/icons/rolling_pin.png',
+    description: 'Knocked-back enemies bowl through the swarm — collisions damage and stun.',
+    rarity: 'epic', vfxSprite: 'rolling_pin_thump',
+    tiers: [
+      { stats: { 'Collision Damage': 12, Radius: 1.2 } },
+      { stats: { 'Collision Damage': 18, Radius: 1.5 }, added: 'Struck enemies stunned 0.6s' },
+      { stats: { 'Collision Damage': 26, Radius: 1.8 }, added: 'Stun 1.0s; first struck enemy inherits 60% of the roll (chains once)' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

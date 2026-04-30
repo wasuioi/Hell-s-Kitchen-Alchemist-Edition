@@ -16,6 +16,8 @@ export interface Position {
 export interface Knockback {
   vx: number
   vz: number
+  alreadyStruck?: Set<string>
+  chained?: boolean
 }
 
 export interface Enemy {

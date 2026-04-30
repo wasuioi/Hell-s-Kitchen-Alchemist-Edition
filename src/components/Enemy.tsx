@@ -7,6 +7,7 @@ import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
 import { ARENA_SIZE } from './Arena'
 import { spawnDamageNumber } from './DamageNumbers'
+import { triggerOnKnockbackCollision } from '../utils/perkTriggers'
 import type { Enemy as EnemyType } from '../types'
 
 const BURN_TICK_INTERVAL_MS = 1000
@@ -121,6 +122,7 @@ export default function Enemy({ enemy }: Props) {
       const cx = Math.max(-ENEMY_BOUNDARY, Math.min(ENEMY_BOUNDARY, nx))
       const cz = Math.max(-ENEMY_BOUNDARY, Math.min(ENEMY_BOUNDARY, nz))
       useEnemyStore.getState().updateEnemyPosition(enemy.id, { x: cx, z: cz })
+      triggerOnKnockbackCollision(enemy, { x: cx, z: cz })
       // Bounce off walls
       let bounceVx = newVx
       let bounceVz = newVz
@@ -129,7 +131,7 @@ export default function Enemy({ enemy }: Props) {
       if (Math.abs(bounceVx) < 0.5 && Math.abs(bounceVz) < 0.5) {
         useEnemyStore.getState().setEnemyKnockback(enemy.id, null)
       } else {
-        useEnemyStore.getState().setEnemyKnockback(enemy.id, { vx: bounceVx, vz: bounceVz })
+        useEnemyStore.getState().setEnemyKnockback(enemy.id, { vx: bounceVx, vz: bounceVz, alreadyStruck: kb.alreadyStruck, chained: kb.chained })
       }
       return // skip normal movement while being knocked back
     }
