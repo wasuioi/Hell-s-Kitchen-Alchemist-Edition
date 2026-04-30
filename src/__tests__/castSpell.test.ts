@@ -1,13 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { usePlayerStore } from '../stores/playerStore'
 import { useDeckStore } from '../stores/deckStore'
+import { SPELL_CONFIG } from '../data/recipes'
+
+const INFERNO_BASE = SPELL_CONFIG.INFERNO.damage
 
 // Mock the window globals castSpell calls so the test doesn't crash. Vitest
 // runs in jsdom (vitest.config.ts), so `window` already exists — we only
 // need to attach the dynamic globals that the 3D scene normally provides.
 beforeEach(() => {
   ;(window as any).__castSpell = vi.fn()
-  ;(window as any).__setLastSpellColor = vi.fn()
   ;(window as any).__playerAttack = vi.fn()
   ;(window as any).__spawnSpriteVfx = vi.fn()
   usePlayerStore.getState().reset()
@@ -29,8 +31,7 @@ describe('castSpell + boiling_point', () => {
     addBoilingPoint(1)
     castSpell('INFERNO')
     const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
-    // INFERNO base damage is 40 (see SPELL_CONFIG)
-    expect(spell.damage).toBe(40)
+    expect(spell.damage).toBe(INFERNO_BASE)
   })
 
   it('multiplies INFERNO damage by +10% per Heat stack at T1', async () => {
@@ -39,8 +40,8 @@ describe('castSpell + boiling_point', () => {
     for (let i = 0; i < 5; i++) usePlayerStore.getState().addHeat(5) // 5 heat
     castSpell('INFERNO')
     const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
-    // 40 × (1 + 0.10 × 5) = 40 × 1.5 = 60
-    expect(spell.damage).toBeCloseTo(60, 5)
+    // base × (1 + 0.10 × 5) = base × 1.5
+    expect(spell.damage).toBeCloseTo(INFERNO_BASE * 1.5, 5)
   })
 
   it('multiplies INFERNO damage by +15% per Heat stack at T3', async () => {
@@ -49,8 +50,8 @@ describe('castSpell + boiling_point', () => {
     for (let i = 0; i < 7; i++) usePlayerStore.getState().addHeat(7) // 7 heat
     castSpell('INFERNO')
     const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
-    // 40 × (1 + 0.15 × 7) = 40 × 2.05 = 82
-    expect(spell.damage).toBeCloseTo(82, 5)
+    // base × (1 + 0.15 × 7) = base × 2.05
+    expect(spell.damage).toBeCloseTo(INFERNO_BASE * 2.05, 5)
   })
 
   it('overflow stacks add +5%/Heat per perk stack beyond T3', async () => {
@@ -60,8 +61,8 @@ describe('castSpell + boiling_point', () => {
     castSpell('INFERNO')
     const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
     // perStack = 0.15 + 0.05 × 1 = 0.20
-    // 40 × (1 + 0.20 × 7) = 40 × 2.40 = 96
-    expect(spell.damage).toBeCloseTo(96, 5)
+    // perStack = 0.15 + 0.05 × 1 = 0.20 → base × (1 + 0.20 × 7) = base × 2.40
+    expect(spell.damage).toBeCloseTo(INFERNO_BASE * 2.40, 5)
   })
 
   it('clears heat after INFERNO is cast', async () => {
@@ -153,8 +154,8 @@ describe('castSpell + boiling_point VFX', () => {
     usePlayerStore.getState().addHeat(5) // 2 heat
     castSpell('INFERNO')
     const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
-    // 40 × (1 + 0.10 × 2) = 40 × 1.2 = 48 — multiplier still works
-    expect(spell.damage).toBeCloseTo(48, 5)
+    // base × (1 + 0.10 × 2) = base × 1.2 — multiplier still works
+    expect(spell.damage).toBeCloseTo(INFERNO_BASE * 1.2, 5)
     expect(usePlayerStore.getState().heatStacks).toBe(0) // Heat still consumes
   })
 })
