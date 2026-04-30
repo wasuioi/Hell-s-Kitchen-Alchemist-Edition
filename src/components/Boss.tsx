@@ -39,9 +39,13 @@ export default function Boss() {
   }, [scene])
 
   const faceBoneRef = useRef<THREE.Object3D | null>(null)
+  const upperArmLRef = useRef<THREE.Object3D | null>(null)
+  const upperArmRRef = useRef<THREE.Object3D | null>(null)
 
   useEffect(() => {
     faceBoneRef.current = scene.getObjectByName('face') ?? null
+    upperArmLRef.current = scene.getObjectByName('upper_arm.L') ?? null
+    upperArmRRef.current = scene.getObjectByName('upper_arm.R') ?? null
   }, [scene])
   const phase = useGameStore((s) => s.phase)
 
@@ -104,6 +108,29 @@ export default function Boss() {
       slimeTimer.current = 0
       useEnemyStore.getState().spawnEnemy('slow', getEdgeSpawnPosition())
     }
+
+    // Arm slam animation (stone_slam)
+    let slamArmAngle = 0 // 0 = rest (arms down), -1.4 ≈ raised overhead
+    if (currentAttack.current === 'stone_slam') {
+      if (attackPhase.current === 'telegraph') {
+        // Lerp 0 → -1.4 over the 2s telegraph
+        const t = Math.min(attackPhaseTimer.current / TELEGRAPH_DURATION, 1)
+        slamArmAngle = -1.4 * t
+      } else if (attackPhase.current === 'attack') {
+        // Snap down on the first 0.15s of the blast, then return to rest
+        const blastT = heatBlastScale.current / 6
+        if (blastT < 0.2) {
+          slamArmAngle = -1.4 + 1.4 * (blastT / 0.2) // -1.4 → 0
+        } else {
+          slamArmAngle = 0
+        }
+      }
+    }
+
+    const upL = upperArmLRef.current
+    const upR = upperArmRRef.current
+    if (upL) upL.rotation.x = slamArmAngle
+    if (upR) upR.rotation.x = slamArmAngle
 
     // Attack state machine
     if (attackPhase.current === 'idle') {
@@ -239,7 +266,7 @@ export default function Boss() {
       {showHeatRing && (
         <mesh position={[boss.position.x, 0.05, boss.position.z]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[5.5, 6.5, 48]} />
-          <meshStandardMaterial color="#ef4444" transparent opacity={0.6} emissive="#ef4444" emissiveIntensity={0.5} />
+          <meshStandardMaterial color="#a16207" transparent opacity={0.6} emissive="#78350f" emissiveIntensity={0.5} />
         </mesh>
       )}
 
@@ -256,11 +283,11 @@ export default function Boss() {
         <mesh position={[boss.position.x, 0.3, boss.position.z]}>
           <cylinderGeometry args={[1, 1, 0.5, 32]} />
           <meshStandardMaterial
-            color="#ff4500"
+            color="#92400e"
             transparent
             opacity={Math.max(0, 1 - heatBlastScale.current / 6)}
-            emissive="#ff4500"
-            emissiveIntensity={2}
+            emissive="#78350f"
+            emissiveIntensity={1.5}
           />
         </mesh>
       )}
@@ -271,11 +298,11 @@ export default function Boss() {
         >
           <cylinderGeometry args={[1, 1, 0.2, 32]} />
           <meshStandardMaterial
-            color="#ef4444"
+            color="#a16207"
             transparent
             opacity={Math.max(0, 0.7 - heatBlastScale.current / 8)}
-            emissive="#ef4444"
-            emissiveIntensity={1}
+            emissive="#a16207"
+            emissiveIntensity={0.6}
           />
         </mesh>
       )}
