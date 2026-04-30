@@ -66,7 +66,7 @@ export default function Boss() {
   const heatBlastScale = useRef(0)
   const saltImpactTimer = useRef(0)
 
-  const beamRef = useRef<THREE.Mesh>(null)
+  const beamRef = useRef<THREE.Group>(null)
 
   const ATTACK_ORDER: AttackType[] = ['stone_slam', 'stone_spikes', 'hand_lance']
   const PAUSE_BETWEEN = 5
@@ -228,11 +228,15 @@ export default function Boss() {
           beamRef.current.rotation.y = beamAngle.current
         }
 
-        // Damage player if near beam midpoint
-        const midX = bossPos.x + Math.sin(beamAngle.current) * 4
-        const midZ = bossPos.z + Math.cos(beamAngle.current) * 4
+        // Damage player if near either beam midpoint
+        const midRX = bossPos.x + Math.cos(beamAngle.current) * 3
+        const midRZ = bossPos.z - Math.sin(beamAngle.current) * 3
+        const midLX = bossPos.x - Math.cos(beamAngle.current) * 3
+        const midLZ = bossPos.z + Math.sin(beamAngle.current) * 3
         const playerPos = usePlayerStore.getState().position
-        if (isInRange(playerPos, { x: midX, z: midZ }, 2)) {
+        const inRight = isInRange(playerPos, { x: midRX, z: midRZ }, 2)
+        const inLeft = isInRange(playerPos, { x: midLX, z: midLZ }, 2)
+        if (inRight || inLeft) {
           usePlayerStore.getState().setStatus('soaked')
           soakDamageTimer.current += delta
           if (soakDamageTimer.current >= 1) {
@@ -323,10 +327,16 @@ export default function Boss() {
 
       {/* Deep soak beam */}
       {showBeam && (
-        <mesh ref={beamRef} position={[boss.position.x, 0.3, boss.position.z]}>
-          <boxGeometry args={[0.6, 0.4, 8]} />
-          <meshStandardMaterial color="#3b82f6" transparent opacity={0.7} emissive="#3b82f6" emissiveIntensity={0.5} />
-        </mesh>
+        <group ref={beamRef} position={[boss.position.x, 0.3, boss.position.z]}>
+          <mesh position={[3, 0, 0]}>
+            <boxGeometry args={[6, 0.4, 0.6]} />
+            <meshStandardMaterial color="#3b82f6" transparent opacity={0.7} emissive="#3b82f6" emissiveIntensity={0.5} />
+          </mesh>
+          <mesh position={[-3, 0, 0]}>
+            <boxGeometry args={[6, 0.4, 0.6]} />
+            <meshStandardMaterial color="#3b82f6" transparent opacity={0.7} emissive="#3b82f6" emissiveIntensity={0.5} />
+          </mesh>
+        </group>
       )}
     </group>
   )
