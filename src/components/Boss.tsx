@@ -9,7 +9,7 @@ import { isInRange } from '../utils/collision'
 import { ARENA_SIZE } from './Arena'
 
 type AttackPhase = 'idle' | 'telegraph' | 'attack'
-type AttackType = 'heat_wave' | 'salt_rain' | 'deep_soak'
+type AttackType = 'stone_slam' | 'stone_spikes' | 'hand_lance'
 
 interface SaltCircle {
   x: number
@@ -49,7 +49,7 @@ export default function Boss() {
   const attackPhaseTimer = useRef(0)
   const slimeTimer = useRef(0)
   const attackPhase = useRef<AttackPhase>('idle')
-  const currentAttack = useRef<AttackType>('heat_wave')
+  const currentAttack = useRef<AttackType>('stone_slam')
   const attackIndex = useRef(0)
   const beamAngle = useRef(0)
   const soakDamageTimer = useRef(0)
@@ -64,7 +64,7 @@ export default function Boss() {
 
   const beamRef = useRef<THREE.Mesh>(null)
 
-  const ATTACK_ORDER: AttackType[] = ['heat_wave', 'salt_rain', 'deep_soak']
+  const ATTACK_ORDER: AttackType[] = ['stone_slam', 'stone_spikes', 'hand_lance']
   const PAUSE_BETWEEN = 5
   const TELEGRAPH_DURATION = 2
   const SOAK_DURATION = 3
@@ -115,9 +115,9 @@ export default function Boss() {
         currentAttack.current = ATTACK_ORDER[attackIndex.current % 3]
         attackIndex.current++
 
-        if (currentAttack.current === 'heat_wave') {
+        if (currentAttack.current === 'stone_slam') {
           setShowHeatRing(true)
-        } else if (currentAttack.current === 'salt_rain') {
+        } else if (currentAttack.current === 'stone_spikes') {
           const playerPos = usePlayerStore.getState().position
           const circles: SaltCircle[] = []
           const count = 3 + Math.floor(Math.random() * 3)
@@ -128,7 +128,7 @@ export default function Boss() {
             })
           }
           setSaltCircles(circles)
-        } else if (currentAttack.current === 'deep_soak') {
+        } else if (currentAttack.current === 'hand_lance') {
           beamAngle.current = 0
           setShowBeam(true)
           attackPhase.current = 'attack'
@@ -141,7 +141,7 @@ export default function Boss() {
         attackPhaseTimer.current = 0
         attackPhase.current = 'attack'
 
-        if (currentAttack.current === 'heat_wave') {
+        if (currentAttack.current === 'stone_slam') {
           setShowHeatRing(false)
           // Show blast effect
           setHeatBlast(true)
@@ -158,7 +158,7 @@ export default function Boss() {
             })
           }
           // Stay in attack phase to animate blast
-        } else if (currentAttack.current === 'salt_rain') {
+        } else if (currentAttack.current === 'stone_spikes') {
           // Show impact effects at circle positions
           setSaltImpact([...saltCircles])
           saltImpactTimer.current = 0
@@ -175,7 +175,7 @@ export default function Boss() {
       }
     } else if (attackPhase.current === 'attack') {
       // Heat wave blast animation (expanding fire ring)
-      if (currentAttack.current === 'heat_wave') {
+      if (currentAttack.current === 'stone_slam') {
         heatBlastScale.current += delta * 8
         if (heatBlastScale.current >= 6) {
           setHeatBlast(false)
@@ -184,7 +184,7 @@ export default function Boss() {
         }
       }
       // Salt rain impact animation (pillars rise then fade)
-      else if (currentAttack.current === 'salt_rain') {
+      else if (currentAttack.current === 'stone_spikes') {
         saltImpactTimer.current += delta
         if (saltImpactTimer.current >= 0.8) {
           setSaltImpact([])
@@ -193,7 +193,7 @@ export default function Boss() {
         }
       }
       // Deep soak active attack
-      else if (currentAttack.current === 'deep_soak') {
+      else if (currentAttack.current === 'hand_lance') {
         attackPhaseTimer.current += delta
         beamAngle.current += delta * 1.5
 
