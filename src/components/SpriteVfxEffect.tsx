@@ -151,9 +151,17 @@ function VfxWarmup({ slug }: { slug: string }) {
   )
 }
 
-const WARMUP_SLUGS = Array.from(new Set(
-  PERK_POOL.flatMap((p) => (p.vfxSprite ? [p.vfxSprite] : [])),
-))
+// Extra warmup slugs for VFX that aren't bound to a single perk's
+// `vfxSprite` field — e.g. multi-spawn perks (boiling_point spawns
+// `boiling_point_consume` AT the player AND `boiling_point_spell` at
+// the spell target on the same trigger). Without preloading the second
+// slug, the first INFERNO consume hitches while it uploads the texture.
+const EXTRA_WARMUP_SLUGS = ['boiling_point_spell']
+
+const WARMUP_SLUGS = Array.from(new Set([
+  ...PERK_POOL.flatMap((p) => (p.vfxSprite ? [p.vfxSprite] : [])),
+  ...EXTRA_WARMUP_SLUGS,
+]))
 
 export default function SpriteVfxEffects() {
   const [list, setList] = useState<SpriteVfx[]>([])
