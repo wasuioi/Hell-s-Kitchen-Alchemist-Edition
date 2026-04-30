@@ -46,11 +46,18 @@ export default function Boss() {
   const upperArmRRef = useRef<THREE.Object3D | null>(null)
   const forearmLRef = useRef<THREE.Object3D | null>(null)
   const forearmRRef = useRef<THREE.Object3D | null>(null)
+  const thighLRef = useRef<THREE.Object3D | null>(null)
+  const thighRRef = useRef<THREE.Object3D | null>(null)
   // Snapshot of each bone's rest-pose rotation so we can apply animation as a
   // delta. Without this, writing `rotation.x = 0` would force-zero the rig's
   // natural rest pose and the model would freeze in T-pose.
   type RestPose = { x: number; y: number; z: number }
-  const restPose = useRef<{ upL?: RestPose; upR?: RestPose; fL?: RestPose; fR?: RestPose }>({})
+  const restPose = useRef<{ upL?: RestPose; upR?: RestPose; fL?: RestPose; fR?: RestPose; thL?: RestPose; thR?: RestPose }>({})
+
+  // Walk-cycle state
+  const walkPhase = useRef(0)
+  const walkAmp = useRef(0) // eases between 0 (still) and 1 (walking)
+  const lastPosRef = useRef<{ x: number; z: number }>({ x: 0, z: 0 })
 
   // GLTFLoader strips dots from bone names (`.` is a path separator in three.js
   // animation tracks), so the source `upper_arm.L` becomes `upper_armL`, etc.
@@ -59,13 +66,20 @@ export default function Boss() {
     const upR = scene.getObjectByName('upper_armR') ?? null
     const fL = scene.getObjectByName('forearmL') ?? null
     const fR = scene.getObjectByName('forearmR') ?? null
+    const thL = scene.getObjectByName('thighL') ?? null
+    const thR = scene.getObjectByName('thighR') ?? null
     upperArmLRef.current = upL
     upperArmRRef.current = upR
     forearmLRef.current = fL
     forearmRRef.current = fR
+    thighLRef.current = thL
+    thighRRef.current = thR
     const snap = (b: THREE.Object3D | null): RestPose | undefined =>
       b ? { x: b.rotation.x, y: b.rotation.y, z: b.rotation.z } : undefined
-    restPose.current = { upL: snap(upL), upR: snap(upR), fL: snap(fL), fR: snap(fR) }
+    restPose.current = {
+      upL: snap(upL), upR: snap(upR), fL: snap(fL), fR: snap(fR),
+      thL: snap(thL), thR: snap(thR),
+    }
   }, [scene])
   const phase = useGameStore((s) => s.phase)
 
@@ -158,12 +172,26 @@ export default function Boss() {
       lanceExtendT = Math.min(attackPhaseTimer.current / 0.4, 1)
     }
 
+    // Walk cycle — swing thighs in opposite phase when boss is moving.
+    // Detect movement by comparing this frame's position to the previous
+    // frame's snapshot. Amplitude eases in/out so starts and stops are smooth.
+    const dx = boss.position.x - lastPosRef.current.x
+    const dz = boss.position.z - lastPosRef.current.z
+    const isMoving = Math.hypot(dx, dz) > 0.001
+    lastPosRef.current = { x: boss.position.x, z: boss.position.z }
+    if (isMoving) walkPhase.current += delta * 4
+    const targetAmp = isMoving ? 1 : 0
+    walkAmp.current += (targetAmp - walkAmp.current) * Math.min(delta * 8, 1)
+    const walkSwing = walkAmp.current * Math.sin(walkPhase.current) * 0.5
+
     // Apply animation as deltas on top of the snapshotted rest pose so that
     // writing 0 at idle returns the bones to their natural rig pose.
     const upL = upperArmLRef.current
     const upR = upperArmRRef.current
     const fL = forearmLRef.current
     const fR = forearmRRef.current
+    const thL = thighLRef.current
+    const thR = thighRRef.current
     const rp = restPose.current
     if (upL && rp.upL) {
       upL.rotation.x = rp.upL.x + slamArmAngle
@@ -175,6 +203,8 @@ export default function Boss() {
     }
     if (fL && rp.fL) fL.rotation.x = rp.fL.x + -lanceExtendT * 0.3
     if (fR && rp.fR) fR.rotation.x = rp.fR.x + -lanceExtendT * 0.3
+    if (thL && rp.thL) thL.rotation.x = rp.thL.x + walkSwing
+    if (thR && rp.thR) thR.rotation.x = rp.thR.x - walkSwing
 
     // Attack state machine
     if (attackPhase.current === 'idle') {
