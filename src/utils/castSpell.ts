@@ -44,7 +44,7 @@ function buildSpell(spellType: SpellType): SpellEffect {
         const overflow = Math.max(0, bpStacks - 3) * 0.05
         const perStack = basePerStack + overflow
         damage = damage * (1 + perStack * heat)
-        if (tier >= 3) usePlayerStore.getState().heal(heat)
+        if (tier >= 3) usePlayerStore.getState().heal(heat * 2)
         usePlayerStore.getState().consumeHeat()
         // VFX only fires on the "big release" — Heat ≥5 (where the player
         // is in the visible danger zone with the red tint blink). Below

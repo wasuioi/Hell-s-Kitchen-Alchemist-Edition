@@ -82,14 +82,14 @@ describe('castSpell + boiling_point', () => {
     expect(usePlayerStore.getState().heatStacks).toBe(2)
   })
 
-  it('T3 heals 1 HP per Heat stack consumed', async () => {
+  it('T3 heals 2 HP per Heat stack consumed', async () => {
     const { castSpell } = await import('../utils/castSpell')
     addBoilingPoint(3)
     usePlayerStore.getState().takeDamage(50) // hp 100→50, also adds 1 heat
     for (let i = 0; i < 4; i++) usePlayerStore.getState().addHeat(7)
-    // total heat: 5 (1 from takeDamage + 4 from addHeat)
+    // total heat: 5 (1 from takeDamage + 4 from addHeat) → heals 5 × 2 = 10
     castSpell('INFERNO')
-    expect(usePlayerStore.getState().hp).toBe(55) // 50 + 5 healed
+    expect(usePlayerStore.getState().hp).toBe(60) // 50 + 10 healed
   })
 
   it('T1 does NOT heal on consume', async () => {
