@@ -138,5 +138,6 @@ export default function EnemyManager() {
   })
 
   const enemies = useEnemyStore((s) => s.enemies)
-  return <>{enemies.map((enemy) => <Enemy key={enemy.id} enemy={enemy} />)}</>
+  // Boss is rendered by <Boss> with its own .glb model — skip the slime mesh here.
+  return <>{enemies.filter((e) => e.type !== 'boss').map((enemy) => <Enemy key={enemy.id} enemy={enemy} />)}</>
 }

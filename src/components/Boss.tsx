@@ -52,6 +52,18 @@ export default function Boss() {
     upperArmRRef.current = scene.getObjectByName('upper_arm.R') ?? null
     forearmLRef.current = scene.getObjectByName('forearm.L') ?? null
     forearmRRef.current = scene.getObjectByName('forearm.R') ?? null
+    // Diagnostic: confirm bones were found and list any that weren't
+    const found = {
+      upper_arm_L: !!upperArmLRef.current,
+      upper_arm_R: !!upperArmRRef.current,
+      forearm_L: !!forearmLRef.current,
+      forearm_R: !!forearmRRef.current,
+    }
+    if (Object.values(found).some((v) => !v)) {
+      const allNames: string[] = []
+      scene.traverse((o) => { if (o.name) allNames.push(o.name) })
+      console.warn('[Boss] missing bone(s):', found, '— available:', allNames)
+    }
   }, [scene])
   const phase = useGameStore((s) => s.phase)
 
