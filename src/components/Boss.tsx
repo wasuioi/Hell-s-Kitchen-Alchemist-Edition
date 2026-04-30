@@ -274,7 +274,7 @@ export default function Boss() {
       {saltCircles.map((c, i) => (
         <mesh key={i} position={[c.x, 0.05, c.z]} rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[1.5, 24]} />
-          <meshStandardMaterial color="#ef4444" transparent opacity={0.5} emissive="#ef4444" emissiveIntensity={0.4} />
+          <meshStandardMaterial color="#fb923c" transparent opacity={0.5} emissive="#fb923c" emissiveIntensity={0.6} />
         </mesh>
       ))}
 
@@ -310,13 +310,13 @@ export default function Boss() {
       {/* Salt rain impact — pillars shooting up */}
       {saltImpact.map((c, i) => (
         <mesh key={`impact_${i}`} position={[c.x, saltImpactTimer.current * 3, c.z]}>
-          <boxGeometry args={[0.5, 2, 0.5]} />
+          <coneGeometry args={[0.4, 2.4, 6]} />
           <meshStandardMaterial
-            color="#a8a29e"
+            color="#3f3f46"
             transparent
             opacity={Math.max(0, 1 - saltImpactTimer.current / 0.8)}
-            emissive="#78716c"
-            emissiveIntensity={0.5}
+            emissive="#fb923c"
+            emissiveIntensity={0.7}
           />
         </mesh>
       ))}
