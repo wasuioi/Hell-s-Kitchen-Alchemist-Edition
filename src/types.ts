@@ -18,6 +18,12 @@ export interface Knockback {
   vz: number
 }
 
+export type AiState =
+  | { kind: 'chase' }
+  | { kind: 'tanky_idle'; cooldownUntil?: number }
+  | { kind: 'tanky_telegraph'; until: number }
+  | { kind: 'tanky_charge'; until: number; vx: number; vz: number }
+
 export interface Enemy {
   id: string
   position: Position
@@ -34,6 +40,7 @@ export interface Enemy {
   hitFlashUntil: number
   dying: boolean
   detonating: boolean
+  ai: AiState
 }
 
 export interface DamageNumber {

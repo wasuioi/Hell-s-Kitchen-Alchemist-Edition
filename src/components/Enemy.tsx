@@ -14,6 +14,11 @@ const BURN_TICK_DAMAGE = 3
 
 const SPEED: Record<string, number> = { slow: 2, fast: 4, tanky: 1.5, boss: 1, exploder: 3.5 }
 const SIZE: Record<string, number> = { slow: 0.4, fast: 0.35, tanky: 0.6, boss: 1.2, exploder: 0.3 }
+const TANKY_DETECT_RANGE = 5
+const TANKY_TELEGRAPH_MS = 1000
+const TANKY_CHARGE_MS = 700
+const TANKY_CHARGE_MULT = 6
+const TANKY_COOLDOWN_MS = 3000
 const ENEMY_BOUNDARY = ARENA_SIZE / 2 - 0.5
 const MODEL_SCALE: Record<string, number> = { slow: 16, fast: 13, tanky: 24, boss: 10, exploder: 11 }
 const BASE_COLOR: Record<string, string> = {
@@ -149,28 +154,34 @@ export default function Enemy({ enemy }: Props) {
 
     const timeScale = useGameStore.getState().timeScale
     const playerPos = usePlayerStore.getState().position
-    // Animate knockback with friction
+    // Animate knockback with friction. Tanky shrugs it off during the
+    // telegraph + charge windows — clear the impulse so the player can't
+    // cancel a committed wind-up with a single spell hit.
     if (enemy.knockback) {
-      const kb = enemy.knockback
-      const friction = 0.05
-      const newVx = kb.vx * Math.pow(friction, delta)
-      const newVz = kb.vz * Math.pow(friction, delta)
-      const nx = enemy.position.x + kb.vx * delta
-      const nz = enemy.position.z + kb.vz * delta
-      const cx = Math.max(-ENEMY_BOUNDARY, Math.min(ENEMY_BOUNDARY, nx))
-      const cz = Math.max(-ENEMY_BOUNDARY, Math.min(ENEMY_BOUNDARY, nz))
-      useEnemyStore.getState().updateEnemyPosition(enemy.id, { x: cx, z: cz })
-      // Bounce off walls
-      let bounceVx = newVx
-      let bounceVz = newVz
-      if (cx !== nx) bounceVx = -newVx * 0.6
-      if (cz !== nz) bounceVz = -newVz * 0.6
-      if (Math.abs(bounceVx) < 0.5 && Math.abs(bounceVz) < 0.5) {
+      if (enemy.ai.kind === 'tanky_telegraph' || enemy.ai.kind === 'tanky_charge') {
         useEnemyStore.getState().setEnemyKnockback(enemy.id, null)
       } else {
-        useEnemyStore.getState().setEnemyKnockback(enemy.id, { vx: bounceVx, vz: bounceVz })
+        const kb = enemy.knockback
+        const friction = 0.05
+        const newVx = kb.vx * Math.pow(friction, delta)
+        const newVz = kb.vz * Math.pow(friction, delta)
+        const nx = enemy.position.x + kb.vx * delta
+        const nz = enemy.position.z + kb.vz * delta
+        const cx = Math.max(-ENEMY_BOUNDARY, Math.min(ENEMY_BOUNDARY, nx))
+        const cz = Math.max(-ENEMY_BOUNDARY, Math.min(ENEMY_BOUNDARY, nz))
+        useEnemyStore.getState().updateEnemyPosition(enemy.id, { x: cx, z: cz })
+        // Bounce off walls
+        let bounceVx = newVx
+        let bounceVz = newVz
+        if (cx !== nx) bounceVx = -newVx * 0.6
+        if (cz !== nz) bounceVz = -newVz * 0.6
+        if (Math.abs(bounceVx) < 0.5 && Math.abs(bounceVz) < 0.5) {
+          useEnemyStore.getState().setEnemyKnockback(enemy.id, null)
+        } else {
+          useEnemyStore.getState().setEnemyKnockback(enemy.id, { vx: bounceVx, vz: bounceVz })
+        }
+        return // skip normal movement while being knocked back
       }
-      return // skip normal movement while being knocked back
     }
 
     const now = performance.now()
@@ -183,11 +194,51 @@ export default function Enemy({ enemy }: Props) {
     const dx = playerPos.x - enemy.position.x
     const dz = playerPos.z - enemy.position.z
     const dist = Math.sqrt(dx * dx + dz * dz)
-    if (dist > 0.5) {
-      useEnemyStore.getState().updateEnemyPosition(enemy.id, {
-        x: enemy.position.x + (dx / dist) * speed * delta,
-        z: enemy.position.z + (dz / dist) * speed * delta,
-      })
+
+    // AI dispatcher per ai.kind. Most enemies use 'chase'. Tanky has its own
+    // idle → telegraph → charge cycle so the player has to read the wind-up
+    // and dodge the committed direction.
+    const ai = enemy.ai
+    if (ai.kind === 'tanky_telegraph') {
+      // Hold position; lock charge direction at telegraph end (commits to
+      // player's position when the wind-up finishes, not where they are now).
+      if (now >= ai.until && statusMultiplier > 0) {
+        const tlen = dist || 1
+        const chargeSpeed = SPEED.tanky * TANKY_CHARGE_MULT
+        useEnemyStore.getState().setEnemyAi(enemy.id, {
+          kind: 'tanky_charge',
+          until: now + TANKY_CHARGE_MS,
+          vx: (dx / tlen) * chargeSpeed,
+          vz: (dz / tlen) * chargeSpeed,
+        })
+      }
+    } else if (ai.kind === 'tanky_charge') {
+      if (now >= ai.until) {
+        useEnemyStore.getState().setEnemyAi(enemy.id, {
+          kind: 'tanky_idle',
+          cooldownUntil: now + TANKY_COOLDOWN_MS,
+        })
+      } else {
+        useEnemyStore.getState().updateEnemyPosition(enemy.id, {
+          x: enemy.position.x + ai.vx * statusMultiplier * delta * timeScale,
+          z: enemy.position.z + ai.vz * statusMultiplier * delta * timeScale,
+        })
+      }
+    } else {
+      // 'chase' or 'tanky_idle' — standard walk toward player
+      if (dist > 0.5) {
+        useEnemyStore.getState().updateEnemyPosition(enemy.id, {
+          x: enemy.position.x + (dx / dist) * speed * delta,
+          z: enemy.position.z + (dz / dist) * speed * delta,
+        })
+      }
+      const cooldownReady = ai.kind === 'tanky_idle' && now >= (ai.cooldownUntil ?? 0)
+      if (cooldownReady && dist < TANKY_DETECT_RANGE && statusMultiplier > 0) {
+        useEnemyStore.getState().setEnemyAi(enemy.id, {
+          kind: 'tanky_telegraph',
+          until: now + TANKY_TELEGRAPH_MS,
+        })
+      }
     }
 
     // Circle collision: push enemy out of player
@@ -278,6 +329,17 @@ export default function Enemy({ enemy }: Props) {
         object={slimeModel}
         scale={[scale, scale, scale]}
       />
+      {/* Tanky telegraph: pulsing red aura while winding up the charge */}
+      {enemy.ai.kind === 'tanky_telegraph' && !enemy.dying && (
+        <mesh position={[0, enemySize, 0]}>
+          <sphereGeometry args={[enemySize * 1.7, 16, 16]} />
+          <meshBasicMaterial
+            color="#ef4444"
+            transparent
+            opacity={0.25 + Math.sin(renderNow / 80) * 0.18}
+          />
+        </mesh>
+      )}
       {/* Tanky stone plates — 3 baked plates around upper body */}
       {enemy.type === 'tanky' && (
         <group ref={facingGroupRef}>
