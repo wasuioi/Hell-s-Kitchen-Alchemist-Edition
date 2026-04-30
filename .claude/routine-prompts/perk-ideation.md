@@ -85,11 +85,45 @@ plugs in. Reference existing patterns where possible.
 ## Icon prompt
 Slug: `<snake_case_perk_id>`
 
+Use the structured template below — it matches the comic-book style of
+the existing icons (`grease_fire`, `bonemeal_stock`) and reads cleanly
+at thumbnail size. Fill in the four bracketed slots; keep all other
+phrasing **verbatim** so icons stay visually consistent across the deck.
+
 ```
-<Nano-Banana-2-style icon prompt — square 1:1, stone-tablet frame,
-dark-fantasy comic style, centered hero subject tied to the perk's
-theme, no text, pure black background, 1024×1024.>
+A square game perk icon (1:1 aspect ratio) in dark fantasy comic-book
+style with thick black outlines and vibrant saturated colors. Outer
+border is a weathered dark-slate stone tablet frame with carved chipped
+edges. Inner background is a <GRADIENT_COLORS> gradient with painterly
+texture. Centered hero subject: <HERO_SUBJECT — describe the ability's
+core action/object in 2–3 sentences with motion and dynamic detail>.
+Symbolic floating elements around the subject: <FLOATING_ELEMENTS — 4–5
+small kitchen-themed items reinforcing the perk's theme>. <BOTTOM_PANEL_FX>
+up from the bottom of the inner panel. Heavy contrast, dramatic
+lighting, cel-shaded comic style, hellish-kitchen theme, painterly
+highlights. No text, no letters, no numbers anywhere in the image.
 ```
+
+### Picking gradient colors and bottom-panel FX
+
+The image must communicate the perk's element / vibe at a glance —
+match the gradient and the bottom-panel flourish to what the ability
+*does*, not just what it looks like as an object. The constants (stone
+frame + dark-fantasy comic style) tie the deck together; the gradient
+and bottom FX are the elemental knobs that make each icon distinct.
+
+| Element | Gradient (mood) | Bottom-panel FX |
+|---|---|---|
+| **Fire (ไฟ)** — chili, burn, heat, scorch | deep-crimson-to-burning-orange — intense, hot | crackling orange and red flames lick |
+| **Water / Ice (น้ำ)** — bottle, freeze, soak, slick, flow | deep-indigo-to-icy-cyan, or rich-teal-to-pale-blue — fluid, cold | jagged cyan-and-white frost crystals climb, OR rolling water ripples surge |
+| **Earth (ดิน)** — salt, stone, weight, defence, ground | dark-umber-to-dusty-amber, or charcoal-to-stone-grey — heavy, sturdy | heavy stone shards and dust plumes rise |
+| **Wind (ลม)** — gust, dispersion, swift, scatter, swirl | stormy-grey-to-pale-mist, or slate-to-silver — chaotic, directionless | swirling grey wind currents and drifting dust spiral |
+| **Special / hybrid** — multi-system, lightning + speed, healing + economy, drops, time | pick whatever fits the signature effect — can be multi-coloured (e.g. stormy-deep-purple-to-electric-gold for lightning, deep-violet-to-emerald-green for arcane duplication, bone-amber-to-charred-black for necromantic / drop perks) | match the perk's signature flourish (forked lightning bolts strike, swirling violet mist coils, bone shards swirl, golden light beams pierce, etc.) |
+
+When a perk straddles two elements (e.g. "soaked enemies that ignite" =
+water + fire), pick the dominant one for the gradient and let the other
+appear as floating elements / hero-subject detail. Don't mix gradients
+unless the perk is genuinely a special-tier hybrid.
 
 ## VFX assets required
 List EVERY visual effect this perk needs to feel complete. **Most
@@ -221,12 +255,21 @@ if (pepper && (slotA === 'CHILI' || slotB === 'CHILI')) {
 Slug: `pepper_grind`
 
 ```
-A square 1:1 stone-tablet game perk icon: a brass-coloured wooden pepper
-mill grinding glowing red-orange sparks of fresh-cracked black pepper
-onto a cast-iron skillet. Aged dark-charcoal stone tablet frame with
-warm golden carved bevels, slightly burnt edges. Centered composition,
-no text, no border, pure pitch-black background. Hand-painted dark-
-fantasy game art style. 1024×1024.
+A square game perk icon (1:1 aspect ratio) in dark fantasy comic-book
+style with thick black outlines and vibrant saturated colors. Outer
+border is a weathered dark-slate stone tablet frame with carved chipped
+edges. Inner background is a deep-crimson-to-burning-orange gradient
+with painterly texture. Centered hero subject: a brass-bodied wooden
+pepper mill cranking down hard, grinding showers of glowing red-orange
+sparks of fresh-cracked black pepper that rain onto a sizzling cast-
+iron skillet below, motion lines tracing the grinder's twist as embers
+burst outward. Symbolic floating elements around the subject:
+scattered black peppercorns mid-flight, glowing chili-ember sparks, a
+singed wooden cooking spoon, a chipped enamel salt-cellar, droplets of
+bubbling oil. Crackling orange and red flames lick up from the bottom
+of the inner panel. Heavy contrast, dramatic lighting, cel-shaded
+comic style, hellish-kitchen theme, painterly highlights. No text, no
+letters, no numbers anywhere in the image.
 ```
 
 ## VFX assets required
