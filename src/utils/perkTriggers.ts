@@ -1,6 +1,7 @@
 import { useDeckStore } from '../stores/deckStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
+import { usePlayerStore } from '../stores/playerStore'
 import { PERK_POOL } from '../data/perks'
 import { spawnExplosionVfx, spawnSpriteVfx, spawnDamageNumberVfx } from './spawnVfx'
 import type { Position } from '../types'
@@ -92,4 +93,29 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
 
 export function resetGreaseFireCooldown() {
   lastGreaseFireAt = -Infinity
+}
+
+export function triggerOnCast() {
+  const deck = useDeckStore.getState()
+  const stacks = deck.activePerks.find((p) => p.id === 'tasting_spoon')?.stackCount ?? 0
+  if (stacks === 0) return
+
+  const tier = Math.min(stacks, 3)
+  const interval = [5, 4, 3][tier - 1]
+  const healAmount = [5, 8, 12][tier - 1]
+
+  const next = deck.tastingSpoonCastCount + 1
+  if (next < interval) {
+    deck.setTastingSpoonCastCount(next)
+    return
+  }
+  deck.setTastingSpoonCastCount(0)
+
+  usePlayerStore.getState().heal(healAmount)
+  const pos = usePlayerStore.getState().position
+  spawnDamageNumberVfx(pos.x, pos.z, healAmount, '#4ade80')
+
+  if (tier >= 3) {
+    deck.reduceCookCooldown(0.5)
+  }
 }

@@ -72,6 +72,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { Damage: 40, Radius: 4.5, Cooldown: '2.0s' }, added: 'Doubles damage on heavy hits, ignites enemies (Burn 3s DOT)' },
     ],
   },
+  {
+    id: 'tasting_spoon', name: 'Tasting Spoon', icon: '/icons/tasting_spoon.png',
+    description: 'Every few cooked spells, sneak a taste — restore HP. Higher tiers taste more often and shave cook cooldown.',
+    rarity: 'common',
+    tiers: [
+      { stats: { Interval: 'every 5 casts', Heal: '+5 HP' } },
+      { stats: { Interval: 'every 4 casts', Heal: '+8 HP' } },
+      { stats: { Interval: 'every 3 casts', Heal: '+12 HP' }, added: 'Each taste also shaves 0.5s off cook cooldown' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

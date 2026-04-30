@@ -8,13 +8,17 @@ function drawRandomIngredient(): Ingredient { return INGREDIENTS[Math.floor(Math
 interface DeckState {
   hand: Ingredient[]; cauldron: { slotA: Ingredient | null; slotB: Ingredient | null }
   activePerks: Perk[]; cookCooldown: number; cookCooldownDuration: number
+  tastingSpoonCastCount: number
   initHand: () => void; slotIngredient: (handIndex: number) => void
   cook: () => SpellType | null; addPerk: (perk: Perk) => void; clearPerks: () => void
-  setCookCooldown: (timestamp: number, duration: number) => void; reset: () => void
+  setCookCooldown: (timestamp: number, duration: number) => void
+  setTastingSpoonCastCount: (n: number) => void
+  reduceCookCooldown: (seconds: number) => void
+  reset: () => void
 }
 
 export const useDeckStore = create<DeckState>((set, get) => ({
-  hand: [], cauldron: { slotA: null, slotB: null }, activePerks: [], cookCooldown: 0, cookCooldownDuration: 1.5,
+  hand: [], cauldron: { slotA: null, slotB: null }, activePerks: [], cookCooldown: 0, cookCooldownDuration: 1.5, tastingSpoonCastCount: 0,
   initHand: () => set({ hand: [drawRandomIngredient(), drawRandomIngredient(), drawRandomIngredient()], cauldron: { slotA: null, slotB: null } }),
   slotIngredient: (handIndex) => {
     const state = get()
@@ -38,5 +42,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   }),
   clearPerks: () => set({ activePerks: [] }),
   setCookCooldown: (timestamp, duration) => set({ cookCooldown: timestamp, cookCooldownDuration: duration }),
-  reset: () => set({ hand: [], cauldron: { slotA: null, slotB: null }, activePerks: [], cookCooldown: 0, cookCooldownDuration: 1.5 }),
+  setTastingSpoonCastCount: (n) => set({ tastingSpoonCastCount: n }),
+  reduceCookCooldown: (seconds) => set((s) => ({ cookCooldown: s.cookCooldown > 0 ? s.cookCooldown - seconds : 0 })),
+  reset: () => set({ hand: [], cauldron: { slotA: null, slotB: null }, activePerks: [], cookCooldown: 0, cookCooldownDuration: 1.5, tastingSpoonCastCount: 0 }),
 }))

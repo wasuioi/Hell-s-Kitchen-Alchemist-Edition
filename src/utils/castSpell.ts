@@ -4,6 +4,7 @@ import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useDeckStore } from '../stores/deckStore'
 import { findNearestEnemy } from './collision'
+import { triggerOnCast } from './perkTriggers'
 
 let spellId = 0
 
@@ -60,4 +61,6 @@ export function castSpell(spellType: SpellType) {
       if (spellType === 'SALT_SPEED') applySaltSpeedBuff()
     }, 200)
   }
+
+  triggerOnCast()
 }
