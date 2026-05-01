@@ -10,12 +10,24 @@ import type { Hazard, HazardType, Position } from '../types'
 import HazardComponent from './Hazard'
 
 // Living Kitchen — environmental hazards (issue #71).
-// Schedules grease fires + steam vents on a 12s clock from wave 4+; vents
-// also fire during the boss fight. Hazard system handles its own lifecycle
-// and collision; rendered as a layer of <Hazard /> children driven by the
-// hazardStore.
-const HAZARD_INTERVAL_S = 12
+// Schedules grease fires / steam vents / falling pots on a wave-aware clock
+// from wave 4+; also fires during the boss fight. Hazard system handles its
+// own lifecycle and collision; rendered as a layer of <Hazard /> children
+// driven by the hazardStore.
 const FIRST_HAZARD_WAVE = 4
+// Spawn cadence escalates as the run progresses, so late-game feels
+// meaningfully tighter than the wave-4 intro tier.
+const HAZARD_INTERVAL_EARLY_COMBAT_S = 12  // wave 4-5: teaching tier
+const HAZARD_INTERVAL_MID_COMBAT_S = 10    // wave 6: picks up
+const HAZARD_INTERVAL_LATE_COMBAT_S = 8    // wave 7: chaotic with surge
+const HAZARD_INTERVAL_BOSS_S = 6           // boss: relentless
+
+function getHazardIntervalSec(phase: string, currentWave: number): number {
+  if (phase === 'boss') return HAZARD_INTERVAL_BOSS_S
+  if (currentWave >= 7) return HAZARD_INTERVAL_LATE_COMBAT_S
+  if (currentWave >= 6) return HAZARD_INTERVAL_MID_COMBAT_S
+  return HAZARD_INTERVAL_EARLY_COMBAT_S
+}
 // Pull disc spawns away from arena walls so they don't clip out of bounds.
 const DISC_SPAWN_INSET = 4
 // Keep wall vents away from corners so the rectangle doesn't graze the
@@ -81,9 +93,9 @@ export default function HazardManager() {
     const wasHazardPhase = prevPhase.current === 'combat' || prevPhase.current === 'boss'
 
     // Just entered a hazard phase from anywhere else (menu, reward, lull).
-    // Reset hazards + restart the clock so the first one lands ~HAZARD_INTERVAL_S in.
+    // Reset hazards + restart the clock at the current tier's interval.
     if (isHazardPhase && !wasHazardPhase) {
-      nextHazardAt.current = nowMs + HAZARD_INTERVAL_S * 1000
+      nextHazardAt.current = nowMs + getHazardIntervalSec(phase, currentWave) * 1000
       useHazardStore.getState().reset()
     }
     // Just exited (reward / lull / death / victory). Clear so they don't
@@ -98,11 +110,13 @@ export default function HazardManager() {
     // Schedule new hazards on the wall-clock — wave-driven gating opens the
     // door at FIRST_HAZARD_WAVE so early waves stay teaching-friendly.
     // Boss phase carries currentWave 7, so the gate is naturally open there.
+    // Interval shrinks by tier (see getHazardIntervalSec) so wave 7 + boss
+    // feel meaningfully tighter than the wave-4 intro.
     if (currentWave >= FIRST_HAZARD_WAVE && nowMs >= nextHazardAt.current) {
       const type = HAZARD_POOL[Math.floor(Math.random() * HAZARD_POOL.length)]
       const { position, rotation } = rollHazardPlacement(type)
       useHazardStore.getState().spawnHazard(type, position, rotation)
-      nextHazardAt.current = nowMs + HAZARD_INTERVAL_S * 1000
+      nextHazardAt.current = nowMs + getHazardIntervalSec(phase, currentWave) * 1000
     }
 
     // Lifecycle + collision. Iterate from a snapshot so removeHazard mid-loop is safe.
