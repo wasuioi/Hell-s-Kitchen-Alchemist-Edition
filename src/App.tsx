@@ -13,11 +13,32 @@ import DebugPanel from './ui/DebugPanel'
 import VfxPicker from './ui/VfxPicker'
 import DevPanel from './ui/DevPanel'
 
-// Scene pulls in Three.js + react-three-fiber + drei (~1 MB gzipped). Lazy-
+// Scene pulls in Three.js + react-three-fiber + drei (~310 KB gzipped). Lazy-
 // load it so the MainMenu — pure DOM UI — renders the instant React mounts,
 // while the 3D engine downloads in the background. By the time the player
 // clicks "Start" it's already cached.
 const Scene = lazy(() => import('./components/Scene'))
+
+function MapLoadingOverlay() {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#fbbf24',
+        font: '600 18px/1 system-ui, -apple-system, sans-serif',
+        letterSpacing: '2px',
+        background: '#0a0a0a',
+        zIndex: 5,
+      }}
+    >
+      Loading map…
+    </div>
+  )
+}
 
 export default function App() {
   const phase = useGameStore((s) => s.phase)
@@ -36,6 +57,18 @@ export default function App() {
       preloadGameAssets()
     }
   }, [phase])
+
+  // While the menu is up, eagerly start downloading the heavy Scene chunk
+  // (Three.js / R3F / drei) and the player + slime model so that when the
+  // user finally clicks Start, those bytes are mostly cached. Boss model
+  // is intentionally NOT prefetched here — players take 5+ minutes to
+  // reach wave 7, plenty of time to fetch it later.
+  useEffect(() => {
+    import('./components/Scene')
+    const opts = { priority: 'low' } as RequestInit
+    fetch('/models/wizard/Wizard.glb', opts).catch(() => undefined)
+    fetch('/models/slime/scene.glb', opts).catch(() => undefined)
+  }, [])
 
   // Keyboard controls
   useEffect(() => {
@@ -88,7 +121,7 @@ export default function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <Suspense fallback={null}>
+      <Suspense fallback={<MapLoadingOverlay />}>
         <Scene />
       </Suspense>
 
