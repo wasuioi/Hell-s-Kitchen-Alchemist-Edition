@@ -27,7 +27,16 @@ export interface RectHazardDef extends BaseHazardDef {
   length: number
 }
 
-export type HazardDef = DiscHazardDef | RectHazardDef
+/** Vertical-impact hazard (e.g. falling pot). Visually distinct — telegraph
+ *  is a growing shadow on the floor while a mesh drops in from above. The
+ *  damage check is a single circle of `radius` at impact. Pair with a
+ *  damageInterval longer than activeMs to make it a single-tick wallop. */
+export interface FallingHazardDef extends BaseHazardDef {
+  shape: 'falling'
+  radius: number
+}
+
+export type HazardDef = DiscHazardDef | RectHazardDef | FallingHazardDef
 
 export const HAZARD_DEFS: Record<HazardType, HazardDef> = {
   grease_fire: {
@@ -49,7 +58,16 @@ export const HAZARD_DEFS: Record<HazardType, HazardDef> = {
     activeMs: 2500,
     color: '#a8e8ff',
   },
+  falling_pot: {
+    shape: 'falling',
+    radius: 1.6,
+    damage: 22,            // single-shot wallop — punishes ignoring the shadow
+    damageInterval: 99,    // > activeMs ⇒ effectively single tick at impact
+    telegraphMs: 1500,     // long enough to read the shadow + reposition
+    activeMs: 500,         // brief landed window where the pot still hurts
+    color: '#3a3a3a',      // dark cast-iron gray
+  },
 }
 
 // All hazard types currently available for random scheduling.
-export const HAZARD_POOL: HazardType[] = ['grease_fire', 'steam_vent']
+export const HAZARD_POOL: HazardType[] = ['grease_fire', 'steam_vent', 'falling_pot']

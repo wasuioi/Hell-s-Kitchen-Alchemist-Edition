@@ -83,7 +83,7 @@ export interface SpellEffect {
 
 // Environmental hazards (issue #71). Each type pulls its config (shape,
 // damage, durations) from data/hazards.ts.
-export type HazardType = 'grease_fire' | 'steam_vent'
+export type HazardType = 'grease_fire' | 'steam_vent' | 'falling_pot'
 
 export interface Hazard {
   id: string

@@ -27,7 +27,9 @@ const WALL_VENT_CORNER_INSET = 4
  *  spawning a hazard of a chosen type. */
 export function rollHazardPlacement(type: HazardType): { position: Position; rotation: number } {
   const def = HAZARD_DEFS[type]
-  if (def.shape === 'disc') {
+  // Disc + falling both land at a random arena point — falling is just
+  // visually different (drops from above) but its impact center is on the floor.
+  if (def.shape === 'disc' || def.shape === 'falling') {
     const half = ARENA_SIZE / 2 - DISC_SPAWN_INSET
     return {
       position: {
@@ -54,7 +56,7 @@ export function rollHazardPlacement(type: HazardType): { position: Position; rot
 function isInHazard(px: number, pz: number, h: Hazard, def: HazardDef): boolean {
   const dx = px - h.position.x
   const dz = pz - h.position.z
-  if (def.shape === 'disc') {
+  if (def.shape === 'disc' || def.shape === 'falling') {
     return dx * dx + dz * dz <= def.radius * def.radius
   }
   // Rect: rotate point into the vent's local frame (vent extends along +z).
