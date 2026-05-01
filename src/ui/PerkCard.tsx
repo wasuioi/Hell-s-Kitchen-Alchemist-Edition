@@ -20,7 +20,7 @@ const BANNER_SIZE = 31
 // CSS `zoom` shrinks the card's visual + layout box without changing
 // its intrinsic proportions. RewardScreen reads CARD_SCALE to size
 // the footer row that lines up with the cards.
-export const CARD_SCALE = 0.65
+export const CARD_SCALE = 0.9
 export const CARD_WIDTH_PX = CARD_WIDTH
 
 interface PerkCardProps {
