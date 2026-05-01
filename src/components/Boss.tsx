@@ -438,20 +438,38 @@ export default function Boss() {
           beamRef.current.rotation.y = beamAngle.current
         }
 
-        // Damage player if near either beam midpoint
-        const midRX = bossPos.x + Math.cos(beamAngle.current) * 3
-        const midRZ = bossPos.z - Math.sin(beamAngle.current) * 3
-        const midLX = bossPos.x - Math.cos(beamAngle.current) * 3
-        const midLZ = bossPos.z + Math.sin(beamAngle.current) * 3
+        // Line-segment hitbox: each beam runs 6m from boss along its
+        // local +X (right) / -X (left) axis after Y-rotation by beamAngle.
+        // Project the player onto the beam direction, clamp t∈[0,1], and
+        // check perpendicular distance < BEAM_HALF_WIDTH so the whole
+        // beam length deals damage (not just the midpoint).
         const playerPos = usePlayerStore.getState().position
-        const inRight = isInRange(playerPos, { x: midRX, z: midRZ }, 2)
-        const inLeft = isInRange(playerPos, { x: midLX, z: midLZ }, 2)
+        const px = playerPos.x - bossPos.x
+        const pz = playerPos.z - bossPos.z
+        const dirRX = Math.cos(beamAngle.current)
+        const dirRZ = -Math.sin(beamAngle.current)
+        const BEAM_LEN = 6
+        const BEAM_HALF_WIDTH = 1
+        // Right beam
+        let tR = (px * dirRX + pz * dirRZ) / BEAM_LEN
+        tR = Math.max(0, Math.min(1, tR))
+        const drx = px - tR * BEAM_LEN * dirRX
+        const drz = pz - tR * BEAM_LEN * dirRZ
+        const inRight = drx * drx + drz * drz < BEAM_HALF_WIDTH * BEAM_HALF_WIDTH
+        // Left beam (opposite direction)
+        let tL = (px * -dirRX + pz * -dirRZ) / BEAM_LEN
+        tL = Math.max(0, Math.min(1, tL))
+        const dlx = px - tL * BEAM_LEN * -dirRX
+        const dlz = pz - tL * BEAM_LEN * -dirRZ
+        const inLeft = dlx * dlx + dlz * dlz < BEAM_HALF_WIDTH * BEAM_HALF_WIDTH
         if (inRight || inLeft) {
           usePlayerStore.getState().setStatus('soaked')
+          // Tick damage every 0.2s (5 dmg/s) so the hit feels responsive
+          // even when the beam sweeps quickly past the player.
           soakDamageTimer.current += delta
-          if (soakDamageTimer.current >= 1) {
+          if (soakDamageTimer.current >= 0.2) {
             soakDamageTimer.current = 0
-            usePlayerStore.getState().takeDamage(5)
+            usePlayerStore.getState().takeDamage(1)
           }
         }
 
