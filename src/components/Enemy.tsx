@@ -121,7 +121,7 @@ export default function Enemy({ enemy }: Props) {
       if (updated && updated.hp <= 0) {
         if (updated.type === 'exploder') {
           useEnemyStore.getState().setEnemyDetonating(enemy.id)
-          ; (window as any).__queueDetonation?.(enemy.id)
+          window.__queueDetonation?.(enemy.id)
         } else {
           useEnemyStore.getState().setEnemyDying(enemy.id)
           useGameStore.getState().recordEnemyDefeated()
