@@ -11,7 +11,12 @@ import type { EnemyType } from '../types'
 import { spawnExplosion } from './ExplosionEffect'
 
 const SPAWN_INTERVAL_BASE = 3
-const ENEMIES_PER_WAVE = 20
+// Per-wave enemy count — ramps up so early waves feel compact and the peak hits fast.
+// Index = wave number (1-based); wave 0 unused. Wave 7 stays at 20 because the surge adds clusters on top.
+const ENEMIES_PER_WAVE_CURVE = [0, 8, 11, 14, 17, 19, 20, 20]
+function enemiesForWave(wave: number): number {
+  return ENEMIES_PER_WAVE_CURVE[wave] ?? 20
+}
 const EXPLODER_RADIUS = 3
 const EXPLODER_PLAYER_DAMAGE = 15
 const EXPLODER_ENEMY_DAMAGE = 20
@@ -106,6 +111,7 @@ export default function EnemyManager() {
 
     if (phase !== 'combat') return
     const dt = delta * timeScale
+    const waveTarget = enemiesForWave(currentWave)
 
     // Register global detonation callback so Spell.tsx and Enemy.tsx can queue detonations.
     // Re-register every frame so HMR / remounts always point to the live pendingDetonations Map.
@@ -168,7 +174,7 @@ export default function EnemyManager() {
     // Pre-boss surge trigger / expiry (wave 7+).
     if (
       currentWave >= 7 && !surgeActive &&
-      spawnedCount.current >= Math.floor(ENEMIES_PER_WAVE * SURGE_TRIGGER_RATIO)
+      spawnedCount.current >= Math.floor(waveTarget * SURGE_TRIGGER_RATIO)
     ) {
       useGameStore.getState().triggerSurge(SURGE_DURATION_MS)
       spawnTimer.current = 0 // reset so the first cluster waits the full interval, not the leftover scrap
@@ -200,7 +206,7 @@ export default function EnemyManager() {
         0.4,
         SPAWN_INTERVAL_BASE - currentWave * 0.2 - Math.min(waveTimer.current, 20) * 0.05,
       )
-      if (spawnTimer.current >= spawnInterval && spawnedCount.current < ENEMIES_PER_WAVE) {
+      if (spawnTimer.current >= spawnInterval && spawnedCount.current < waveTarget) {
         spawnTimer.current = 0
         spawnedCount.current++
         useEnemyStore.getState().spawnEnemy(getEnemyType(currentWave), getSpawnPosition())
@@ -209,7 +215,7 @@ export default function EnemyManager() {
 
     const enemies = useEnemyStore.getState().enemies
     // Don't end the wave while the surge is still firing clusters.
-    const allSpawned = !surgeActive && spawnedCount.current >= ENEMIES_PER_WAVE
+    const allSpawned = !surgeActive && spawnedCount.current >= waveTarget
     const allDead = allSpawned && enemies.length === 0
     if (allDead) {
       spawnTimer.current = 0; spawnedCount.current = 0; waveTimer.current = 0
