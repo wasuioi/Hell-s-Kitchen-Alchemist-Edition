@@ -21,10 +21,14 @@ const TANKY_CHARGE_MULT = 6
 const TANKY_COOLDOWN_MS = 3000
 // Exploder telegraph: total wind-up window must match INITIAL_DETONATION_DELAY_MS
 // in EnemyManager.tsx so the visual ramp ends exactly when the explosion fires.
-const EXPLODER_TELEGRAPH_MS = 1500
-const EXPLODER_PAUSE_MS = 500
-const EXPLODER_SPRINT_MULT = 1.9
+const EXPLODER_TELEGRAPH_MS = 1800
+const EXPLODER_PAUSE_MS = 800
+const EXPLODER_SPRINT_MULT = 1.7
 const EXPLODER_TRIGGER_RANGE = 4
+// Fast: weaves left/right while chasing — sin(performance.now() / period + phase).
+const FAST_WEAVE_PERIOD_MS = 223
+const FAST_WEAVE_LATERAL = 1.5
+const FAST_WEAVE_FORWARD_SLOWDOWN = 0.3
 const ENEMY_BOUNDARY = ARENA_SIZE / 2 - 0.5
 const MODEL_SCALE: Record<string, number> = { slow: 16, fast: 13, tanky: 24, boss: 10, exploder: 11 }
 const BASE_COLOR: Record<string, string> = {
@@ -121,7 +125,8 @@ export default function Enemy({ enemy }: Props) {
       if (updated && updated.hp <= 0) {
         if (updated.type === 'exploder') {
           useEnemyStore.getState().setEnemyDetonating(enemy.id)
-          ; (window as any).__queueDetonation?.(enemy.id)
+          // chainDepth=1 → short delay, exploder bun in place (no sprint).
+          ; (window as any).__queueDetonation?.(enemy.id, 1)
         } else {
           useEnemyStore.getState().setEnemyDying(enemy.id)
           useGameStore.getState().recordEnemyDefeated()
@@ -256,11 +261,28 @@ export default function Enemy({ enemy }: Props) {
         })
       }
     } else {
-      // 'chase' or 'tanky_idle' — standard walk toward player
+      // 'chase' or 'tanky_idle' — standard walk toward player. Fast adds a
+      // lateral sine weave so a stationary AoE has to predict the swing,
+      // not just sit on the enemy's current point.
       if (dist > 0.5) {
+        const fx = dx / dist
+        const fz = dz / dist
+        let mx = fx * speed * delta
+        let mz = fz * speed * delta
+        if (enemy.type === 'fast') {
+          const idHash = parseInt(enemy.id.split('_')[1] ?? '0', 10) * 0.7
+          const wave = Math.sin(now / FAST_WEAVE_PERIOD_MS + idHash)
+          // Right-perpendicular vector (90° clockwise on the xz plane).
+          const px = -fz
+          const pz = fx
+          const forwardScale = 1 - FAST_WEAVE_FORWARD_SLOWDOWN * Math.abs(wave)
+          const lateralScale = FAST_WEAVE_LATERAL * wave
+          mx = (fx * forwardScale + px * lateralScale) * speed * delta
+          mz = (fz * forwardScale + pz * lateralScale) * speed * delta
+        }
         useEnemyStore.getState().updateEnemyPosition(enemy.id, {
-          x: enemy.position.x + (dx / dist) * speed * delta,
-          z: enemy.position.z + (dz / dist) * speed * delta,
+          x: enemy.position.x + mx,
+          z: enemy.position.z + mz,
         })
       }
       const cooldownReady = ai.kind === 'tanky_idle' && now >= (ai.cooldownUntil ?? 0)
