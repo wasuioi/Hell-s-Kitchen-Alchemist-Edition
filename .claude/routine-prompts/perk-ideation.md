@@ -19,7 +19,7 @@ Tech stack the perks must integrate with:
 - Sprite-sheet VFX system in `src/components/SpriteVfxEffect.tsx`
   (6×4 grid, 24 frames, additive blending, flat-on-ground plane)
 - Tier diff UI in `src/ui/TierDiff.tsx` reads `PerkDefinition.tiers`
-- Reward card layout (`src/ui/RewardScreen.tsx`, `src/ui/DevPanel.tsx`):
+- Reward card layout (`src/ui/RewardScreen.tsx`, `src/ui/PerkCard.tsx`):
   the perk **name** sits at the top of the card, colored with
   `RARITY_COLOR[rarity]` (gray / blue / purple / gold). There is **no
   separate `EPIC` / `RARE` text badge** — rarity is communicated by the

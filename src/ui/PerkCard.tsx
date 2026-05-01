@@ -1,35 +1,27 @@
 import { useState } from 'react'
 import { MAX_PERK_TIER, RARITY_COLOR } from '../data/perks'
 import type { PerkDefinition } from '../data/perks'
-import { useCardLayoutStore } from '../stores/cardLayoutStore'
 import PerkIcon from './PerkIcon'
 import TierDots from './TierDots'
 import TierDiff from './TierDiff'
 
-// ── PerkCard ────────────────────────────────────────────────────────────────
-//
-// Stripped-down "clean" pass: the banner above the frame is the perk's
-// NAME tinted with the rarity colour, and the inside of the frame holds
-// only the icon + a short description. No rarity word, no OWNED badge,
-// no trigger pill, no tags, no stat-diff rows, no tier dots.
-//
-//   ┌─── name banner (outside frame, rarity-coloured) ───┐
-//   │                    Grease Fire                     │
-//   └────────────────────────────────────────────────────┘
-//   ┌── stone frame (1024×1536, transparent center) ─────┐
-//   │                                                    │
-//   │                     [icon]                         │
-//   │                                                    │
-//   │       Taking damage erupts a fiery grease          │
-//   │       burst around you, scorching nearby           │
-//   │       enemies.                                     │
-//   │                                                    │
-//   └────────────────────────────────────────────────────┘
-//
-// Rarity is communicated by the banner's text colour (gray / blue /
-// purple / gold). All sizing values come from cardLayoutStore so the
-// dev can keep tweaking via the slider panel in DevPanel.
-// ────────────────────────────────────────────────────────────────────────────
+// Layout constants for the perk card. Tuned visually — change here if
+// the card needs a different look across reward + hand previews.
+const CARD_WIDTH = 400
+const CARD_HEIGHT = 712
+const BANNER_HEIGHT = 13
+const BANNER_GAP = 0
+const PAD_X = 82
+const PAD_TOP = 30
+const PAD_BOTTOM = 74
+const ICON_SIZE = 136
+const NAME_SIZE = 16
+const BANNER_SIZE = 31
+// CSS `zoom` shrinks the card's visual + layout box without changing
+// its intrinsic proportions. RewardScreen reads CARD_SCALE to size
+// the footer row that lines up with the cards.
+export const CARD_SCALE = 0.65
+export const CARD_WIDTH_PX = CARD_WIDTH
 
 interface PerkCardProps {
   perk: PerkDefinition
@@ -46,18 +38,6 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
   const rarityColor = RARITY_COLOR[perk.rarity]
   const previewTier = Math.min(currentTier + 1, MAX_PERK_TIER)
 
-  const cardWidth = useCardLayoutStore((s) => s.cardWidth)
-  const cardHeight = useCardLayoutStore((s) => s.cardHeight)
-  const bannerHeight = useCardLayoutStore((s) => s.bannerHeight)
-  const bannerGap = useCardLayoutStore((s) => s.bannerGap)
-  const padX = useCardLayoutStore((s) => s.padX)
-  const padTop = useCardLayoutStore((s) => s.padTop)
-  const padBottom = useCardLayoutStore((s) => s.padBottom)
-  const iconSize = useCardLayoutStore((s) => s.iconSize)
-  const nameSize = useCardLayoutStore((s) => s.nameSize)
-  const bannerSize = useCardLayoutStore((s) => s.bannerSize)
-  const cardScale = useCardLayoutStore((s) => s.cardScale)
-
   return (
     <button
       onClick={onPick}
@@ -65,8 +45,8 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
       onMouseLeave={() => setHovered(false)}
       style={{
         position: 'relative',
-        width: `${cardWidth}px`,
-        height: `${cardHeight + bannerHeight + bannerGap}px`,
+        width: `${CARD_WIDTH}px`,
+        height: `${CARD_HEIGHT + BANNER_HEIGHT + BANNER_GAP}px`,
         padding: 0,
         background: 'transparent',
         border: 'none',
@@ -82,7 +62,7 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
         // containers automatically reflow to the scaled size — unlike
         // `transform: scale()` which only scales pixels and leaves the
         // layout box at its original dimensions.
-        zoom: cardScale,
+        zoom: CARD_SCALE,
       }}
     >
       {/* Name banner — sits ABOVE the frame, coloured by rarity. The
@@ -90,9 +70,9 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
           rare/epic by the colour, the way Slay the Spire / Hades do it. */}
       <div
         style={{
-          height: `${bannerHeight}px`,
-          marginBottom: `${bannerGap}px`,
-          fontSize: `${bannerSize}px`,
+          height: `${BANNER_HEIGHT}px`,
+          marginBottom: `${BANNER_GAP}px`,
+          fontSize: `${BANNER_SIZE}px`,
           fontWeight: 'bold',
           color: rarityColor,
           textShadow: `0 0 12px ${rarityColor}88`,
@@ -110,8 +90,8 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
       <div
         style={{
           position: 'relative',
-          width: `${cardWidth}px`,
-          height: `${cardHeight}px`,
+          width: `${CARD_WIDTH}px`,
+          height: `${CARD_HEIGHT}px`,
         }}
       >
         <img
@@ -137,7 +117,7 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
           style={{
             position: 'absolute',
             inset: 0,
-            padding: `${padTop}px ${padX}px ${padBottom}px`,
+            padding: `${PAD_TOP}px ${PAD_X}px ${PAD_BOTTOM}px`,
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -158,11 +138,11 @@ export default function PerkCard({ perk, currentTier, onPick }: PerkCardProps) {
               width: '100%',
             }}
           >
-            <PerkIcon icon={perk.icon} size={iconSize} />
+            <PerkIcon icon={perk.icon} size={ICON_SIZE} />
 
             <div
               style={{
-                fontSize: `${nameSize}px`,
+                fontSize: `${NAME_SIZE}px`,
                 opacity: 0.85,
                 textAlign: 'center',
                 lineHeight: 1.4,
