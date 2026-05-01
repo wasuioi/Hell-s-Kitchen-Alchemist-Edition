@@ -14,76 +14,56 @@ const GRADIENT: Record<Ingredient, string> = {
   SALT: 'linear-gradient(135deg, #374151, #9ca3af)',
 }
 
-interface ConsumeSnapshot {
-  indexA: number
-  indexB: number
-  oldA: Ingredient
-  oldB: Ingredient
-  startedAt: number
-}
+const CONSUME_DURATION = 0.75
 
 export default function CardHand() {
   const hand = useDeckStore((s) => s.hand)
   const cauldron = useDeckStore((s) => s.cauldron)
 
-  const [consumeSnapshot, setConsumeSnapshot] = useState<ConsumeSnapshot | null>(null)
+  const [consumeAnim, setConsumeAnim] = useState<{ indices: number[]; startedAt: number } | null>(null)
   const [consumeProgress, setConsumeProgress] = useState(0)
 
-  const prevHand = useRef(hand)
   const prevCauldron = useRef(cauldron)
   useEffect(() => {
-    const pHand = prevHand.current
-    const pCauldron = prevCauldron.current
-    const wasFull = pCauldron.slotA !== null && pCauldron.slotB !== null
+    const prev = prevCauldron.current
+    const wasFull = prev.slotA !== null && prev.slotB !== null
     const nowEmpty = cauldron.slotA === null && cauldron.slotB === null
     if (wasFull && nowEmpty) {
-      const indexA = pCauldron.slotA!.fromHandIndex
-      const indexB = pCauldron.slotB!.fromHandIndex
-      setConsumeSnapshot({
-        indexA,
-        indexB,
-        oldA: pHand[indexA],
-        oldB: pHand[indexB],
+      setConsumeAnim({
+        indices: [prev.slotA!.fromHandIndex, prev.slotB!.fromHandIndex],
         startedAt: performance.now(),
       })
       setConsumeProgress(0)
     }
-    prevHand.current = hand
     prevCauldron.current = cauldron
-  }, [hand, cauldron])
+  }, [cauldron])
 
   useEffect(() => {
-    if (!consumeSnapshot) return
+    if (!consumeAnim) return
     const id = setInterval(() => {
-      const elapsed = (performance.now() - consumeSnapshot.startedAt) / 1000
-      const progress = Math.min(1, elapsed / 0.5)
+      const elapsed = (performance.now() - consumeAnim.startedAt) / 1000
+      const progress = Math.min(1, elapsed / CONSUME_DURATION)
       setConsumeProgress(progress)
       if (progress >= 1) {
-        setConsumeSnapshot(null)
+        setConsumeAnim(null)
         setConsumeProgress(0)
         clearInterval(id)
       }
     }, 16)
     return () => clearInterval(id)
-  }, [consumeSnapshot])
+  }, [consumeAnim])
 
   const isSelected = (i: number) =>
     cauldron.slotA?.fromHandIndex === i || cauldron.slotB?.fromHandIndex === i
 
-  const consumingIngredient = (i: number): Ingredient | null => {
-    if (!consumeSnapshot) return null
-    if (consumeSnapshot.indexA === i) return consumeSnapshot.oldA
-    if (consumeSnapshot.indexB === i) return consumeSnapshot.oldB
-    return null
-  }
+  const isConsuming = (i: number) => consumeAnim?.indices.includes(i) ?? false
 
   return (
     <div style={{ display: 'flex', gap: '12px' }}>
-      {hand.map((liveIngredient, i) => {
-        const consuming = consumingIngredient(i)
-        const ingredient = consuming ?? liveIngredient
+      {hand.map((ingredient, i) => {
         const selected = isSelected(i)
-        const showGlow = selected || consuming !== null
+        const consuming = isConsuming(i)
+        const showGlow = selected || consuming
         const wedgeDeg = (1 - consumeProgress) * 360
         return (
           <button
