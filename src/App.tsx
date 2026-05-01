@@ -23,11 +23,19 @@ export default function App() {
   const phase = useGameStore((s) => s.phase)
   const cookCooldown = useRef(0)
 
-  // Warm caches for icons + VFX sprites so the first reward/trigger doesn't
-  // flicker. Runs once on mount.
+  // Warm caches for icons + VFX sprites the first time the player enters
+  // combat. Deferred from app mount because on slow connections the
+  // 14-asset parallel preload was saturating bandwidth and stalling the
+  // initial menu paint. By the time the player chooses to start, they
+  // can spare a few hundred ms of background fetches.
+  const preloadFiredRef = useRef(false)
   useEffect(() => {
-    preloadGameAssets()
-  }, [])
+    if (preloadFiredRef.current) return
+    if (phase === 'combat' || phase === 'reward') {
+      preloadFiredRef.current = true
+      preloadGameAssets()
+    }
+  }, [phase])
 
   // Keyboard controls
   useEffect(() => {
