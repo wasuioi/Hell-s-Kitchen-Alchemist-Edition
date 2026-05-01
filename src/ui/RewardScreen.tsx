@@ -1,15 +1,25 @@
 import { useState } from 'react'
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
+import { usePlayerStore } from '../stores/playerStore'
 import { drawPerksWithRarity } from '../data/perks'
 import type { PerkDefinition } from '../data/perks'
 import PerkCard, { CARD_SCALE, CARD_WIDTH_PX } from './PerkCard'
 
 const CARD_GAP = 24
-// CSS `zoom` shrinks each PerkCard's layout box, so the row's actual
-// width is CARD_WIDTH_PX × CARD_SCALE × 3 + gaps. Footer matches this
-// so the reroll/skip buttons line up with the card row above.
-const FOOTER_WIDTH = CARD_WIDTH_PX * CARD_SCALE * 3 + CARD_GAP * 2
+// Extra zoom applied on top of CARD_SCALE for the reward screen.
+// Perks are the main choice (bigger), heal is the secondary alternative
+// (smaller). Effective scales: perks 0.9 × 0.85 = 0.765, heal 0.9 × 0.55 = 0.495.
+const PERK_CARD_SCALE = 0.85
+const HEAL_CARD_SCALE = 0.55
+// Wider gap between heal card and perk row to visually separate the two
+// types of choice ("recover" vs "upgrade").
+const HEAL_PERK_GAP = 56
+const FOOTER_WIDTH =
+  CARD_WIDTH_PX * CARD_SCALE * HEAL_CARD_SCALE +
+  HEAL_PERK_GAP +
+  CARD_WIDTH_PX * CARD_SCALE * PERK_CARD_SCALE * 3 +
+  CARD_GAP * 2
 
 export default function RewardScreen() {
   const currentWave = useGameStore((s) => s.currentWave)
@@ -17,6 +27,15 @@ export default function RewardScreen() {
   const [perks, setPerks] = useState<PerkDefinition[]>(() => drawPerksWithRarity(3))
   const [rerollsLeft, setRerollsLeft] = useState(1)
   const [confirmingSkip, setConfirmingSkip] = useState(false)
+  const hp = usePlayerStore((s) => s.hp)
+  const maxHp = usePlayerStore((s) => s.maxHp)
+
+  function pickHeal() {
+    if (hp >= maxHp) return
+    usePlayerStore.getState().heal(30)
+    useDeckStore.getState().initHand()
+    useGameStore.getState().nextWave()
+  }
 
   function currentTierFor(perkId: string): number {
     return activePerks.find((p) => p.id === perkId)?.stackCount ?? 0
@@ -55,18 +74,36 @@ export default function RewardScreen() {
         WAVE {currentWave} CLEARED!
       </h1>
       <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '32px', fontSize: '16px' }}>
-        Choose a perk to upgrade your kitchen
+        Heal or pick a perk
       </p>
 
-      <div style={{ display: 'flex', gap: `${CARD_GAP}px`, alignItems: 'stretch' }}>
-        {perks.map((perk) => (
-          <PerkCard
-            key={perk.id}
-            perk={perk}
-            currentTier={currentTierFor(perk.id)}
-            onPick={() => pickPerk(perk)}
-          />
-        ))}
+      <div style={{
+        display: 'flex',
+        gap: `${HEAL_PERK_GAP}px`,
+        // Center the (smaller) heal card vertically alongside the taller
+        // perk row instead of stretching it to match height.
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+      }}>
+        {/* Heal card stands alone on the left, smaller, so the player
+            reads it as a secondary "recover" choice — not a 4th perk. */}
+        <div style={{ zoom: HEAL_CARD_SCALE }}>
+          <HealCard hp={hp} maxHp={maxHp} onPick={pickHeal} />
+        </div>
+
+        {/* Perk row on the right — main reward choice, larger scale. */}
+        <div style={{ display: 'flex', gap: `${CARD_GAP}px`, alignItems: 'stretch' }}>
+          {perks.map((perk) => (
+            <div key={perk.id} style={{ zoom: PERK_CARD_SCALE }}>
+              <PerkCard
+                perk={perk}
+                currentTier={currentTierFor(perk.id)}
+                onPick={() => pickPerk(perk)}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       <div style={{
@@ -135,6 +172,51 @@ export default function RewardScreen() {
             </button>
           </div>
         )}
+      </div>
+    </div>
+  )
+}
+
+function HealCard({ hp, maxHp, onPick }: { hp: number; maxHp: number; onPick: () => void }) {
+  const disabled = hp >= maxHp
+  return (
+    <div
+      onClick={disabled ? undefined : onPick}
+      style={{
+        zoom: CARD_SCALE,
+        width: `${CARD_WIDTH_PX}px`,
+        minHeight: '420px',
+        borderRadius: '12px',
+        border: `3px solid ${disabled ? 'rgba(255,255,255,0.2)' : '#ef4444'}`,
+        background: disabled
+          ? 'linear-gradient(180deg, rgba(60,20,20,0.6), rgba(30,10,10,0.6))'
+          : 'linear-gradient(180deg, #4a1313, #1a0606)',
+        boxShadow: disabled ? 'none' : '0 0 24px rgba(239,68,68,0.45)',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.5 : 1,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px 16px',
+        gap: '16px',
+        transition: 'transform 0.15s, box-shadow 0.15s',
+      }}
+      onMouseEnter={(e) => {
+        if (disabled) return
+        e.currentTarget.style.transform = 'translateY(-4px)'
+        e.currentTarget.style.boxShadow = '0 0 32px rgba(239,68,68,0.7)'
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.transform = 'translateY(0)'
+        e.currentTarget.style.boxShadow = disabled ? 'none' : '0 0 24px rgba(239,68,68,0.45)'
+      }}
+    >
+      <img src="/icons/heart_pickup.png" alt="Heart" style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
+      <div style={{ color: '#fca5a5', fontSize: '24px', fontWeight: 'bold' }}>HEAL</div>
+      <div style={{ color: 'white', fontSize: '32px', fontWeight: 'bold' }}>+30 HP</div>
+      <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '13px', textAlign: 'center' }}>
+        {disabled ? 'Already at full HP' : 'Skip the perk and recover health.'}
       </div>
     </div>
   )

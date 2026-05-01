@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { AiState, Enemy, EnemyType, Knockback, Position, StatusEffect } from '../types'
 import { isInRange } from '../utils/collision'
+import { usePickupStore, HEART_DROP_CHANCE } from './pickupStore'
 import { useDeckStore } from './deckStore'
 import { useStockCubeStore } from './stockCubeStore'
 
@@ -16,6 +17,12 @@ function tryDropBonemealCube(enemy: Enemy) {
   if (!owns) return
   if (Math.random() >= BONEMEAL_DROP_CHANCE) return
   useStockCubeStore.getState().spawnCube(enemy.position, BONEMEAL_CUBE_LIFETIME_MS)
+}
+
+function tryDropHeartPickup(enemy: Enemy) {
+  if (enemy.type === 'boss') return
+  if (Math.random() >= HEART_DROP_CHANCE) return
+  usePickupStore.getState().spawn(enemy.position)
 }
 
 const BASE_HP = 30
@@ -96,9 +103,12 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
   setEnemyResistAura: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, resistAuraUntil: until } : e) })),
   setEnemyDying: (id) => {
     const enemy = get().enemies.find((e) => e.id === id)
-    // Only roll the drop on the first transition to dying (callers sometimes
+    // Only roll drops on the first transition to dying (callers sometimes
     // re-trigger this on already-dying chains).
-    if (enemy && !enemy.dying) tryDropBonemealCube(enemy)
+    if (enemy && !enemy.dying) {
+      tryDropBonemealCube(enemy)
+      tryDropHeartPickup(enemy)
+    }
     set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, dying: true } : e) }))
   },
   setEnemyDetonating: (id) => {

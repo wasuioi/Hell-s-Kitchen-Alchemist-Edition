@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Position, StatusEffect } from '../types'
 import { triggerOnDamageTaken } from '../utils/perkTriggers'
+import { spawnDamageNumberVfx } from '../utils/spawnVfx'
 import { useDeckStore } from './deckStore'
 
 const DASH_COOLDOWN_MS = 2500
@@ -54,7 +55,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
     set((s) => ({ hp: Math.max(0, s.hp - amount) }))
   },
-  heal: (amount) => set((s) => ({ hp: Math.min(s.maxHp, s.hp + amount) })),
+  heal: (amount) => set((s) => {
+    const newHp = Math.min(s.maxHp, s.hp + amount)
+    const actualHealed = newHp - s.hp
+    if (actualHealed > 0) {
+      spawnDamageNumberVfx(s.position.x, s.position.z, actualHealed, '#22c55e')
+    }
+    return { hp: newHp }
+  }),
   setStatus: (status) => set({ status }),
   startDash: (direction) => {
     const now = performance.now()

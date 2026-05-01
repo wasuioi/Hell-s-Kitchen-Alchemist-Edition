@@ -3,6 +3,7 @@ import { useGameStore } from '../stores/gameStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useHazardStore } from '../stores/hazardStore'
 import { usePlayerStore } from '../stores/playerStore'
+import { usePickupStore } from '../stores/pickupStore'
 import { useDeckStore } from '../stores/deckStore'
 import { HAZARD_POOL } from '../data/hazards'
 import { PERK_POOL } from '../data/perks'
@@ -40,6 +41,20 @@ export default function DevPanel() {
 
   function healFull() {
     usePlayerStore.getState().heal(maxHp)
+  }
+
+  function damage30() {
+    usePlayerStore.getState().takeDamage(30)
+  }
+
+  function spawnHeartAtPlayer() {
+    const pos = usePlayerStore.getState().position
+    usePickupStore.getState().spawn({ x: pos.x + 1.5, z: pos.z + 1.5 })
+  }
+
+  function endWaveNow() {
+    useEnemyStore.getState().reset()
+    useGameStore.getState().completeWave()
   }
 
   function giveBonemealStock() {
@@ -163,6 +178,36 @@ export default function DevPanel() {
           color: '#86efac', cursor: 'pointer', font: 'inherit',
         }}
       >Heal full</button>
+
+      <button
+        onClick={damage30}
+        style={{
+          padding: '6px 10px', borderRadius: 4,
+          background: 'rgba(239,68,68,0.15)',
+          border: '1px solid rgba(239,68,68,0.45)',
+          color: '#fca5a5', cursor: 'pointer', font: 'inherit',
+        }}
+      >Damage -30</button>
+
+      <button
+        onClick={spawnHeartAtPlayer}
+        style={{
+          padding: '6px 10px', borderRadius: 4,
+          background: 'rgba(255,51,85,0.15)',
+          border: '1px solid rgba(255,51,85,0.45)',
+          color: '#fb7185', cursor: 'pointer', font: 'inherit',
+        }}
+      >Spawn heart near player</button>
+
+      <button
+        onClick={endWaveNow}
+        style={{
+          padding: '6px 10px', borderRadius: 4,
+          background: 'rgba(99,102,241,0.18)',
+          border: '1px solid rgba(99,102,241,0.5)',
+          color: '#a5b4fc', cursor: 'pointer', font: 'inherit',
+        }}
+      >End wave → reward</button>
     </div>
   )
 }

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { GamePhase, GameStats, SpellType } from '../types'
+import { usePickupStore } from './pickupStore'
 
 interface GameState {
   phase: GamePhase; currentWave: number; timeScale: number; stats: GameStats
@@ -41,7 +42,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   lullEndTime: 0,
   // Game flow
   startShift: () => set({ phase: 'combat', currentWave: 1, timeScale: 1, stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> } }),
-  completeWave: () => set((s) => ({ phase: 'reward', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } })),
+  completeWave: () => {
+    usePickupStore.getState().reset()
+    set((s) => ({ phase: 'reward', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } }))
+  },
   nextWave: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })),
   skipReward: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })),
   startBoss: () => set({ phase: 'boss' }),
@@ -50,12 +54,15 @@ export const useGameStore = create<GameState>((set, get) => ({
   recordEnemyDefeated: () => set((s) => ({ stats: { ...s.stats, enemiesDefeated: s.stats.enemiesDefeated + 1 } })),
   recordIngredientUsed: () => set((s) => ({ stats: { ...s.stats, ingredientsUsed: s.stats.ingredientsUsed + 1 } })),
   recordSpellCast: (spell) => set((s) => ({ stats: { ...s.stats, spellsCast: { ...s.stats.spellsCast, [spell]: (s.stats.spellsCast[spell] || 0) + 1 } } })),
-  reset: () => set({
-    phase: 'menu', currentWave: 0, timeScale: 1,
-    stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> },
-    shakeIntensity: 0, shakeEndTime: 0, freezeUntil: 0, screenFlashUntil: 0,
-    surgeActive: false, surgeEndTime: 0, lullEndTime: 0,
-  }),
+  reset: () => {
+    usePickupStore.getState().reset()
+    set({
+      phase: 'menu', currentWave: 0, timeScale: 1,
+      stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> },
+      shakeIntensity: 0, shakeEndTime: 0, freezeUntil: 0, screenFlashUntil: 0,
+      surgeActive: false, surgeEndTime: 0, lullEndTime: 0,
+    })
+  },
   // Juice actions
   triggerScreenShake: (intensity, durationMs) => {
     const now = performance.now()

@@ -11,6 +11,12 @@ import ScreenFlash from './ScreenFlash'
 import PerkIcon from './PerkIcon'
 import TierDots from './TierDots'
 
+function hpColor(ratio: number): string {
+  if (ratio > 0.5) return '#22c55e'
+  if (ratio > 0.2) return '#fcd34d'
+  return '#ef4444'
+}
+
 const INGREDIENT_ICON: Record<Ingredient, string> = {
   CHILI: '/icons/chili.png',
   BOTTLE: '/icons/bottle.png',
@@ -36,6 +42,8 @@ export default function HUD() {
   const stats = useGameStore((s) => s.stats)
   const activePerks = useDeckStore((s) => s.activePerks)
   const dashCooldownUntil = usePlayerStore((s) => s.dashCooldownUntil)
+  const hp = usePlayerStore((s) => s.hp)
+  const maxHp = usePlayerStore((s) => s.maxHp)
   const speedBuffUntil = usePlayerStore((s) => s.speedBuffUntil)
 
   // Update dash cooldown display on an interval (avoids performance.now() in render)
@@ -68,6 +76,12 @@ export default function HUD() {
         </div>
         <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '2px' }}>
           Enemies defeated: {stats.enemiesDefeated}
+        </div>
+        <div style={{ fontSize: '12px', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <span>❤️ HP:</span>
+          <span style={{ color: hpColor(hp / maxHp), fontWeight: 'bold' }}>
+            {hp} / {maxHp}
+          </span>
         </div>
       </div>
 
