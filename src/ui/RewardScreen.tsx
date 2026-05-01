@@ -7,17 +7,19 @@ import type { PerkDefinition } from '../data/perks'
 import PerkCard, { CARD_SCALE, CARD_WIDTH_PX } from './PerkCard'
 
 const CARD_GAP = 24
-// Extra zoom applied on top of CARD_SCALE just for the reward screen,
-// so all 4 cards (heal + 3 perks) fit on a single page without scrolling
-// even on 1280-wide laptops. Effective card scale = 0.9 × 0.7 = 0.63.
-const REWARD_SCALE = 0.7
+// Extra zoom applied on top of CARD_SCALE for the reward screen.
+// Perks are the main choice (bigger), heal is the secondary alternative
+// (smaller). Effective scales: perks 0.9 × 0.85 = 0.765, heal 0.9 × 0.55 = 0.495.
+const PERK_CARD_SCALE = 0.85
+const HEAL_CARD_SCALE = 0.55
 // Wider gap between heal card and perk row to visually separate the two
 // types of choice ("recover" vs "upgrade").
 const HEAL_PERK_GAP = 56
 const FOOTER_WIDTH =
-  CARD_WIDTH_PX * CARD_SCALE * REWARD_SCALE * 4 +
-  CARD_GAP * 2 +
-  HEAL_PERK_GAP
+  CARD_WIDTH_PX * CARD_SCALE * HEAL_CARD_SCALE +
+  HEAL_PERK_GAP +
+  CARD_WIDTH_PX * CARD_SCALE * PERK_CARD_SCALE * 3 +
+  CARD_GAP * 2
 
 export default function RewardScreen() {
   const currentWave = useGameStore((s) => s.currentWave)
@@ -78,20 +80,22 @@ export default function RewardScreen() {
       <div style={{
         display: 'flex',
         gap: `${HEAL_PERK_GAP}px`,
-        alignItems: 'stretch',
+        // Center the (smaller) heal card vertically alongside the taller
+        // perk row instead of stretching it to match height.
+        alignItems: 'center',
         flexWrap: 'wrap',
         justifyContent: 'center',
       }}>
-        {/* Heal card stands alone on the left so the player reads it as
-            a separate "recover" choice, not a 4th perk option. */}
-        <div style={{ zoom: REWARD_SCALE }}>
+        {/* Heal card stands alone on the left, smaller, so the player
+            reads it as a secondary "recover" choice — not a 4th perk. */}
+        <div style={{ zoom: HEAL_CARD_SCALE }}>
           <HealCard hp={hp} maxHp={maxHp} onPick={pickHeal} />
         </div>
 
-        {/* Perk row on the right. */}
+        {/* Perk row on the right — main reward choice, larger scale. */}
         <div style={{ display: 'flex', gap: `${CARD_GAP}px`, alignItems: 'stretch' }}>
           {perks.map((perk) => (
-            <div key={perk.id} style={{ zoom: REWARD_SCALE }}>
+            <div key={perk.id} style={{ zoom: PERK_CARD_SCALE }}>
               <PerkCard
                 perk={perk}
                 currentTier={currentTierFor(perk.id)}
