@@ -13,7 +13,7 @@ import VictoryScreen from './ui/VictoryScreen'
 import DebugPanel from './ui/DebugPanel'
 import VfxPicker from './ui/VfxPicker'
 import DevPanel from './ui/DevPanel'
-import PoseTester from './ui/PoseTester'
+import BossDevPanel from './ui/BossDevPanel'
 
 export default function App() {
   const phase = useGameStore((s) => s.phase)
@@ -87,7 +87,7 @@ export default function App() {
       <DebugPanel />
       <VfxPicker />
       {import.meta.env.DEV && <DevPanel />}
-      {import.meta.env.DEV && <PoseTester />}
+      {import.meta.env.DEV && <BossDevPanel />}
     </div>
   )
 }

@@ -5,8 +5,7 @@ import { useGLTF, Html } from '@react-three/drei'
 import { useEnemyStore } from '../stores/enemyStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useGameStore } from '../stores/gameStore'
-import { usePoseTesterStore, TESTABLE_BONES } from '../stores/poseTesterStore'
-import type { TestableBone } from '../stores/poseTesterStore'
+import { useBossDevStore } from '../stores/bossDevStore'
 import { isInRange } from '../utils/collision'
 import { ARENA_SIZE } from './Arena'
 
@@ -67,17 +66,32 @@ function getEdgeSpawnPosition(): { x: number; z: number } {
 export default function Boss() {
   const boss = useEnemyStore((s) => s.enemies.find((e) => e.type === 'boss'))
   const { scene } = useGLTF('/models/boss/boss.glb')
-  // Auto-fit: scale model to BOSS_HEIGHT units tall, then offset Y so its
-  // lowest point sits at y=0. Bigger boss = more imposing presence.
-  const BOSS_HEIGHT = 6
-  const { fittedScale, floorOffset } = useMemo(() => {
+
+  // Dev panel: snap boss position to slider values whenever they change while
+  // the panel is open. Enemy.tsx skips boss AI when devEnabled, so the slider
+  // values stick instead of being overridden by chase movement next frame.
+  const devEnabled = useBossDevStore((s) => s.enabled)
+  const devPosX = useBossDevStore((s) => s.posX)
+  const devPosZ = useBossDevStore((s) => s.posZ)
+  useEffect(() => {
+    if (!devEnabled || !boss) return
+    useEnemyStore.getState().updateEnemyPosition(boss.id, { x: devPosX, z: devPosZ })
+  }, [devEnabled, devPosX, devPosZ, boss?.id])
+  // Auto-fit: scale model to BOSS_HEIGHT units tall (driven by the dev
+  // panel store; defaults to DEFAULT_BOSS_HEIGHT), then offset Y so the
+  // model's lowest point sits at y=0.
+  const BOSS_HEIGHT = useBossDevStore((s) => s.size)
+  // Cache the model's local-space bbox once so resizing via the dev panel
+  // is a cheap divide instead of re-traversing the scene graph on every
+  // slider tick.
+  const baseBbox = useMemo(() => {
     const bbox = new THREE.Box3().setFromObject(scene)
     const size = new THREE.Vector3()
     bbox.getSize(size)
-    const scale = size.y > 0 ? BOSS_HEIGHT / size.y : 1
-    const offset = -bbox.min.y * scale
-    return { fittedScale: scale, floorOffset: offset }
+    return { sizeY: size.y, minY: bbox.min.y }
   }, [scene])
+  const fittedScale = baseBbox.sizeY > 0 ? BOSS_HEIGHT / baseBbox.sizeY : 1
+  const floorOffset = -baseBbox.minY * fittedScale
 
   const bossGroupRef = useRef<THREE.Group>(null)
   const upperArmLRef = useRef<THREE.Object3D | null>(null)
@@ -86,17 +100,17 @@ export default function Boss() {
   const forearmRRef = useRef<THREE.Object3D | null>(null)
   const thighLRef = useRef<THREE.Object3D | null>(null)
   const thighRRef = useRef<THREE.Object3D | null>(null)
+  const handLRef = useRef<THREE.Object3D | null>(null)
+  const handRRef = useRef<THREE.Object3D | null>(null)
+  const spine003Ref = useRef<THREE.Object3D | null>(null)
   // Snapshot of each bone's rest-pose rotation so we can apply animation as a
   // delta. Without this, writing `rotation.x = 0` would force-zero the rig's
   // natural rest pose and the model would freeze in T-pose.
   type RestPose = { x: number; y: number; z: number }
-  const restPose = useRef<{ upL?: RestPose; upR?: RestPose; fL?: RestPose; fR?: RestPose; thL?: RestPose; thR?: RestPose }>({})
-
-  // All bones the dev pose tester can drive — separate from the animation refs
-  // because the tester covers more bones (hands, shins, spine, face) and we
-  // need to write rest+override every frame regardless of attack state.
-  const testableBonesRef = useRef<Map<TestableBone, THREE.Object3D>>(new Map())
-  const testableRestRef = useRef<Map<TestableBone, RestPose>>(new Map())
+  const restPose = useRef<{
+    upL?: RestPose; upR?: RestPose; fL?: RestPose; fR?: RestPose;
+    thL?: RestPose; thR?: RestPose; hL?: RestPose; hR?: RestPose; sp003?: RestPose;
+  }>({})
 
   // Walk-cycle state
   const walkPhase = useRef(0)
@@ -112,27 +126,23 @@ export default function Boss() {
     const fR = scene.getObjectByName('forearmR') ?? null
     const thL = scene.getObjectByName('thighL') ?? null
     const thR = scene.getObjectByName('thighR') ?? null
+    const hL = scene.getObjectByName('handL') ?? null
+    const hR = scene.getObjectByName('handR') ?? null
+    const sp003 = scene.getObjectByName('spine003') ?? null
     upperArmLRef.current = upL
     upperArmRRef.current = upR
     forearmLRef.current = fL
     forearmRRef.current = fR
     thighLRef.current = thL
     thighRRef.current = thR
+    handLRef.current = hL
+    handRRef.current = hR
+    spine003Ref.current = sp003
     const snap = (b: THREE.Object3D | null): RestPose | undefined =>
       b ? { x: b.rotation.x, y: b.rotation.y, z: b.rotation.z } : undefined
     restPose.current = {
       upL: snap(upL), upR: snap(upR), fL: snap(fL), fR: snap(fR),
-      thL: snap(thL), thR: snap(thR),
-    }
-    // Cache every testable bone for the dev pose tester
-    testableBonesRef.current.clear()
-    testableRestRef.current.clear()
-    for (const name of TESTABLE_BONES) {
-      const b = scene.getObjectByName(name)
-      if (b) {
-        testableBonesRef.current.set(name, b)
-        testableRestRef.current.set(name, { x: b.rotation.x, y: b.rotation.y, z: b.rotation.z })
-      }
+      thL: snap(thL), thR: snap(thR), hL: snap(hL), hR: snap(hR), sp003: snap(sp003),
     }
     // Snapshot every MeshStandardMaterial in the model so the resist-aura
     // useFrame can flash a gray emissive coating across the body and then
@@ -184,23 +194,6 @@ export default function Boss() {
 
   useFrame((_, delta) => {
     if (!boss || phase !== 'boss') return
-
-    // Pose tester (dev only). When enabled, write rest+override to every
-    // testable bone and skip everything else — body rotation, walk, attacks.
-    // When disabled, write rest+0 to all testable bones so any leftover tester
-    // values from a previous frame are reset; the animation block below then
-    // overwrites the few animated bones with rest+delta.
-    const tester = usePoseTesterStore.getState()
-    const overrides = tester.enabled ? tester.overrides : null
-    for (const [name, bone] of testableBonesRef.current) {
-      const rest = testableRestRef.current.get(name)
-      if (!rest) continue
-      const o = overrides?.[name]
-      bone.rotation.x = rest.x + (o?.x ?? 0)
-      bone.rotation.y = rest.y + (o?.y ?? 0)
-      bone.rotation.z = rest.z + (o?.z ?? 0)
-    }
-    if (tester.enabled) return
 
     // Body Y-rotation: normally face the player, but during hand_lance attack
     // the body spins together with the beams so the arms stay aligned with
@@ -309,38 +302,35 @@ export default function Boss() {
     }
     if (thL && rp.thL) thL.rotation.x = rp.thL.x + walkSwing
     if (thR && rp.thR) thR.rotation.x = rp.thR.x - walkSwing
-    // spine003 — slight torso bend during slam wind-up (uses testable cache)
-    const sp003 = testableBonesRef.current.get('spine003')
-    const sp003Rest = testableRestRef.current.get('spine003')
-    if (sp003 && sp003Rest) {
-      sp003.rotation.x = sp003Rest.x + slamT * slam.spine003.x
-      sp003.rotation.y = sp003Rest.y + slamT * slam.spine003.y
-      sp003.rotation.z = sp003Rest.z + slamT * slam.spine003.z
+    // spine003 — slight torso bend during slam wind-up
+    const sp003 = spine003Ref.current
+    if (sp003 && rp.sp003) {
+      sp003.rotation.x = rp.sp003.x + slamT * slam.spine003.x
+      sp003.rotation.y = rp.sp003.y + slamT * slam.spine003.y
+      sp003.rotation.z = rp.sp003.z + slamT * slam.spine003.z
     }
     // Hands — only hand_lance writes to them, palms turn up to "hold" beams
-    const handLBone = testableBonesRef.current.get('handL')
-    const handLRest = testableRestRef.current.get('handL')
-    if (handLBone && handLRest) {
-      handLBone.rotation.x = handLRest.x + lanceExtendT * lance.handL.x
-      handLBone.rotation.y = handLRest.y + lanceExtendT * lance.handL.y
-      handLBone.rotation.z = handLRest.z + lanceExtendT * lance.handL.z
+    const hL = handLRef.current
+    const hR = handRRef.current
+    if (hL && rp.hL) {
+      hL.rotation.x = rp.hL.x + lanceExtendT * lance.handL.x
+      hL.rotation.y = rp.hL.y + lanceExtendT * lance.handL.y
+      hL.rotation.z = rp.hL.z + lanceExtendT * lance.handL.z
     }
-    const handRBone = testableBonesRef.current.get('handR')
-    const handRRest = testableRestRef.current.get('handR')
-    if (handRBone && handRRest) {
-      handRBone.rotation.x = handRRest.x + lanceExtendT * lance.handR.x
-      handRBone.rotation.y = handRRest.y + lanceExtendT * lance.handR.y
-      handRBone.rotation.z = handRRest.z + lanceExtendT * lance.handR.z
+    if (hR && rp.hR) {
+      hR.rotation.x = rp.hR.x + lanceExtendT * lance.handR.x
+      hR.rotation.y = rp.hR.y + lanceExtendT * lance.handR.y
+      hR.rotation.z = rp.hR.z + lanceExtendT * lance.handR.z
     }
 
     // Hand muzzle "water" glows — track each hand bone's world position so
     // the beams visually emit from the boss's palms during hand_lance.
-    if (handLBone && handLMuzzleRef.current) {
-      handLBone.getWorldPosition(TMP_VEC)
+    if (hL && handLMuzzleRef.current) {
+      hL.getWorldPosition(TMP_VEC)
       handLMuzzleRef.current.position.copy(TMP_VEC)
     }
-    if (handRBone && handRMuzzleRef.current) {
-      handRBone.getWorldPosition(TMP_VEC)
+    if (hR && handRMuzzleRef.current) {
+      hR.getWorldPosition(TMP_VEC)
       handRMuzzleRef.current.position.copy(TMP_VEC)
     }
 

@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
-import { usePoseTesterStore } from '../stores/poseTesterStore'
+import { useBossDevStore } from '../stores/bossDevStore'
 import { ARENA_SIZE } from './Arena'
 import { spawnDamageNumber } from './DamageNumbers'
 import type { Enemy as EnemyType } from '../types'
@@ -79,8 +79,9 @@ export default function Enemy({ enemy }: Props) {
   const facingGroupRef = useRef<THREE.Group>(null)
 
   useFrame((_, delta) => {
-    // Freeze boss while the dev pose tester is open so the user can pose it.
-    if (enemy.type === 'boss' && usePoseTesterStore.getState().enabled) return
+    // Freeze boss AI while the BOSS dev panel is open so position/size
+    // sliders aren't overridden by chase movement each frame.
+    if (enemy.type === 'boss' && useBossDevStore.getState().enabled) return
 
     if (stunRingRef.current) {
       stunRingRef.current.rotation.y = performance.now() / 400
