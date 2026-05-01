@@ -21,29 +21,16 @@ export default function MainMenu() {
       zIndex: 10,
       gap: '16px',
     }}>
-      <h1 style={{
-        fontFamily: 'Georgia, serif',
-        fontSize: '52px',
-        color: '#f59e0b',
-        margin: 0,
-        textShadow: '0 0 20px #f59e0b, 0 0 40px #d97706',
-        letterSpacing: '2px',
-        textAlign: 'center',
-      }}>
-        The Alchemist&apos;s Kitchen
-      </h1>
-
-      <h2 style={{
-        fontFamily: 'Georgia, serif',
-        fontSize: '18px',
-        color: '#d1d5db',
-        margin: 0,
-        fontWeight: 'normal',
-        letterSpacing: '4px',
-        textTransform: 'uppercase',
-      }}>
-        Hell&apos;s Kitchen: Alchemist Edition
-      </h2>
+      <img
+        src="/ui/logo.png"
+        alt="Hell's Kitchen: Alchemist Edition"
+        style={{
+          width: 'min(640px, 80vw)',
+          height: 'auto',
+          mixBlendMode: 'screen',
+          filter: 'drop-shadow(0 0 30px rgba(245, 158, 11, 0.4))',
+        }}
+      />
 
       <p style={{
         color: '#9ca3af',
