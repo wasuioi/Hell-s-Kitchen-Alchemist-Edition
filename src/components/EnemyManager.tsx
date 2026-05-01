@@ -65,8 +65,8 @@ function getEnemyType(wave: number): EnemyType {
   }
   const roll = Math.random()
   if (roll < 0.2) return 'exploder'
-  if (roll < 0.45) return 'tanky'
-  if (roll < 0.75) return 'fast'
+  if (roll < 0.35) return 'tanky'
+  if (roll < 0.65) return 'fast'
   return 'slow'
 }
 
