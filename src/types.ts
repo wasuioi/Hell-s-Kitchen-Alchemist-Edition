@@ -95,3 +95,13 @@ export interface Hazard {
   spawnedAt: number   // performance.now() at spawn — drives both telegraph and active timing
   lastDamageAt: number
 }
+
+/** Bonemeal Stock cube (perk #28). Dropped from killed non-boss enemies; the
+ *  player walks over them to heal. Lives until lifetimeMs since spawnedAt or
+ *  consumed by proximity. */
+export interface StockCube {
+  id: string
+  position: Position
+  spawnedAt: number
+  lifetimeMs: number
+}

@@ -1,6 +1,22 @@
 import { create } from 'zustand'
 import type { AiState, Enemy, EnemyType, Knockback, Position, StatusEffect } from '../types'
 import { isInRange } from '../utils/collision'
+import { useDeckStore } from './deckStore'
+import { useStockCubeStore } from './stockCubeStore'
+
+// Bonemeal Stock perk (#28) — when an enemy dies, roll a chance to drop a
+// world pickup that heals the player. Only active when the perk is owned;
+// boss is excluded so the boss bar isn't farmed for healing trickle.
+const BONEMEAL_DROP_CHANCE = 0.5
+const BONEMEAL_CUBE_LIFETIME_MS = 8000
+
+function tryDropBonemealCube(enemy: Enemy) {
+  if (enemy.type === 'boss') return
+  const owns = useDeckStore.getState().activePerks.some((p) => p.id === 'bonemeal_stock')
+  if (!owns) return
+  if (Math.random() >= BONEMEAL_DROP_CHANCE) return
+  useStockCubeStore.getState().spawnCube(enemy.position, BONEMEAL_CUBE_LIFETIME_MS)
+}
 
 const BASE_HP = 30
 const HP_MULTIPLIER: Record<EnemyType, number> = { slow: 1, fast: 1, tanky: 3, boss: 15, exploder: 1 }
@@ -78,7 +94,13 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
   setEnemyKnockback: (id, knockback) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, knockback } : e) })),
   setEnemyHitFlash: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, hitFlashUntil: until } : e) })),
   setEnemyResistAura: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, resistAuraUntil: until } : e) })),
-  setEnemyDying: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, dying: true } : e) })),
+  setEnemyDying: (id) => {
+    const enemy = get().enemies.find((e) => e.id === id)
+    // Only roll the drop on the first transition to dying (callers sometimes
+    // re-trigger this on already-dying chains).
+    if (enemy && !enemy.dying) tryDropBonemealCube(enemy)
+    set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, dying: true } : e) }))
+  },
   setEnemyDetonating: (id) => {
     const startTime = performance.now()
     set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, detonating: true, detonationStartTime: startTime } : e) }))

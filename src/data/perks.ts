@@ -82,6 +82,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+15%', Decay: '4.0s' }, added: 'Heal +2 HP per Heat stack consumed' },
     ],
   },
+  {
+    id: 'bonemeal_stock', name: 'Bonemeal Stock', icon: '/icons/bonemeal_stock.png',
+    description: 'Killed enemies leave glowing skull-shaped Stock Cubes — walk over them to heal.',
+    rarity: 'legendary',
+    tiers: [
+      { stats: { 'Drop Chance': '50%', Heal: '+8 HP', Lifetime: '8.0s' } },
+      { stats: { 'Drop Chance': '50%', Heal: '+8 HP', Lifetime: '8.0s' } },
+      { stats: { 'Drop Chance': '50%', Heal: '+8 HP', Lifetime: '8.0s' } },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

@@ -8,6 +8,7 @@ import Camera from './Camera'
 import Player from './Player'
 import EnemyManager from './EnemyManager'
 import HazardManager from './HazardManager'
+import StockCubes from './StockCubes'
 import SpellManager from './Spell'
 import Boss from './Boss'
 import DamageNumbers from './DamageNumbers'
@@ -44,6 +45,7 @@ export default function Scene({ onReady }: { onReady?: () => void }) {
         <Player />
         <EnemyManager />
         <HazardManager />
+        <StockCubes />
         <SpellManager />
         <DamageNumbers />
         <ExplosionEffects />
