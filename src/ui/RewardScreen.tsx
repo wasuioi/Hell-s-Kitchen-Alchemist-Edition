@@ -7,10 +7,17 @@ import type { PerkDefinition } from '../data/perks'
 import PerkCard, { CARD_SCALE, CARD_WIDTH_PX } from './PerkCard'
 
 const CARD_GAP = 24
-// CSS `zoom` shrinks each PerkCard's layout box, so the row's actual
-// width is CARD_WIDTH_PX × CARD_SCALE × 3 + gaps. Footer matches this
-// so the reroll/skip buttons line up with the card row above.
-const FOOTER_WIDTH = CARD_WIDTH_PX * CARD_SCALE * 4 + CARD_GAP * 3
+// Extra zoom applied on top of CARD_SCALE just for the reward screen,
+// so all 4 cards (heal + 3 perks) fit on a single page without scrolling
+// even on 1280-wide laptops. Effective card scale = 0.9 × 0.7 = 0.63.
+const REWARD_SCALE = 0.7
+// Wider gap between heal card and perk row to visually separate the two
+// types of choice ("recover" vs "upgrade").
+const HEAL_PERK_GAP = 56
+const FOOTER_WIDTH =
+  CARD_WIDTH_PX * CARD_SCALE * REWARD_SCALE * 4 +
+  CARD_GAP * 2 +
+  HEAL_PERK_GAP
 
 export default function RewardScreen() {
   const currentWave = useGameStore((s) => s.currentWave)
@@ -65,25 +72,34 @@ export default function RewardScreen() {
         WAVE {currentWave} CLEARED!
       </h1>
       <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '32px', fontSize: '16px' }}>
-        Choose a perk to upgrade your kitchen
+        Heal or pick a perk
       </p>
 
       <div style={{
         display: 'flex',
-        gap: `${CARD_GAP}px`,
+        gap: `${HEAL_PERK_GAP}px`,
         alignItems: 'stretch',
         flexWrap: 'wrap',
         justifyContent: 'center',
       }}>
-        {perks.map((perk) => (
-          <PerkCard
-            key={perk.id}
-            perk={perk}
-            currentTier={currentTierFor(perk.id)}
-            onPick={() => pickPerk(perk)}
-          />
-        ))}
-        <HealCard hp={hp} maxHp={maxHp} onPick={pickHeal} />
+        {/* Heal card stands alone on the left so the player reads it as
+            a separate "recover" choice, not a 4th perk option. */}
+        <div style={{ zoom: REWARD_SCALE }}>
+          <HealCard hp={hp} maxHp={maxHp} onPick={pickHeal} />
+        </div>
+
+        {/* Perk row on the right. */}
+        <div style={{ display: 'flex', gap: `${CARD_GAP}px`, alignItems: 'stretch' }}>
+          {perks.map((perk) => (
+            <div key={perk.id} style={{ zoom: REWARD_SCALE }}>
+              <PerkCard
+                perk={perk}
+                currentTier={currentTierFor(perk.id)}
+                onPick={() => pickPerk(perk)}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       <div style={{
