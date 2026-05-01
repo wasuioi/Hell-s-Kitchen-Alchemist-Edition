@@ -1,5 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
+import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { useGameStore } from '../stores/gameStore'
 
 const ARENA_SIZE = 32
 const WALL_HEIGHT = 3
@@ -147,9 +149,35 @@ function createWallTexture(): THREE.CanvasTexture {
   return tex
 }
 
+// Floor emissive presets per pacing phase (issue #69). Hellfire orange is the
+// baseline (matches the kitchen theme); the surge cooks the floor brighter and
+// hotter, the lull bleeds it toward an icy steel-blue "calm before boss".
+const FLOOR_BASE_EMISSIVE = new THREE.Color('#ff4408')
+const FLOOR_BASE_INTENSITY = 0.55
+const FLOOR_SURGE_EMISSIVE = new THREE.Color('#ff1a00')
+const FLOOR_SURGE_INTENSITY = 1.4
+const FLOOR_LULL_EMISSIVE = new THREE.Color('#3a6df5')
+const FLOOR_LULL_INTENSITY = 0.35
+const FLOOR_TINT_LERP = 4 // higher = snappier transition
+
 export default function Arena() {
   const floorTex = useMemo(() => createFloorTexture(), [])
   const wallTex = useMemo(() => createWallTexture(), [])
+  const floorMatRef = useRef<THREE.MeshStandardMaterial>(null!)
+
+  useFrame((_, delta) => {
+    const mat = floorMatRef.current
+    if (!mat) return
+    const { phase, surgeActive } = useGameStore.getState()
+    const target = surgeActive
+      ? { color: FLOOR_SURGE_EMISSIVE, intensity: FLOOR_SURGE_INTENSITY }
+      : phase === 'pre-boss-lull'
+      ? { color: FLOOR_LULL_EMISSIVE, intensity: FLOOR_LULL_INTENSITY }
+      : { color: FLOOR_BASE_EMISSIVE, intensity: FLOOR_BASE_INTENSITY }
+    const t = Math.min(1, delta * FLOOR_TINT_LERP)
+    mat.emissive.lerp(target.color, t)
+    mat.emissiveIntensity += (target.intensity - mat.emissiveIntensity) * t
+  })
 
   return (
     <group>
@@ -157,6 +185,7 @@ export default function Arena() {
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[ARENA_SIZE, ARENA_SIZE]} />
         <meshStandardMaterial
+          ref={floorMatRef}
           map={floorTex}
           roughness={0.85}
           metalness={0.1}

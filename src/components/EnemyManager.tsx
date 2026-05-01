@@ -17,6 +17,13 @@ const EXPLODER_PLAYER_DAMAGE = 15
 const EXPLODER_ENEMY_DAMAGE = 20
 const INITIAL_DETONATION_DELAY_MS = 1800 // player-triggered wind-up — long enough to read + dodge
 const CHAIN_DETONATION_DELAY_MS = 400 // chain reaction — kept tight so chains feel quick
+// Pre-boss surge / lull (issue #69)
+const SURGE_TRIGGER_RATIO = 0.6 // wave 7+ flips into surge once 60% of base wave is spawned
+const SURGE_DURATION_MS = 20_000
+const LULL_DURATION_MS = 3_000
+const SURGE_CLUSTER_SIZE = 3
+const SURGE_CLUSTER_INTERVAL = 3 // seconds between clusters
+const SURGE_CLUSTER_JITTER = 1.0 // world units
 
 function getSpawnPosition(): { x: number; z: number } {
   const edge = Math.floor(Math.random() * 4)
@@ -28,6 +35,24 @@ function getSpawnPosition(): { x: number; z: number } {
     case 2: return { x: half, z: rand }
     default: return { x: -half, z: rand }
   }
+}
+
+// During the pre-boss surge we anchor each cluster to whichever wall edge is
+// farthest from the player so the wave-of-mobs visual doesn't dump on top of them.
+function getSurgeClusterCenter(playerPos: { x: number; z: number }): { x: number; z: number } {
+  const half = ARENA_SIZE / 2 - 1
+  const rand = (Math.random() - 0.5) * ARENA_SIZE * 0.5
+  const edges: Array<{ center: { x: number; z: number }; dist: number; horizontal: boolean }> = [
+    { center: { x: 0, z: -half }, dist: Math.abs(playerPos.z - -half), horizontal: true },
+    { center: { x: 0, z: half }, dist: Math.abs(playerPos.z - half), horizontal: true },
+    { center: { x: half, z: 0 }, dist: Math.abs(playerPos.x - half), horizontal: false },
+    { center: { x: -half, z: 0 }, dist: Math.abs(playerPos.x - -half), horizontal: false },
+  ]
+  edges.sort((a, b) => b.dist - a.dist)
+  const farthest = edges[0]
+  return farthest.horizontal
+    ? { x: rand, z: farthest.center.z }
+    : { x: farthest.center.x, z: rand }
 }
 
 function getEnemyType(wave: number): EnemyType {
@@ -53,7 +78,15 @@ export default function EnemyManager() {
   const pendingDetonations = useRef<Map<string, { time: number; chainDepth: number }>>(new Map())
 
   useFrame((_, delta) => {
-    const { phase, currentWave, timeScale } = useGameStore.getState()
+    const { phase, currentWave, timeScale, surgeActive, surgeEndTime, lullEndTime } = useGameStore.getState()
+    const nowMs = performance.now()
+
+    // Pre-boss lull → boss transition: hold the arena empty for a beat, then spawn boss.
+    if (phase === 'pre-boss-lull') {
+      if (nowMs >= lullEndTime) useGameStore.getState().startBoss()
+      prevPhase.current = phase
+      return
+    }
 
     // Boss spawn
     if (phase === 'boss' && prevPhase.current !== 'boss') {
@@ -66,6 +99,8 @@ export default function EnemyManager() {
       spawnTimer.current = 0
       spawnedCount.current = 0
       pendingDetonations.current.clear()
+      // Defensive: if a previous run left surge flag on, clear it.
+      if (surgeActive) useGameStore.getState().endSurge()
     }
     prevPhase.current = phase
 
@@ -129,25 +164,58 @@ export default function EnemyManager() {
 
     waveTimer.current += dt
     spawnTimer.current += dt
-    // RoR2-style director timer: spawn floor drops the longer the wave drags on.
-    // waveTimer term clamped to 20s so escalation caps; floor 0.4s prevents runaway density.
-    const spawnInterval = Math.max(
-      0.4,
-      SPAWN_INTERVAL_BASE - currentWave * 0.2 - Math.min(waveTimer.current, 20) * 0.05,
-    )
-    if (spawnTimer.current >= spawnInterval && spawnedCount.current < ENEMIES_PER_WAVE) {
-      spawnTimer.current = 0
-      spawnedCount.current++
-      useEnemyStore.getState().spawnEnemy(getEnemyType(currentWave), getSpawnPosition())
+
+    // Pre-boss surge trigger / expiry (wave 7+).
+    if (
+      currentWave >= 7 && !surgeActive &&
+      spawnedCount.current >= Math.floor(ENEMIES_PER_WAVE * SURGE_TRIGGER_RATIO)
+    ) {
+      useGameStore.getState().triggerSurge(SURGE_DURATION_MS)
+      spawnTimer.current = 0 // reset so the first cluster waits the full interval, not the leftover scrap
     }
+    if (surgeActive && nowMs >= surgeEndTime) {
+      useGameStore.getState().endSurge()
+    }
+
+    if (surgeActive) {
+      // Cluster spawn — bypass per-wave cap, anchor to far edge from player.
+      if (spawnTimer.current >= SURGE_CLUSTER_INTERVAL) {
+        spawnTimer.current = 0
+        const playerPos = usePlayerStore.getState().position
+        const center = getSurgeClusterCenter(playerPos)
+        for (let i = 0; i < SURGE_CLUSTER_SIZE; i++) {
+          const jx = (Math.random() - 0.5) * SURGE_CLUSTER_JITTER * 2
+          const jz = (Math.random() - 0.5) * SURGE_CLUSTER_JITTER * 2
+          useEnemyStore.getState().spawnEnemy(getEnemyType(currentWave), {
+            x: center.x + jx,
+            z: center.z + jz,
+          })
+          spawnedCount.current++
+        }
+      }
+    } else {
+      // RoR2-style director timer: spawn floor drops the longer the wave drags on.
+      // waveTimer term clamped to 20s so escalation caps; floor 0.4s prevents runaway density.
+      const spawnInterval = Math.max(
+        0.4,
+        SPAWN_INTERVAL_BASE - currentWave * 0.2 - Math.min(waveTimer.current, 20) * 0.05,
+      )
+      if (spawnTimer.current >= spawnInterval && spawnedCount.current < ENEMIES_PER_WAVE) {
+        spawnTimer.current = 0
+        spawnedCount.current++
+        useEnemyStore.getState().spawnEnemy(getEnemyType(currentWave), getSpawnPosition())
+      }
+    }
+
     const enemies = useEnemyStore.getState().enemies
-    const allSpawned = spawnedCount.current >= ENEMIES_PER_WAVE
+    // Don't end the wave while the surge is still firing clusters.
+    const allSpawned = !surgeActive && spawnedCount.current >= ENEMIES_PER_WAVE
     const allDead = allSpawned && enemies.length === 0
     if (allDead) {
       spawnTimer.current = 0; spawnedCount.current = 0; waveTimer.current = 0
       pendingDetonations.current.clear()
       useEnemyStore.getState().reset()
-      if (currentWave >= 7) useGameStore.getState().startBoss()
+      if (currentWave >= 7) useGameStore.getState().triggerPreBossLull(LULL_DURATION_MS)
       else useGameStore.getState().completeWave()
     }
   })
