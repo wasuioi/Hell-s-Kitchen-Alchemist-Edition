@@ -14,7 +14,7 @@ const GRADIENT: Record<Ingredient, string> = {
   SALT: 'linear-gradient(135deg, #374151, #9ca3af)',
 }
 
-const CONSUME_DURATION = 0.75
+const CONSUME_DURATION = 0.65
 
 export default function CardHand() {
   const hand = useDeckStore((s) => s.hand)
