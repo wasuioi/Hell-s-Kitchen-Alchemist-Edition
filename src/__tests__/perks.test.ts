@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { PERK_POOL, getRandomPerks, drawPerksWithRarity } from '../data/perks'
 
 describe('PERK_POOL', () => {
-  it('contains 6 perks', () => { expect(PERK_POOL).toHaveLength(6) })
+  it('contains 7 perks', () => { expect(PERK_POOL).toHaveLength(7) })
   it('each perk has required fields', () => {
     for (const perk of PERK_POOL) {
       expect(perk).toHaveProperty('id')
