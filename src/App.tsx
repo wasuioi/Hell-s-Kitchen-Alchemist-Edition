@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react'
-import Scene from './components/Scene'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useGameStore } from './stores/gameStore'
 import { useDeckStore } from './stores/deckStore'
 import { usePlayerStore } from './stores/playerStore'
@@ -14,14 +13,67 @@ import DebugPanel from './ui/DebugPanel'
 import VfxPicker from './ui/VfxPicker'
 import DevPanel from './ui/DevPanel'
 
+// Scene pulls in Three.js + react-three-fiber + drei (~310 KB gzipped). Lazy-
+// load it so the MainMenu — pure DOM UI — renders the instant React mounts,
+// while the 3D engine downloads in the background. By the time the player
+// clicks "Start" it's already cached.
+const Scene = lazy(() => import('./components/Scene'))
+
+function MapLoadingOverlay() {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#fbbf24',
+        font: '600 18px/1 system-ui, -apple-system, sans-serif',
+        letterSpacing: '2px',
+        background: '#0a0a0a',
+        zIndex: 5,
+      }}
+    >
+      Loading map…
+    </div>
+  )
+}
+
 export default function App() {
   const phase = useGameStore((s) => s.phase)
   const cookCooldown = useRef(0)
+  // Flips true the moment the lazy Scene chunk has loaded and Scene's tree
+  // has mounted. Gates the HUD + reward screen so the cauldron and cards
+  // don't show up over a still-blank canvas while the player waits for
+  // models to come in on a slow link.
+  const [sceneReady, setSceneReady] = useState(false)
+  const handleSceneReady = useCallback(() => setSceneReady(true), [])
 
-  // Warm caches for icons + VFX sprites so the first reward/trigger doesn't
-  // flicker. Runs once on mount.
+  // Warm caches for icons + VFX sprites the first time the player enters
+  // combat. Deferred from app mount because on slow connections the
+  // 14-asset parallel preload was saturating bandwidth and stalling the
+  // initial menu paint. By the time the player chooses to start, they
+  // can spare a few hundred ms of background fetches.
+  const preloadFiredRef = useRef(false)
   useEffect(() => {
-    preloadGameAssets()
+    if (preloadFiredRef.current) return
+    if (phase === 'combat' || phase === 'reward') {
+      preloadFiredRef.current = true
+      preloadGameAssets()
+    }
+  }, [phase])
+
+  // While the menu is up, eagerly start downloading the heavy Scene chunk
+  // (Three.js / R3F / drei) and the player + slime model so that when the
+  // user finally clicks Start, those bytes are mostly cached. Boss model
+  // is intentionally NOT prefetched here — players take 5+ minutes to
+  // reach wave 7, plenty of time to fetch it later.
+  useEffect(() => {
+    import('./components/Scene')
+    const opts = { priority: 'low' } as RequestInit
+    fetch('/models/wizard/Wizard.glb', opts).catch(() => undefined)
+    fetch('/models/slime/scene.glb', opts).catch(() => undefined)
   }, [])
 
   // Keyboard controls
@@ -75,12 +127,20 @@ export default function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <Scene />
+      <Suspense fallback={null}>
+        <Scene onReady={handleSceneReady} />
+      </Suspense>
+
+      {/* Loading overlay only shows AFTER the user clicks Start and the
+          map / models still aren't in. Stays hidden on the menu. */}
+      {phase !== 'menu' && !sceneReady && <MapLoadingOverlay />}
 
       {phase === 'menu' && <MainMenu />}
 
-      {(phase === 'combat' || phase === 'boss') && <HUD />}
-      {phase === 'reward' && <RewardScreen />}
+      {/* Cauldron + ingredient cards (HUD) and reward screen wait for
+          sceneReady so they don't appear over a blank world. */}
+      {(phase === 'combat' || phase === 'boss') && sceneReady && <HUD />}
+      {phase === 'reward' && sceneReady && <RewardScreen />}
       {phase === 'death' && <DeathScreen />}
       {phase === 'victory' && <VictoryScreen />}
       <DebugPanel />

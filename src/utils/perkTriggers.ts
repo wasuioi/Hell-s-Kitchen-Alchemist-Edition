@@ -52,7 +52,7 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
     hitCount++
     useEnemyStore.getState().damageEnemy(enemy.id, dmg)
     useEnemyStore.getState().setEnemyHitFlash(enemy.id, performance.now() + 100)
-    spawnDamageNumberVfx(enemy.position.x, enemy.position.z, dmg, dmgColor)
+    spawnDamageNumberVfx(enemy.position.x, enemy.position.z, dmg, dmgColor, enemy.type === 'boss' ? 5 : 1.5)
 
     const updated = useEnemyStore.getState().enemies.find((e) => e.id === enemy.id)
     if (!updated || updated.hp > 0) continue

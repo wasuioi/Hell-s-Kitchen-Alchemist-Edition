@@ -5,6 +5,24 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Hell's Kitchen: Alchemist Edition</title>
+    <style>
+      /* Instant first-paint splash — visible before main.tsx downloads.
+         Auto-replaced when React mounts and inserts content into #root. */
+      html, body { margin: 0; background: #0a0a0a; height: 100%; overflow: hidden; }
+      #root:empty::before {
+        content: 'Heating the cauldron…';
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #fbbf24;
+        font: 600 18px/1 system-ui, -apple-system, sans-serif;
+        letter-spacing: 2px;
+        animation: pulse 1.4s ease-in-out infinite;
+      }
+      @keyframes pulse { 0%, 100% { opacity: 0.55 } 50% { opacity: 1 } }
+    </style>
   </head>
   <body>
     <div id="root"></div>

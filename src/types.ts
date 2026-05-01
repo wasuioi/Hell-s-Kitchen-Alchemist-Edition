@@ -38,6 +38,10 @@ export interface Enemy {
   stunnedUntil: number
   knockback: Knockback | null
   hitFlashUntil: number
+  /** Timestamp until which a "resisted knockback" aura should be visible.
+   *  Used by the boss, which is immune to knockback but flashes a gray aura
+   *  to telegraph the resist back to the player. Default 0 (no aura). */
+  resistAuraUntil: number
   dying: boolean
   detonating: boolean
   detonationStartTime: number

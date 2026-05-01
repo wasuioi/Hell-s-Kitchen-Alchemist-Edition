@@ -19,7 +19,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false })
 }
 
-const WIZARD_MODEL_PATH = '/models/wizard/Wizard.gltf'
+const WIZARD_MODEL_PATH = '/models/wizard/Wizard.glb'
 const WIZARD_SCALE = 0.9
 
 if (typeof document !== 'undefined' && !document.getElementById('heat-shake-keyframes')) {

@@ -75,17 +75,22 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
       if (dist <= currentRadius) {
         damaged.current.add(enemy.id)
 
-        // STEAM: push only, no damage, no status
+        // STEAM: push only, no damage, no status. Boss is immune to
+        // knockback — flash a brief gray "resist" aura instead.
         if (spell.type === 'STEAM') {
-          const dx = enemy.position.x - spell.position.x
-          const dz = enemy.position.z - spell.position.z
-          const len = Math.sqrt(dx * dx + dz * dz) || 1
-          const pushDist = spell.radius - len
-          const speed = Math.max(0, pushDist) * 8
-          useEnemyStore.getState().setEnemyKnockback(enemy.id, {
-            vx: (dx / len) * speed,
-            vz: (dz / len) * speed,
-          })
+          if (enemy.type === 'boss') {
+            useEnemyStore.getState().setEnemyResistAura(enemy.id, performance.now() + 350)
+          } else {
+            const dx = enemy.position.x - spell.position.x
+            const dz = enemy.position.z - spell.position.z
+            const len = Math.sqrt(dx * dx + dz * dz) || 1
+            const pushDist = spell.radius - len
+            const speed = Math.max(0, pushDist) * 8
+            useEnemyStore.getState().setEnemyKnockback(enemy.id, {
+              vx: (dx / len) * speed,
+              vz: (dz / len) * speed,
+            })
+          }
           continue
         }
 
@@ -110,7 +115,10 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
           useEnemyStore.getState().setEnemyHitFlash(enemy.id, performance.now() + 100)
 
           const dmgColor = actualDamage >= 80 ? '#ef4444' : actualDamage >= 40 ? '#fbbf24' : '#ffffff'
-          spawnDamageNumber(enemy.position.x, enemy.position.z, actualDamage, dmgColor)
+          // Boss is ~4.5 units tall vs the default 1.5; lift the damage number
+          // above its head so the player can actually see it land.
+          const dmgY = enemy.type === 'boss' ? 5 : 1.5
+          spawnDamageNumber(enemy.position.x, enemy.position.z, actualDamage, dmgColor, dmgY)
 
           // Screen shake: stronger for big spells
           if (spell.type === 'METEOR' || spell.type === 'INFERNO') {

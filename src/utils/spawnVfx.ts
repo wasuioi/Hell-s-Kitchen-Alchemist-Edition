@@ -38,11 +38,11 @@ export function spawnSpriteVfx(slug: string, x: number, z: number, size?: number
 // spawnDamageNumber() in DamageNumbers.tsx does, but lives here so
 // non-3D code (like perkTriggers.ts) can call it without dragging in
 // the drei/fiber imports — keeps unit tests fast.
-export function spawnDamageNumberVfx(x: number, z: number, amount: number, color: string): void {
+export function spawnDamageNumberVfx(x: number, z: number, amount: number, color: string, y: number = 1.5): void {
   if (typeof window === 'undefined') return
   window.__spawnDamageNumber?.({
     id: `pfdmg_${nextDmgVfxId++}`,
-    position: { x, y: 1.5, z },
+    position: { x, y, z },
     amount,
     color,
     createdAt: performance.now(),

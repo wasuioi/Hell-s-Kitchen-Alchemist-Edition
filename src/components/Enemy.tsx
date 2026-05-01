@@ -66,7 +66,7 @@ const CONTACT_COOLDOWN = 1
 interface Props { enemy: EnemyType }
 
 export default function Enemy({ enemy }: Props) {
-  const { scene } = useGLTF('/models/slime/scene.gltf')
+  const { scene } = useGLTF('/models/slime/scene.glb')
   const slimeModel = useMemo(() => {
     const clone = scene.clone(true)
     const smallSlime = clone.getObjectByName('SmallSlime')
@@ -376,6 +376,12 @@ export default function Enemy({ enemy }: Props) {
   const scale = MODEL_SCALE[enemy.type] * visualScale
   const enemySize = SIZE[enemy.type]
 
+  // Boss is visually rendered by <Boss> using a .glb model.
+  // We still need this Enemy component mounted so its useFrame runs the
+  // movement / AI / collision logic that drives `enemy.position` — just
+  // skip drawing the slime mesh for boss type.
+  if (enemy.type === 'boss') return null
+
   return (
     <group position={[enemy.position.x, 0, enemy.position.z]}>
       <primitive
@@ -608,4 +614,4 @@ export default function Enemy({ enemy }: Props) {
   )
 }
 
-useGLTF.preload('/models/slime/scene.gltf')
+useGLTF.preload('/models/slime/scene.glb')
