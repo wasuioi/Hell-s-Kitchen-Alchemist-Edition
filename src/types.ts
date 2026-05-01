@@ -75,4 +75,5 @@ export interface SpellEffect {
   damage: number
   duration: number
   elapsed: number
+  sizzle?: boolean
 }

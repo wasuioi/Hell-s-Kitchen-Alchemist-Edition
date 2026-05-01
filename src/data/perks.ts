@@ -82,6 +82,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+15%', Decay: '4.0s' }, added: 'Heal +2 HP per Heat stack consumed' },
     ],
   },
+  {
+    id: 'saute', name: 'Sauté', icon: '/icons/saute.png',
+    description: 'Casting while moving deals more damage. Higher tiers extend the movement window and add a Sizzle DoT.',
+    rarity: 'common',
+    tiers: [
+      { stats: { 'Damage While Moving': '+12%', Window: '0.25s' } },
+      { stats: { 'Damage While Moving': '+20%', Window: '0.50s' } },
+      { stats: { 'Damage While Moving': '+32%', Window: '0.50s' }, added: 'Buffed casts apply Sizzle (3 dmg/s for 1.5s)' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

@@ -21,6 +21,7 @@ function buildSpell(spellType: SpellType): SpellEffect {
 
   let damage = config.damage
   let radius = config.radius
+  let sizzle = false
 
   // Extra Spicy perk: boosts CHILI-based spells
   if (CHILI_SPELLS.includes(spellType)) {
@@ -57,9 +58,22 @@ function buildSpell(spellType: SpellType): SpellEffect {
     }
   }
 
+  // Sauté perk: bonus damage (and T3 Sizzle DoT) when casting while moving
+  const sauteStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'saute')?.stackCount || 0
+  if (sauteStacks > 0) {
+    const tier = Math.min(sauteStacks, 3)
+    const windowMs = [250, 500, 500][tier - 1]
+    const bonus = [1.12, 1.20, 1.32][tier - 1]
+    const since = performance.now() - usePlayerStore.getState().lastMoveTime
+    if (since < windowMs) {
+      damage *= bonus
+      if (tier >= 3) sizzle = true
+    }
+  }
+
   return {
     id: `spell_${spellId++}`, type: spellType, position: targetPos,
-    radius, damage, duration: config.duration, elapsed: 0,
+    radius, damage, duration: config.duration, elapsed: 0, sizzle,
   }
 }
 

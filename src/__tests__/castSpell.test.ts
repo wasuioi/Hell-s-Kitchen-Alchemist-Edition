@@ -4,6 +4,7 @@ import { useDeckStore } from '../stores/deckStore'
 import { SPELL_CONFIG } from '../data/recipes'
 
 const INFERNO_BASE = SPELL_CONFIG.INFERNO.damage
+const TIDAL_BASE = SPELL_CONFIG.TIDAL_WAVE.damage
 
 // Mock the window globals castSpell calls so the test doesn't crash. Vitest
 // runs in jsdom (vitest.config.ts), so `window` already exists — we only
@@ -157,5 +158,97 @@ describe('castSpell + boiling_point VFX', () => {
     // base × (1 + 0.10 × 2) = base × 1.2 — multiplier still works
     expect(spell.damage).toBeCloseTo(INFERNO_BASE * 1.2, 5)
     expect(usePlayerStore.getState().heatStacks).toBe(0) // Heat still consumes
+  })
+})
+
+function addSaute(stacks: number) {
+  for (let i = 0; i < stacks; i++) {
+    useDeckStore.getState().addPerk({
+      id: 'saute', name: 'Sauté', icon: '/icons/saute.png',
+      description: '', stackCount: 1,
+    })
+  }
+}
+
+describe('castSpell + saute', () => {
+  it('applies +12% damage at T1 when player moved recently', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addSaute(1)
+    usePlayerStore.setState({ lastMoveTime: performance.now() - 100 }) // 100ms ago, within 250ms
+    castSpell('TIDAL_WAVE')
+    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    expect(spell.damage).toBeCloseTo(TIDAL_BASE * 1.12, 5)
+  })
+
+  it('no bonus when player has not moved recently at T1', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addSaute(1)
+    usePlayerStore.setState({ lastMoveTime: 0 }) // never moved
+    castSpell('TIDAL_WAVE')
+    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    expect(spell.damage).toBeCloseTo(TIDAL_BASE, 5)
+  })
+
+  it('no bonus when last move was outside the T1 250ms window', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addSaute(1)
+    usePlayerStore.setState({ lastMoveTime: performance.now() - 400 }) // 400ms ago, outside 250ms
+    castSpell('TIDAL_WAVE')
+    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    expect(spell.damage).toBeCloseTo(TIDAL_BASE, 5)
+  })
+
+  it('applies +20% damage at T2', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addSaute(2)
+    usePlayerStore.setState({ lastMoveTime: performance.now() - 100 })
+    castSpell('TIDAL_WAVE')
+    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    expect(spell.damage).toBeCloseTo(TIDAL_BASE * 1.20, 5)
+  })
+
+  it('T2 window is 500ms — triggers if last move was 400ms ago', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addSaute(2)
+    usePlayerStore.setState({ lastMoveTime: performance.now() - 400 })
+    castSpell('TIDAL_WAVE')
+    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    expect(spell.damage).toBeCloseTo(TIDAL_BASE * 1.20, 5)
+  })
+
+  it('applies +32% damage at T3', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addSaute(3)
+    usePlayerStore.setState({ lastMoveTime: performance.now() - 100 })
+    castSpell('TIDAL_WAVE')
+    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    expect(spell.damage).toBeCloseTo(TIDAL_BASE * 1.32, 5)
+  })
+
+  it('sets sizzle=true on spell at T3 when moving', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addSaute(3)
+    usePlayerStore.setState({ lastMoveTime: performance.now() - 100 })
+    castSpell('TIDAL_WAVE')
+    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    expect(spell.sizzle).toBe(true)
+  })
+
+  it('sizzle is falsy at T1 even when moving', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addSaute(1)
+    usePlayerStore.setState({ lastMoveTime: performance.now() - 100 })
+    castSpell('TIDAL_WAVE')
+    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    expect(spell.sizzle).toBeFalsy()
+  })
+
+  it('sizzle is falsy at T3 when not moving', async () => {
+    const { castSpell } = await import('../utils/castSpell')
+    addSaute(3)
+    usePlayerStore.setState({ lastMoveTime: 0 })
+    castSpell('TIDAL_WAVE')
+    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    expect(spell.sizzle).toBeFalsy()
   })
 })

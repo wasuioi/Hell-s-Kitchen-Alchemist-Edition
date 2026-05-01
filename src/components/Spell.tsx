@@ -138,6 +138,16 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
         if (BURN_SPELLS.includes(spell.type) && extraSpicyStacks > 0 && !infernoConsumedStatus) {
           useEnemyStore.getState().setEnemyBurning(enemy.id, now + BURN_DURATION_MS)
         }
+
+        // Sauté T3: Sizzle DoT (3 dmg/s for 1.5s) — piggy-backs on the burning renderer.
+        // Only extends burning if the sizzle window is longer than any active burn.
+        if (spell.sizzle) {
+          const currentBurning = useEnemyStore.getState().enemies.find((e) => e.id === enemy.id)?.burningUntil ?? 0
+          const sizzleUntil = now + 1500
+          if (sizzleUntil > currentBurning) {
+            useEnemyStore.getState().setEnemyBurning(enemy.id, sizzleUntil)
+          }
+        }
       }
     }
 

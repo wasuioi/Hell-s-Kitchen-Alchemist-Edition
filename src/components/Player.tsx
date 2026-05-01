@@ -120,6 +120,7 @@ export default function Player() {
       // Record ghost position for trail
       ghostsRef.current.push({ x: pos.x, z: pos.z, time: performance.now(), index: ghostIndex.current++ })
       setGhosts([...ghostsRef.current])
+      if (Math.hypot(newX - pos.x, newZ - pos.z) > 0.01) usePlayerStore.setState({ lastMoveTime: performance.now() })
       usePlayerStore.getState().setPosition({ x: newX, z: newZ })
       return
     }
@@ -146,6 +147,7 @@ export default function Player() {
       setGhosts([...ghostsRef.current])
     }
 
+    if (Math.hypot(newX - pos.x, newZ - pos.z) > 0.01) usePlayerStore.setState({ lastMoveTime: performance.now() })
     usePlayerStore.getState().setPosition({ x: newX, z: newZ })
     usePlayerStore.getState().setRotation(Math.atan2(dx, dz))
 

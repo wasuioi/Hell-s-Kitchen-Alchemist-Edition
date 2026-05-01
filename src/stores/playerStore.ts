@@ -20,6 +20,8 @@ interface PlayerState {
   lastHitAt: number
   // Speed buff (Salt Speed spell)
   speedBuffUntil: number
+  // Sauté perk: timestamp of last position change
+  lastMoveTime: number
   // Actions
   setPosition: (pos: Position) => void; setRotation: (rot: number) => void
   takeDamage: (amount: number) => void; heal: (amount: number) => void
@@ -40,7 +42,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   position: { x: 0, z: 0 }, rotation: 0, hp: 100, maxHp: 100, status: 'normal',
   isDashing: false, dashDirection: null, dashCooldownUntil: 0, dashEndTime: 0,
   heatStacks: 0, lastHitAt: 0,
-  speedBuffUntil: 0,
+  speedBuffUntil: 0, lastMoveTime: 0,
   setPosition: (pos) => set({ position: pos }),
   setRotation: (rot) => set({ rotation: rot }),
   takeDamage: (amount) => {
@@ -86,6 +88,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   reset: () => set({
     position: { x: 0, z: 0 }, rotation: 0, hp: 100, maxHp: 100, status: 'normal',
     isDashing: false, dashDirection: null, dashCooldownUntil: 0, dashEndTime: 0,
-    heatStacks: 0, lastHitAt: 0, speedBuffUntil: 0,
+    heatStacks: 0, lastHitAt: 0, speedBuffUntil: 0, lastMoveTime: 0,
   }),
 }))
