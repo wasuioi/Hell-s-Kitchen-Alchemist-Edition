@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber'
 import { Text } from '@react-three/drei'
 import { useGameStore } from '../stores/gameStore'
 import Arena from './Arena'
+import Skydome from './Skydome'
 import Camera from './Camera'
 import Player from './Player'
 import EnemyManager from './EnemyManager'
@@ -35,6 +36,7 @@ export default function Scene({ onReady }: { onReady?: () => void }) {
             the scene reads less flat without losing the forge mood. */}
         <hemisphereLight color="#ffc890" groundColor="#3a1a10" intensity={0.5} />
         <Camera />
+        <Skydome />
         <Arena />
         <AmbientEmbers />
         <GroundCracks />
