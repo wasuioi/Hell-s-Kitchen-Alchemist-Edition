@@ -33,3 +33,7 @@ dist-ssr
 # the user accepts "always allow" on a tool prompt. Tracking it causes pull
 # conflicts when sessions auto-append patterns. Each machine keeps its own copy.
 .claude/settings.local.json
+
+# Claude Code runtime lockfile — written by scheduled-tasks MCP per-process,
+# never useful to track.
+.claude/scheduled_tasks.lock

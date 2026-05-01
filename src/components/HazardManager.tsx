@@ -4,19 +4,80 @@ import { useGameStore } from '../stores/gameStore'
 import { useHazardStore } from '../stores/hazardStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { usePlayerStore } from '../stores/playerStore'
-import { HAZARD_DEFS, HAZARD_POOL } from '../data/hazards'
+import { HAZARD_DEFS, HAZARD_POOL, type HazardDef } from '../data/hazards'
 import { ARENA_SIZE } from './Arena'
-import { getDistance } from '../utils/collision'
-import Hazard from './Hazard'
+import type { Hazard, HazardType, Position } from '../types'
+import HazardComponent from './Hazard'
 
 // Living Kitchen — environmental hazards (issue #71).
-// First pass: grease fire only, scheduled every ~12s during combat from wave 4+.
-// Hazard system handles its own lifecycle and collision; rendered as a layer
-// of <Hazard /> children driven by the hazardStore.
-const HAZARD_INTERVAL_S = 12
+// Schedules grease fires / steam vents / falling pots on a wave-aware clock
+// from wave 4+; also fires during the boss fight. Hazard system handles its
+// own lifecycle and collision; rendered as a layer of <Hazard /> children
+// driven by the hazardStore.
 const FIRST_HAZARD_WAVE = 4
-// Pull cluster spawns away from arena walls so the disc doesn't clip out of bounds.
-const HAZARD_SPAWN_INSET = 4
+// Spawn cadence escalates as the run progresses, so late-game feels
+// meaningfully tighter than the wave-4 intro tier.
+const HAZARD_INTERVAL_EARLY_COMBAT_S = 12  // wave 4-5: teaching tier
+const HAZARD_INTERVAL_MID_COMBAT_S = 10    // wave 6: picks up
+const HAZARD_INTERVAL_LATE_COMBAT_S = 8    // wave 7: chaotic with surge
+const HAZARD_INTERVAL_BOSS_S = 6           // boss: relentless
+
+function getHazardIntervalSec(phase: string, currentWave: number): number {
+  if (phase === 'boss') return HAZARD_INTERVAL_BOSS_S
+  if (currentWave >= 7) return HAZARD_INTERVAL_LATE_COMBAT_S
+  if (currentWave >= 6) return HAZARD_INTERVAL_MID_COMBAT_S
+  return HAZARD_INTERVAL_EARLY_COMBAT_S
+}
+// Pull disc spawns away from arena walls so they don't clip out of bounds.
+const DISC_SPAWN_INSET = 4
+// Keep wall vents away from corners so the rectangle doesn't graze the
+// neighbouring wall.
+const WALL_VENT_CORNER_INSET = 4
+
+/** Pick a spawn position + rotation for a freshly-rolled hazard type.
+ *  Exported so DevPanel can reuse the same placement rules when manually
+ *  spawning a hazard of a chosen type. */
+export function rollHazardPlacement(type: HazardType): { position: Position; rotation: number } {
+  const def = HAZARD_DEFS[type]
+  // Disc + falling both land at a random arena point — falling is just
+  // visually different (drops from above) but its impact center is on the floor.
+  if (def.shape === 'disc' || def.shape === 'falling') {
+    const half = ARENA_SIZE / 2 - DISC_SPAWN_INSET
+    return {
+      position: {
+        x: (Math.random() - 0.5) * 2 * half,
+        z: (Math.random() - 0.5) * 2 * half,
+      },
+      rotation: 0,
+    }
+  }
+  // Rect (steam vent): anchor on a random wall, perpendicular into arena.
+  const half = ARENA_SIZE / 2
+  const alongMax = ARENA_SIZE / 2 - WALL_VENT_CORNER_INSET
+  const along = (Math.random() - 0.5) * 2 * alongMax
+  const edge = Math.floor(Math.random() * 4)
+  switch (edge) {
+    case 0: return { position: { x: along, z: -half }, rotation: 0 }              // north wall, +z
+    case 1: return { position: { x: along, z: half }, rotation: Math.PI }         // south wall, -z
+    case 2: return { position: { x: half, z: along }, rotation: -Math.PI / 2 }    // east wall, -x
+    default: return { position: { x: -half, z: along }, rotation: Math.PI / 2 }   // west wall, +x
+  }
+}
+
+/** True if (px, pz) lies inside the hazard's damage shape. */
+function isInHazard(px: number, pz: number, h: Hazard, def: HazardDef): boolean {
+  const dx = px - h.position.x
+  const dz = pz - h.position.z
+  if (def.shape === 'disc' || def.shape === 'falling') {
+    return dx * dx + dz * dz <= def.radius * def.radius
+  }
+  // Rect: rotate point into the vent's local frame (vent extends along +z).
+  const cos = Math.cos(h.rotation)
+  const sin = Math.sin(h.rotation)
+  const localX = dx * cos - dz * sin
+  const localZ = dx * sin + dz * cos
+  return localZ >= 0 && localZ <= def.length && Math.abs(localX) <= def.width / 2
+}
 
 export default function HazardManager() {
   const nextHazardAt = useRef(0)
@@ -32,9 +93,9 @@ export default function HazardManager() {
     const wasHazardPhase = prevPhase.current === 'combat' || prevPhase.current === 'boss'
 
     // Just entered a hazard phase from anywhere else (menu, reward, lull).
-    // Reset hazards + restart the clock so the first one lands ~HAZARD_INTERVAL_S in.
+    // Reset hazards + restart the clock at the current tier's interval.
     if (isHazardPhase && !wasHazardPhase) {
-      nextHazardAt.current = nowMs + HAZARD_INTERVAL_S * 1000
+      nextHazardAt.current = nowMs + getHazardIntervalSec(phase, currentWave) * 1000
       useHazardStore.getState().reset()
     }
     // Just exited (reward / lull / death / victory). Clear so they don't
@@ -49,15 +110,13 @@ export default function HazardManager() {
     // Schedule new hazards on the wall-clock — wave-driven gating opens the
     // door at FIRST_HAZARD_WAVE so early waves stay teaching-friendly.
     // Boss phase carries currentWave 7, so the gate is naturally open there.
+    // Interval shrinks by tier (see getHazardIntervalSec) so wave 7 + boss
+    // feel meaningfully tighter than the wave-4 intro.
     if (currentWave >= FIRST_HAZARD_WAVE && nowMs >= nextHazardAt.current) {
       const type = HAZARD_POOL[Math.floor(Math.random() * HAZARD_POOL.length)]
-      const half = ARENA_SIZE / 2 - HAZARD_SPAWN_INSET
-      const position = {
-        x: (Math.random() - 0.5) * 2 * half,
-        z: (Math.random() - 0.5) * 2 * half,
-      }
-      useHazardStore.getState().spawnHazard(type, position)
-      nextHazardAt.current = nowMs + HAZARD_INTERVAL_S * 1000
+      const { position, rotation } = rollHazardPlacement(type)
+      useHazardStore.getState().spawnHazard(type, position, rotation)
+      nextHazardAt.current = nowMs + getHazardIntervalSec(phase, currentWave) * 1000
     }
 
     // Lifecycle + collision. Iterate from a snapshot so removeHazard mid-loop is safe.
@@ -81,20 +140,20 @@ export default function HazardManager() {
       let didDamage = false
 
       // Player collision — dash gives i-frames, matches the existing exploder rule.
-      if (!isDashing && getDistance(playerPos, h.position) <= def.radius) {
+      if (!isDashing && isInHazard(playerPos.x, playerPos.z, h, def)) {
         usePlayerStore.getState().takeDamage(def.damage)
         if (usePlayerStore.getState().hp <= 0) useGameStore.getState().triggerDeath()
         didDamage = true
       }
 
-      // Enemy collision — hazards damage everything caught in radius EXCEPT
+      // Enemy collision — hazards damage everything caught in shape EXCEPT
       // the boss; the boss fight reads better when hazards are pure player
       // pressure, not a chip-damage tool against the boss HP bar.
       const enemies = useEnemyStore.getState().enemies
       for (const e of enemies) {
         if (e.dying || e.detonating) continue
         if (e.type === 'boss') continue
-        if (getDistance(e.position, h.position) > def.radius) continue
+        if (!isInHazard(e.position.x, e.position.z, h, def)) continue
         useEnemyStore.getState().damageEnemy(e.id, def.damage)
         useEnemyStore.getState().setEnemyHitFlash(e.id, nowMs + 100)
         const updated = useEnemyStore.getState().enemies.find((x) => x.id === e.id)
@@ -117,5 +176,5 @@ export default function HazardManager() {
   })
 
   const hazards = useHazardStore((s) => s.hazards)
-  return <>{hazards.map((h) => <Hazard key={h.id} hazard={h} />)}</>
+  return <>{hazards.map((h) => <HazardComponent key={h.id} hazard={h} />)}</>
 }

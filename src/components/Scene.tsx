@@ -9,6 +9,7 @@ import Player from './Player'
 import EnemyManager from './EnemyManager'
 import HazardManager from './HazardManager'
 import HeartPickupManager from './HeartPickupManager'
+import StockCubes from './StockCubes'
 import SpellManager from './Spell'
 import Boss from './Boss'
 import DamageNumbers from './DamageNumbers'
@@ -46,6 +47,7 @@ export default function Scene({ onReady }: { onReady?: () => void }) {
         <EnemyManager />
         <HazardManager />
         <HeartPickupManager />
+        <StockCubes />
         <SpellManager />
         <DamageNumbers />
         <ExplosionEffects />

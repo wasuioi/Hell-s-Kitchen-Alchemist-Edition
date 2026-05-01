@@ -81,15 +81,27 @@ export interface SpellEffect {
   elapsed: number
 }
 
-// Environmental hazards (issue #71). For now: grease fire only — the system
-// is set up to grow (oil slick, falling pot, spice cloud, steam vent) without
-// schema changes by adding entries to data/hazards.ts.
-export type HazardType = 'grease_fire'
+// Environmental hazards (issue #71). Each type pulls its config (shape,
+// damage, durations) from data/hazards.ts.
+export type HazardType = 'grease_fire' | 'steam_vent' | 'falling_pot'
 
 export interface Hazard {
   id: string
   type: HazardType
   position: Position
+  /** Y-axis rotation in radians. Used by directional (rect-shape) hazards
+   *  like steam vents — for disc hazards this is always 0. */
+  rotation: number
   spawnedAt: number   // performance.now() at spawn — drives both telegraph and active timing
   lastDamageAt: number
+}
+
+/** Bonemeal Stock cube (perk #28). Dropped from killed non-boss enemies; the
+ *  player walks over them to heal. Lives until lifetimeMs since spawnedAt or
+ *  consumed by proximity. */
+export interface StockCube {
+  id: string
+  position: Position
+  spawnedAt: number
+  lifetimeMs: number
 }
