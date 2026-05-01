@@ -43,22 +43,22 @@ export const RARITY_WEIGHTS: Record<PerkRarity, number> = {
 
 export const PERK_POOL: PerkDefinition[] = [
   {
-    id: 'extra_spicy', name: 'Extra Spicy', icon: '🌶️',
+    id: 'extra_spicy', name: 'Extra Spicy', icon: '/icons/extra_spicy.png',
     description: 'Chili spells +20% damage, smaller AOE; ignites enemies (Burn 🔥)',
     rarity: 'common',
   },
   {
-    id: 'deep_freeze', name: 'Deep Freeze', icon: '🧊',
+    id: 'deep_freeze', name: 'Deep Freeze', icon: '/icons/deep_freeze.png',
     description: 'Bottle spells Freeze enemies for 2s (immobilized)',
     rarity: 'rare',
   },
   {
-    id: 'fast_prep', name: 'Fast Prep', icon: '⚡',
+    id: 'fast_prep', name: 'Fast Prep', icon: '/icons/fast_prep.png',
     description: 'Cook cooldown reduced by 0.5s',
     rarity: 'rare',
   },
   {
-    id: 'double_batch', name: 'Double Batch', icon: '🧪',
+    id: 'double_batch', name: 'Double Batch', icon: '/icons/double_batch.png',
     description: '10% chance spell triggers twice',
     rarity: 'epic',
   },

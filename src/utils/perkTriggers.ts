@@ -59,7 +59,8 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
 
     if (updated.type === 'exploder') {
       useEnemyStore.getState().setEnemyDetonating(updated.id)
-      window.__queueDetonation?.(updated.id)
+      // chainDepth=1 → short delay, exploder bun in place (no sprint).
+      window.__queueDetonation?.(updated.id, 1)
       continue
     }
     useEnemyStore.getState().setEnemyDying(updated.id)

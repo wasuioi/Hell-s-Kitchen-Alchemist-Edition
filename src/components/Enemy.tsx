@@ -14,6 +14,21 @@ const BURN_TICK_DAMAGE = 3
 
 const SPEED: Record<string, number> = { slow: 2, fast: 4, tanky: 1.5, boss: 1, exploder: 3.5 }
 const SIZE: Record<string, number> = { slow: 0.4, fast: 0.35, tanky: 0.6, boss: 1.2, exploder: 0.3 }
+const TANKY_DETECT_RANGE = 5
+const TANKY_TELEGRAPH_MS = 1000
+const TANKY_CHARGE_MS = 700
+const TANKY_CHARGE_MULT = 6
+const TANKY_COOLDOWN_MS = 3000
+// Exploder telegraph: total wind-up window must match INITIAL_DETONATION_DELAY_MS
+// in EnemyManager.tsx so the visual ramp ends exactly when the explosion fires.
+const EXPLODER_TELEGRAPH_MS = 1800
+const EXPLODER_PAUSE_MS = 800
+const EXPLODER_SPRINT_MULT = 1.7
+const EXPLODER_TRIGGER_RANGE = 4
+// Fast: weaves left/right while chasing — sin(performance.now() / period + phase).
+const FAST_WEAVE_PERIOD_MS = 223
+const FAST_WEAVE_LATERAL = 1.5
+const FAST_WEAVE_FORWARD_SLOWDOWN = 0.3
 const ENEMY_BOUNDARY = ARENA_SIZE / 2 - 0.5
 const MODEL_SCALE: Record<string, number> = { slow: 16, fast: 13, tanky: 24, boss: 10, exploder: 11 }
 const BASE_COLOR: Record<string, string> = {
@@ -110,7 +125,8 @@ export default function Enemy({ enemy }: Props) {
       if (updated && updated.hp <= 0) {
         if (updated.type === 'exploder') {
           useEnemyStore.getState().setEnemyDetonating(enemy.id)
-          ; (window as any).__queueDetonation?.(enemy.id)
+          // chainDepth=1 → short delay, exploder bun in place (no sprint).
+          ; (window as any).__queueDetonation?.(enemy.id, 1)
         } else {
           useEnemyStore.getState().setEnemyDying(enemy.id)
           useGameStore.getState().recordEnemyDefeated()
@@ -139,38 +155,69 @@ export default function Enemy({ enemy }: Props) {
       return // skip movement while dying
     }
 
-    // --- Detonating (exploder only) — skip movement ---
-    if (enemy.detonating) {
-      // Rapid flash: toggle scale between 1.0 and 1.2 every 50ms
-      const flashPhase = Math.floor(performance.now() / 50) % 2
-      setVisualScale(flashPhase === 0 ? 1.0 : 1.2)
-      return
-    }
-
     const timeScale = useGameStore.getState().timeScale
     const playerPos = usePlayerStore.getState().position
-    // Animate knockback with friction
+
+    // --- Detonating (exploder only) — body visibly swells over the wind-up
+    // window. First EXPLODER_PAUSE_MS the exploder freezes ("locked on"),
+    // then sprints toward the player at boosted speed for the rest of the
+    // window so a stationary player can't simply walk away. Chain
+    // reactions also enter this branch — their CHAIN_DETONATION_DELAY_MS
+    // is shorter so they fire while the visual ramp is still partway.
+    if (enemy.detonating) {
+      const detElapsed = performance.now() - enemy.detonationStartTime
+      const progress = Math.min(1, detElapsed / EXPLODER_TELEGRAPH_MS)
+      const swell = 1.0 + progress * 0.5
+      const jitterAmt = 0.05 + progress * 0.15
+      const flashPhase = Math.floor(performance.now() / 50) % 2
+      setVisualScale(swell + (flashPhase === 0 ? -jitterAmt : jitterAmt))
+
+      if (detElapsed < EXPLODER_PAUSE_MS) return // lock-on freeze
+
+      const detNow = performance.now()
+      const detFrozen = detNow < enemy.frozenUntil
+      const detStunned = detNow < enemy.stunnedUntil
+      const detSoaked = detNow < enemy.soakedUntil
+      const detSlowed = detNow < enemy.slowedUntil
+      const detMult = (detFrozen || detStunned) ? 0 : (detSoaked || detSlowed) ? 0.5 : 1
+      const sdx = playerPos.x - enemy.position.x
+      const sdz = playerPos.z - enemy.position.z
+      const sdist = Math.sqrt(sdx * sdx + sdz * sdz) || 1
+      const sprintSpeed = SPEED.exploder * EXPLODER_SPRINT_MULT * detMult * timeScale
+      useEnemyStore.getState().updateEnemyPosition(enemy.id, {
+        x: enemy.position.x + (sdx / sdist) * sprintSpeed * delta,
+        z: enemy.position.z + (sdz / sdist) * sprintSpeed * delta,
+      })
+      return
+    }
+    // Animate knockback with friction. Tanky shrugs it off during the
+    // telegraph + charge windows — clear the impulse so the player can't
+    // cancel a committed wind-up with a single spell hit.
     if (enemy.knockback) {
-      const kb = enemy.knockback
-      const friction = 0.05
-      const newVx = kb.vx * Math.pow(friction, delta)
-      const newVz = kb.vz * Math.pow(friction, delta)
-      const nx = enemy.position.x + kb.vx * delta
-      const nz = enemy.position.z + kb.vz * delta
-      const cx = Math.max(-ENEMY_BOUNDARY, Math.min(ENEMY_BOUNDARY, nx))
-      const cz = Math.max(-ENEMY_BOUNDARY, Math.min(ENEMY_BOUNDARY, nz))
-      useEnemyStore.getState().updateEnemyPosition(enemy.id, { x: cx, z: cz })
-      // Bounce off walls
-      let bounceVx = newVx
-      let bounceVz = newVz
-      if (cx !== nx) bounceVx = -newVx * 0.6
-      if (cz !== nz) bounceVz = -newVz * 0.6
-      if (Math.abs(bounceVx) < 0.5 && Math.abs(bounceVz) < 0.5) {
+      if (enemy.ai.kind === 'tanky_telegraph' || enemy.ai.kind === 'tanky_charge') {
         useEnemyStore.getState().setEnemyKnockback(enemy.id, null)
       } else {
-        useEnemyStore.getState().setEnemyKnockback(enemy.id, { vx: bounceVx, vz: bounceVz })
+        const kb = enemy.knockback
+        const friction = 0.05
+        const newVx = kb.vx * Math.pow(friction, delta)
+        const newVz = kb.vz * Math.pow(friction, delta)
+        const nx = enemy.position.x + kb.vx * delta
+        const nz = enemy.position.z + kb.vz * delta
+        const cx = Math.max(-ENEMY_BOUNDARY, Math.min(ENEMY_BOUNDARY, nx))
+        const cz = Math.max(-ENEMY_BOUNDARY, Math.min(ENEMY_BOUNDARY, nz))
+        useEnemyStore.getState().updateEnemyPosition(enemy.id, { x: cx, z: cz })
+        // Bounce off walls
+        let bounceVx = newVx
+        let bounceVz = newVz
+        if (cx !== nx) bounceVx = -newVx * 0.6
+        if (cz !== nz) bounceVz = -newVz * 0.6
+        if (Math.abs(bounceVx) < 0.5 && Math.abs(bounceVz) < 0.5) {
+          useEnemyStore.getState().setEnemyKnockback(enemy.id, null)
+        } else {
+          useEnemyStore.getState().setEnemyKnockback(enemy.id, { vx: bounceVx, vz: bounceVz })
+        }
+        return // skip normal movement while being knocked back
       }
-      return // skip normal movement while being knocked back
     }
 
     const now = performance.now()
@@ -183,11 +230,68 @@ export default function Enemy({ enemy }: Props) {
     const dx = playerPos.x - enemy.position.x
     const dz = playerPos.z - enemy.position.z
     const dist = Math.sqrt(dx * dx + dz * dz)
-    if (dist > 0.5) {
-      useEnemyStore.getState().updateEnemyPosition(enemy.id, {
-        x: enemy.position.x + (dx / dist) * speed * delta,
-        z: enemy.position.z + (dz / dist) * speed * delta,
-      })
+
+    // AI dispatcher per ai.kind. Most enemies use 'chase'. Tanky has its own
+    // idle → telegraph → charge cycle so the player has to read the wind-up
+    // and dodge the committed direction.
+    const ai = enemy.ai
+    if (ai.kind === 'tanky_telegraph') {
+      // Hold position; lock charge direction at telegraph end (commits to
+      // player's position when the wind-up finishes, not where they are now).
+      if (now >= ai.until && statusMultiplier > 0) {
+        const tlen = dist || 1
+        const chargeSpeed = SPEED.tanky * TANKY_CHARGE_MULT
+        useEnemyStore.getState().setEnemyAi(enemy.id, {
+          kind: 'tanky_charge',
+          until: now + TANKY_CHARGE_MS,
+          vx: (dx / tlen) * chargeSpeed,
+          vz: (dz / tlen) * chargeSpeed,
+        })
+      }
+    } else if (ai.kind === 'tanky_charge') {
+      if (now >= ai.until) {
+        useEnemyStore.getState().setEnemyAi(enemy.id, {
+          kind: 'tanky_idle',
+          cooldownUntil: now + TANKY_COOLDOWN_MS,
+        })
+      } else {
+        useEnemyStore.getState().updateEnemyPosition(enemy.id, {
+          x: enemy.position.x + ai.vx * statusMultiplier * delta * timeScale,
+          z: enemy.position.z + ai.vz * statusMultiplier * delta * timeScale,
+        })
+      }
+    } else {
+      // 'chase' or 'tanky_idle' — standard walk toward player. Fast adds a
+      // lateral sine weave so a stationary AoE has to predict the swing,
+      // not just sit on the enemy's current point.
+      if (dist > 0.5) {
+        const fx = dx / dist
+        const fz = dz / dist
+        let mx = fx * speed * delta
+        let mz = fz * speed * delta
+        if (enemy.type === 'fast') {
+          const idHash = parseInt(enemy.id.split('_')[1] ?? '0', 10) * 0.7
+          const wave = Math.sin(now / FAST_WEAVE_PERIOD_MS + idHash)
+          // Right-perpendicular vector (90° clockwise on the xz plane).
+          const px = -fz
+          const pz = fx
+          const forwardScale = 1 - FAST_WEAVE_FORWARD_SLOWDOWN * Math.abs(wave)
+          const lateralScale = FAST_WEAVE_LATERAL * wave
+          mx = (fx * forwardScale + px * lateralScale) * speed * delta
+          mz = (fz * forwardScale + pz * lateralScale) * speed * delta
+        }
+        useEnemyStore.getState().updateEnemyPosition(enemy.id, {
+          x: enemy.position.x + mx,
+          z: enemy.position.z + mz,
+        })
+      }
+      const cooldownReady = ai.kind === 'tanky_idle' && now >= (ai.cooldownUntil ?? 0)
+      if (cooldownReady && dist < TANKY_DETECT_RANGE && statusMultiplier > 0) {
+        useEnemyStore.getState().setEnemyAi(enemy.id, {
+          kind: 'tanky_telegraph',
+          until: now + TANKY_TELEGRAPH_MS,
+        })
+      }
     }
 
     // Circle collision: push enemy out of player
@@ -242,7 +346,7 @@ export default function Enemy({ enemy }: Props) {
     const isDashing = usePlayerStore.getState().isDashing
 
     // Exploder: self-detonate when close to player
-    if (enemy.type === 'exploder' && dist < 2.5 && !enemy.detonating && !enemy.dying) {
+    if (enemy.type === 'exploder' && dist < EXPLODER_TRIGGER_RANGE && !enemy.detonating && !enemy.dying) {
       useEnemyStore.getState().setEnemyDetonating(enemy.id)
         ; (window as any).__queueDetonation?.(enemy.id)
       return
@@ -284,6 +388,17 @@ export default function Enemy({ enemy }: Props) {
         object={slimeModel}
         scale={[scale, scale, scale]}
       />
+      {/* Tanky telegraph: pulsing red aura while winding up the charge */}
+      {enemy.ai.kind === 'tanky_telegraph' && !enemy.dying && (
+        <mesh position={[0, enemySize, 0]}>
+          <sphereGeometry args={[enemySize * 1.7, 16, 16]} />
+          <meshBasicMaterial
+            color="#ef4444"
+            transparent
+            opacity={0.25 + Math.sin(renderNow / 80) * 0.18}
+          />
+        </mesh>
+      )}
       {/* Tanky stone plates — 3 baked plates around upper body */}
       {enemy.type === 'tanky' && (
         <group ref={facingGroupRef}>
@@ -314,6 +429,26 @@ export default function Enemy({ enemy }: Props) {
           />
         </mesh>
       )}
+
+      {/* Exploder telegraph aura — red sphere that grows + brightens over the
+          wind-up window so the threat reads from across the arena. */}
+      {enemy.type === 'exploder' && enemy.detonating && !enemy.dying && (() => {
+        const elapsed = renderNow - enemy.detonationStartTime
+        const progress = Math.min(1, elapsed / EXPLODER_TELEGRAPH_MS)
+        const auraRadius = enemySize * (1.4 + progress * 1.4)
+        const auraOpacity = 0.20 + progress * 0.55
+        return (
+          <mesh position={[0, enemySize, 0]}>
+            <sphereGeometry args={[auraRadius, 20, 20]} />
+            <meshBasicMaterial
+              color="#ff2200"
+              transparent
+              opacity={auraOpacity}
+              depthWrite={false}
+            />
+          </mesh>
+        )
+      })()}
       {/* Hit flash overlay — white sphere over the enemy */}
       {isFlashing && (
         <mesh position={[0, SIZE[enemy.type], 0]}>
@@ -450,19 +585,31 @@ export default function Enemy({ enemy }: Props) {
           distance={2}
         />
       )}
-      {/* Exploder danger zone ring during detonation */}
-      {isExploder && enemy.detonating && (
-        <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[2.7, 3, 48]} />
-          <meshBasicMaterial
-            color="#ef4444"
-            transparent
-            opacity={0.3 + Math.sin(performance.now() / 80) * 0.15}
-            side={THREE.DoubleSide}
-            depthWrite={false}
-          />
-        </mesh>
-      )}
+      {/* Exploder danger zone ring during detonation — opacity + ring scale
+          ramp with telegraph progress so the threat builds. */}
+      {isExploder && enemy.detonating && (() => {
+        const elapsed = renderNow - enemy.detonationStartTime
+        const progress = Math.min(1, elapsed / EXPLODER_TELEGRAPH_MS)
+        const pulseFreq = 80 - progress * 40 // 80ms → 40ms
+        const baseOpacity = 0.10 + progress * 0.75 // 0.10 → 0.85
+        const ringScale = 1.0 + progress * 0.18 // grows ~18% as it builds
+        return (
+          <mesh
+            position={[0, 0.03, 0]}
+            rotation={[-Math.PI / 2, 0, 0]}
+            scale={ringScale}
+          >
+            <ringGeometry args={[2.7, 3, 48]} />
+            <meshBasicMaterial
+              color="#ef4444"
+              transparent
+              opacity={baseOpacity + Math.sin(performance.now() / pulseFreq) * 0.12}
+              side={THREE.DoubleSide}
+              depthWrite={false}
+            />
+          </mesh>
+        )
+      })()}
     </group>
   )
 }
