@@ -86,3 +86,26 @@ describe('enemyStore heart drop on death', () => {
     expect(useEnemyStore.getState().enemies[0].dying).toBe(true)
   })
 })
+
+import { useGameStore } from '../stores/gameStore'
+
+describe('gameStore clears hearts on wave end / reset', () => {
+  beforeEach(() => {
+    useGameStore.getState().reset()
+    usePickupStore.getState().reset()
+  })
+
+  it('completeWave clears all active hearts', () => {
+    usePickupStore.getState().spawn({ x: 1, z: 1 })
+    usePickupStore.getState().spawn({ x: 2, z: 2 })
+    expect(usePickupStore.getState().hearts).toHaveLength(2)
+    useGameStore.getState().completeWave()
+    expect(usePickupStore.getState().hearts).toHaveLength(0)
+  })
+
+  it('reset clears all active hearts', () => {
+    usePickupStore.getState().spawn({ x: 1, z: 1 })
+    useGameStore.getState().reset()
+    expect(usePickupStore.getState().hearts).toHaveLength(0)
+  })
+})
