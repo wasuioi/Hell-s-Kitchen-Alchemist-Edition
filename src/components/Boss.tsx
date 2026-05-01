@@ -18,6 +18,19 @@ interface SaltCircle {
   z: number
 }
 
+// Stone-slam wind-up pose — captured via the dev pose tester (2026-05-01).
+// Values are rotation deltas added on top of each bone's rest pose, scaled by
+// slamT (0 = rest, 1 = fully wound up). The arms lerp into this during the
+// 2s telegraph, then snap back to 0 in the first 0.15s of the blast — that
+// snap is the "ฟาดลงมาสุดแรง" slam.
+const SLAM_WIND_UP_POSE = {
+  upper_armL: { x: -0.44, y: 0.74, z: -2.61 },
+  upper_armR: { x: 2.72, y: 2.61, z: -1.27 },
+  forearmL: { x: 0.02, y: -0.10, z: -0.32 },
+  forearmR: { x: 0.00, y: 0.00, z: 0.95 },
+  spine003: { x: -0.12, y: -0.04, z: -0.06 },
+} as const
+
 function getEdgeSpawnPosition(): { x: number; z: number } {
   const edge = Math.floor(Math.random() * 4)
   const half = ARENA_SIZE / 2 - 1
@@ -178,32 +191,25 @@ export default function Boss() {
       useEnemyStore.getState().spawnEnemy('slow', getEdgeSpawnPosition())
     }
 
-    // Arm animation — both stone_slam (rotation.x) and hand_lance (rotation.z)
-    // targets are computed every frame and written every frame, so transitioning
-    // between attacks resets cleanly without residual rotations.
-    let slamArmAngle = 0 // 0 = rest (arms down), -1.4 ≈ raised overhead
+    // Slam wind-up — multi-bone pose lerp. slamT goes 0→1 over the 2s
+    // telegraph (arms gradually wind up to SLAM_WIND_UP_POSE), then snaps
+    // back 1→0 in the first 0.15s of the blast (the actual slam-down hit).
+    let slamT = 0
     if (currentAttack.current === 'stone_slam') {
       if (attackPhase.current === 'telegraph') {
-        // Lerp 0 → -1.4 over the 2s telegraph
-        const t = Math.min(attackPhaseTimer.current / TELEGRAPH_DURATION, 1)
-        slamArmAngle = -1.4 * t
+        slamT = Math.min(attackPhaseTimer.current / TELEGRAPH_DURATION, 1)
       } else if (attackPhase.current === 'attack') {
-        // Snap down on the first 0.15s of the blast, then return to rest
         const blastT = heatBlastScale.current / 6
-        if (blastT < 0.2) {
-          slamArmAngle = -1.4 + 1.4 * (blastT / 0.2) // -1.4 → 0
-        } else {
-          slamArmAngle = 0
-        }
+        slamT = blastT < 0.2 ? 1 - blastT / 0.2 : 0
       }
     }
 
-    let lanceExtendT = 0 // 0 = rest, 1 = fully extended outward
+    // Lance arm extension — eases in over the first 0.4s of the attack
+    let lanceExtendT = 0
     if (
       currentAttack.current === 'hand_lance' &&
       attackPhase.current === 'attack'
     ) {
-      // Eases in over the first 0.4s of the attack, then holds at 1 for the rest
       lanceExtendT = Math.min(attackPhaseTimer.current / 0.4, 1)
     }
 
@@ -221,6 +227,9 @@ export default function Boss() {
 
     // Apply animation as deltas on top of the snapshotted rest pose so that
     // writing 0 at idle returns the bones to their natural rig pose.
+    // Stone_slam writes ALL three axes via SLAM_WIND_UP_POSE; hand_lance adds
+    // its own delta on Z (upper arm) and X (forearm). The two attacks can't
+    // be active simultaneously, so the additive form here is safe.
     const upL = upperArmLRef.current
     const upR = upperArmRRef.current
     const fL = forearmLRef.current
@@ -228,18 +237,37 @@ export default function Boss() {
     const thL = thighLRef.current
     const thR = thighRRef.current
     const rp = restPose.current
+    const slam = SLAM_WIND_UP_POSE
     if (upL && rp.upL) {
-      upL.rotation.x = rp.upL.x + slamArmAngle
-      upL.rotation.z = rp.upL.z + lanceExtendT * 1.5
+      upL.rotation.x = rp.upL.x + slamT * slam.upper_armL.x
+      upL.rotation.y = rp.upL.y + slamT * slam.upper_armL.y
+      upL.rotation.z = rp.upL.z + slamT * slam.upper_armL.z + lanceExtendT * 1.5
     }
     if (upR && rp.upR) {
-      upR.rotation.x = rp.upR.x + slamArmAngle
-      upR.rotation.z = rp.upR.z + lanceExtendT * -1.5
+      upR.rotation.x = rp.upR.x + slamT * slam.upper_armR.x
+      upR.rotation.y = rp.upR.y + slamT * slam.upper_armR.y
+      upR.rotation.z = rp.upR.z + slamT * slam.upper_armR.z + lanceExtendT * -1.5
     }
-    if (fL && rp.fL) fL.rotation.x = rp.fL.x + -lanceExtendT * 0.3
-    if (fR && rp.fR) fR.rotation.x = rp.fR.x + -lanceExtendT * 0.3
+    if (fL && rp.fL) {
+      fL.rotation.x = rp.fL.x + slamT * slam.forearmL.x + -lanceExtendT * 0.3
+      fL.rotation.y = rp.fL.y + slamT * slam.forearmL.y
+      fL.rotation.z = rp.fL.z + slamT * slam.forearmL.z
+    }
+    if (fR && rp.fR) {
+      fR.rotation.x = rp.fR.x + slamT * slam.forearmR.x + -lanceExtendT * 0.3
+      fR.rotation.y = rp.fR.y + slamT * slam.forearmR.y
+      fR.rotation.z = rp.fR.z + slamT * slam.forearmR.z
+    }
     if (thL && rp.thL) thL.rotation.x = rp.thL.x + walkSwing
     if (thR && rp.thR) thR.rotation.x = rp.thR.x - walkSwing
+    // spine003 — slight torso bend during slam wind-up (uses testable cache)
+    const sp003 = testableBonesRef.current.get('spine003')
+    const sp003Rest = testableRestRef.current.get('spine003')
+    if (sp003 && sp003Rest) {
+      sp003.rotation.x = sp003Rest.x + slamT * slam.spine003.x
+      sp003.rotation.y = sp003Rest.y + slamT * slam.spine003.y
+      sp003.rotation.z = sp003Rest.z + slamT * slam.spine003.z
+    }
 
     // Attack state machine
     if (attackPhase.current === 'idle') {
