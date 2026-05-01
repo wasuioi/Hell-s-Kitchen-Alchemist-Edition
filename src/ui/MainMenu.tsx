@@ -1,7 +1,27 @@
+import type { ReactNode } from 'react'
 import { useDeckStore } from '../stores/deckStore'
 import { useGameStore } from '../stores/gameStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
+
+function Key({ children }: { children: ReactNode }) {
+  return (
+    <kbd style={{
+      display: 'inline-block',
+      minWidth: '64px',
+      padding: '3px 10px',
+      background: 'rgba(245, 158, 11, 0.12)',
+      border: '1px solid rgba(245, 158, 11, 0.35)',
+      borderRadius: '4px',
+      color: '#fbbf24',
+      fontSize: '11px',
+      fontWeight: 600,
+      textAlign: 'center',
+      fontFamily: 'inherit',
+      letterSpacing: '1px',
+    }}>{children}</kbd>
+  )
+}
 
 export default function MainMenu() {
   function handleStart() {
@@ -70,13 +90,30 @@ export default function MainMenu() {
         START SHIFT
       </button>
 
+      <div style={{
+        marginTop: '16px',
+        display: 'grid',
+        gridTemplateColumns: 'auto 1fr',
+        columnGap: '16px',
+        rowGap: '6px',
+        color: '#9ca3af',
+        fontSize: '12px',
+        letterSpacing: '1px',
+        alignItems: 'center',
+      }}>
+        <Key>WASD</Key><span>Move</span>
+        <Key>Shift</Key><span>Dash <span style={{ color: '#6b7280' }}>— dodges through enemies</span></span>
+        <Key>1 / 2 / 3</Key><span>Slot ingredient <span style={{ color: '#6b7280' }}>(or J / K / L)</span></span>
+        <Key>Space</Key><span>Cook the cauldron</span>
+      </div>
+
       <p style={{
         color: '#6b7280',
-        fontSize: '12px',
+        fontSize: '11px',
         marginTop: '12px',
         letterSpacing: '1px',
       }}>
-        WASD to move &nbsp;·&nbsp; 1/2/3 or J/K/L to slot ingredients &nbsp;·&nbsp; Space to cook
+        Survive 7 waves &nbsp;·&nbsp; pick a perk between each &nbsp;·&nbsp; defeat the Hungry Golem
       </p>
     </div>
   )
