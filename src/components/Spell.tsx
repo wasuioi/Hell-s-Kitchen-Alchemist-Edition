@@ -13,7 +13,7 @@ import { spawnGroundCrack } from './GroundCracks'
 
 declare global {
   interface Window {
-    __queueDetonation?: (enemyId: string) => void
+    __queueDetonation?: (enemyId: string, chainDepth?: number) => void
   }
 }
 
@@ -165,7 +165,8 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
       // Exploder: start detonation instead of dying
       if (deadEnemy.type === 'exploder' && !deadEnemy.detonating && !deadEnemy.dying) {
         useEnemyStore.getState().setEnemyDetonating(deadEnemy.id)
-        window.__queueDetonation?.(deadEnemy.id)
+        // chainDepth=1 → short delay, exploder bun in place (no sprint).
+        window.__queueDetonation?.(deadEnemy.id, 1)
         continue
       }
 

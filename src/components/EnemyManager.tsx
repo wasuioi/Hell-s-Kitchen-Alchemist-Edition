@@ -15,7 +15,7 @@ const ENEMIES_PER_WAVE = 20
 const EXPLODER_RADIUS = 3
 const EXPLODER_PLAYER_DAMAGE = 15
 const EXPLODER_ENEMY_DAMAGE = 20
-const INITIAL_DETONATION_DELAY_MS = 1500 // player-triggered wind-up — long enough to read + dodge
+const INITIAL_DETONATION_DELAY_MS = 1800 // player-triggered wind-up — long enough to read + dodge
 const CHAIN_DETONATION_DELAY_MS = 400 // chain reaction — kept tight so chains feel quick
 
 function getSpawnPosition(): { x: number; z: number } {
