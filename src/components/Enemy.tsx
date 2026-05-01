@@ -66,7 +66,7 @@ const CONTACT_COOLDOWN = 1
 interface Props { enemy: EnemyType }
 
 export default function Enemy({ enemy }: Props) {
-  const { scene } = useGLTF('/models/slime/scene.gltf')
+  const { scene } = useGLTF('/models/slime/scene.glb')
   const slimeModel = useMemo(() => {
     const clone = scene.clone(true)
     const smallSlime = clone.getObjectByName('SmallSlime')
@@ -614,4 +614,4 @@ export default function Enemy({ enemy }: Props) {
   )
 }
 
-useGLTF.preload('/models/slime/scene.gltf')
+useGLTF.preload('/models/slime/scene.glb')
