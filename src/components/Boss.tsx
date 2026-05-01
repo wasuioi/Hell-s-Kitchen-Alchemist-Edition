@@ -69,7 +69,7 @@ export default function Boss() {
   const { scene } = useGLTF('/models/boss/boss.glb')
   // Auto-fit: scale model to BOSS_HEIGHT units tall, then offset Y so its
   // lowest point sits at y=0. Bigger boss = more imposing presence.
-  const BOSS_HEIGHT = 4.5
+  const BOSS_HEIGHT = 6
   const { fittedScale, floorOffset } = useMemo(() => {
     const bbox = new THREE.Box3().setFromObject(scene)
     const size = new THREE.Vector3()
