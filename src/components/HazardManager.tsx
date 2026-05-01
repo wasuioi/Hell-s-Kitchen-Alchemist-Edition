@@ -26,23 +26,29 @@ export default function HazardManager() {
     const { phase, currentWave } = useGameStore.getState()
     const nowMs = performance.now()
 
-    // Combat entry — start the hazard clock fresh so the first one lands
-    // ~HAZARD_INTERVAL_S into the wave, not instantly.
-    if (phase === 'combat' && prevPhase.current !== 'combat') {
+    // Hazards run during combat AND boss — the boss fight gets the same
+    // environmental pressure to keep the kitchen feeling alive.
+    const isHazardPhase = phase === 'combat' || phase === 'boss'
+    const wasHazardPhase = prevPhase.current === 'combat' || prevPhase.current === 'boss'
+
+    // Just entered a hazard phase from anywhere else (menu, reward, lull).
+    // Reset hazards + restart the clock so the first one lands ~HAZARD_INTERVAL_S in.
+    if (isHazardPhase && !wasHazardPhase) {
       nextHazardAt.current = nowMs + HAZARD_INTERVAL_S * 1000
       useHazardStore.getState().reset()
     }
-    // Clear hazards when leaving combat to avoid lingering damage during
-    // reward / death / boss / lull screens.
-    if (phase !== 'combat' && prevPhase.current === 'combat') {
+    // Just exited (reward / lull / death / victory). Clear so they don't
+    // tick damage on overlay screens.
+    if (!isHazardPhase && wasHazardPhase) {
       useHazardStore.getState().reset()
     }
     prevPhase.current = phase
 
-    if (phase !== 'combat') return
+    if (!isHazardPhase) return
 
     // Schedule new hazards on the wall-clock — wave-driven gating opens the
     // door at FIRST_HAZARD_WAVE so early waves stay teaching-friendly.
+    // Boss phase carries currentWave 7, so the gate is naturally open there.
     if (currentWave >= FIRST_HAZARD_WAVE && nowMs >= nextHazardAt.current) {
       const type = HAZARD_POOL[Math.floor(Math.random() * HAZARD_POOL.length)]
       const half = ARENA_SIZE / 2 - HAZARD_SPAWN_INSET
@@ -81,11 +87,13 @@ export default function HazardManager() {
         didDamage = true
       }
 
-      // Enemy collision — hazards damage everything caught in radius. Skip
-      // already-dying / detonating enemies so we don't tick them past 0.
+      // Enemy collision — hazards damage everything caught in radius EXCEPT
+      // the boss; the boss fight reads better when hazards are pure player
+      // pressure, not a chip-damage tool against the boss HP bar.
       const enemies = useEnemyStore.getState().enemies
       for (const e of enemies) {
         if (e.dying || e.detonating) continue
+        if (e.type === 'boss') continue
         if (getDistance(e.position, h.position) > def.radius) continue
         useEnemyStore.getState().damageEnemy(e.id, def.damage)
         useEnemyStore.getState().setEnemyHitFlash(e.id, nowMs + 100)
