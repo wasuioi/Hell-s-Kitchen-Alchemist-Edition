@@ -12,6 +12,7 @@ import DamageNumbers from './DamageNumbers'
 import GroundCracks from './GroundCracks'
 import ExplosionEffects from './ExplosionEffect'
 import SpriteVfxEffects from './SpriteVfxEffect'
+import AmbientEmbers from './AmbientEmbers'
 
 export default function Scene() {
   const phase = useGameStore((s) => s.phase)
@@ -23,10 +24,11 @@ export default function Scene() {
         {/* Scene clear color — keeps the canvas from flashing pure black on
             first frame / between renders before lighting kicks in. */}
         <color attach="background" args={['#1a1612']} />
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
+        <ambientLight intensity={0.55} color="#7a4a30" />
+        <directionalLight position={[5, 10, 5]} intensity={0.9} color="#ffbb77" castShadow />
         <Camera />
         <Arena />
+        <AmbientEmbers />
         <GroundCracks />
         <Player />
         <EnemyManager />
