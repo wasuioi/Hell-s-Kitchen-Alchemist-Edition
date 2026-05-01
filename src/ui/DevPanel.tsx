@@ -3,8 +3,14 @@ import { useGameStore } from '../stores/gameStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useHazardStore } from '../stores/hazardStore'
 import { usePlayerStore } from '../stores/playerStore'
-import { ARENA_SIZE } from '../components/Arena'
 import { HAZARD_POOL } from '../data/hazards'
+import { rollHazardPlacement } from '../components/HazardManager'
+import type { HazardType } from '../types'
+
+const HAZARD_LABEL: Record<HazardType, string> = {
+  grease_fire: 'Grease fire',
+  steam_vent: 'Steam vent',
+}
 
 // Minimal dev panel — DEV-only (gated by `import.meta.env.DEV` at the App
 // mount site). Built to feel-test the hazard system from #71: jump to
@@ -24,13 +30,9 @@ export default function DevPanel() {
     useGameStore.setState({ phase: 'combat', currentWave: targetWave })
   }
 
-  function spawnHazardNow() {
-    const half = ARENA_SIZE / 2 - 4
-    const type = HAZARD_POOL[Math.floor(Math.random() * HAZARD_POOL.length)]
-    useHazardStore.getState().spawnHazard(type, {
-      x: (Math.random() - 0.5) * 2 * half,
-      z: (Math.random() - 0.5) * 2 * half,
-    })
+  function spawnHazard(type: HazardType) {
+    const { position, rotation } = rollHazardPlacement(type)
+    useHazardStore.getState().spawnHazard(type, position, rotation)
   }
 
   function healFull() {
@@ -97,15 +99,24 @@ export default function DevPanel() {
         </div>
       </div>
 
-      <button
-        onClick={spawnHazardNow}
-        style={{
-          padding: '6px 10px', borderRadius: 4,
-          background: 'rgba(255,96,32,0.18)',
-          border: '1px solid rgba(255,96,32,0.5)',
-          color: '#ffae80', cursor: 'pointer', font: 'inherit',
-        }}
-      >Spawn hazard now</button>
+      <div>
+        <div style={{ color: '#888', fontSize: 11, marginBottom: 4 }}>Spawn hazard</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {HAZARD_POOL.map((type) => (
+            <button
+              key={type}
+              onClick={() => spawnHazard(type)}
+              style={{
+                padding: '6px 10px', borderRadius: 4,
+                background: 'rgba(255,96,32,0.15)',
+                border: '1px solid rgba(255,96,32,0.45)',
+                color: '#ffae80', cursor: 'pointer', font: 'inherit',
+                textAlign: 'left',
+              }}
+            >{HAZARD_LABEL[type]}</button>
+          ))}
+        </div>
+      </div>
 
       <button
         onClick={healFull}

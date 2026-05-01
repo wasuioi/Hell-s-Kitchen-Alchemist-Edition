@@ -22,8 +22,10 @@ const DISC_SPAWN_INSET = 4
 // neighbouring wall.
 const WALL_VENT_CORNER_INSET = 4
 
-/** Pick a spawn position + rotation for a freshly-rolled hazard type. */
-function rollHazardPlacement(type: HazardType): { position: Position; rotation: number } {
+/** Pick a spawn position + rotation for a freshly-rolled hazard type.
+ *  Exported so DevPanel can reuse the same placement rules when manually
+ *  spawning a hazard of a chosen type. */
+export function rollHazardPlacement(type: HazardType): { position: Position; rotation: number } {
   const def = HAZARD_DEFS[type]
   if (def.shape === 'disc') {
     const half = ARENA_SIZE / 2 - DISC_SPAWN_INSET
