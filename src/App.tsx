@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useGameStore } from './stores/gameStore'
 import { useDeckStore } from './stores/deckStore'
 import { usePlayerStore } from './stores/playerStore'
@@ -43,6 +43,12 @@ function MapLoadingOverlay() {
 export default function App() {
   const phase = useGameStore((s) => s.phase)
   const cookCooldown = useRef(0)
+  // Flips true the moment the lazy Scene chunk has loaded and Scene's tree
+  // has mounted. Gates the HUD + reward screen so the cauldron and cards
+  // don't show up over a still-blank canvas while the player waits for
+  // models to come in on a slow link.
+  const [sceneReady, setSceneReady] = useState(false)
+  const handleSceneReady = useCallback(() => setSceneReady(true), [])
 
   // Warm caches for icons + VFX sprites the first time the player enters
   // combat. Deferred from app mount because on slow connections the
@@ -121,14 +127,20 @@ export default function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <Suspense fallback={<MapLoadingOverlay />}>
-        <Scene />
+      <Suspense fallback={null}>
+        <Scene onReady={handleSceneReady} />
       </Suspense>
+
+      {/* Loading overlay only shows AFTER the user clicks Start and the
+          map / models still aren't in. Stays hidden on the menu. */}
+      {phase !== 'menu' && !sceneReady && <MapLoadingOverlay />}
 
       {phase === 'menu' && <MainMenu />}
 
-      {(phase === 'combat' || phase === 'boss') && <HUD />}
-      {phase === 'reward' && <RewardScreen />}
+      {/* Cauldron + ingredient cards (HUD) and reward screen wait for
+          sceneReady so they don't appear over a blank world. */}
+      {(phase === 'combat' || phase === 'boss') && sceneReady && <HUD />}
+      {phase === 'reward' && sceneReady && <RewardScreen />}
       {phase === 'death' && <DeathScreen />}
       {phase === 'victory' && <VictoryScreen />}
       <DebugPanel />

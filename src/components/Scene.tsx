@@ -1,4 +1,4 @@
-import { Suspense } from 'react'
+import { Suspense, useEffect } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Text } from '@react-three/drei'
 import { useGameStore } from '../stores/gameStore'
@@ -13,9 +13,14 @@ import GroundCracks from './GroundCracks'
 import ExplosionEffects from './ExplosionEffect'
 import SpriteVfxEffects from './SpriteVfxEffect'
 
-export default function Scene() {
+export default function Scene({ onReady }: { onReady?: () => void }) {
   const phase = useGameStore((s) => s.phase)
   const isDead = phase === 'death'
+
+  // Fire once Scene's React tree has mounted — i.e. the lazy chunk finished
+  // downloading and React rendered the canvas root. Used by App.tsx to flip
+  // a `sceneReady` flag that gates HUD visibility behind the loading overlay.
+  useEffect(() => { onReady?.() }, [onReady])
 
   return (
     <div style={{ width: '100%', height: '100%', background: '#1a1612', filter: isDead ? 'grayscale(100%)' : 'none', transition: 'filter 1s ease' }}>
