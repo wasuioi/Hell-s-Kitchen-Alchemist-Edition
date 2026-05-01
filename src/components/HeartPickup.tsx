@@ -30,6 +30,7 @@ export default function HeartPickup({ position }: Props) {
   return (
     <group ref={groupRef} position={[position.x, 0.6, position.z]}>
       <primitive object={heartModel} scale={0.6} />
+      <pointLight color="#ff3355" intensity={4} distance={3} position={[0, 0.4, 0]} />
     </group>
   )
 }
