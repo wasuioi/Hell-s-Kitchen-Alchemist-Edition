@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { GamePhase, GameStats, SpellType } from '../types'
+import { useDeckStore } from './deckStore'
 
 interface GameState {
   phase: GamePhase; currentWave: number; timeScale: number; stats: GameStats
@@ -22,6 +23,11 @@ interface GameState {
 
 const initialStats: GameStats = { enemiesDefeated: 0, ingredientsUsed: 0, wavesCleared: 0, spellsCast: {} as Record<SpellType, number> }
 
+function refillFirstCourseCasts() {
+  const fc = useDeckStore.getState().activePerks.find((p) => p.id === 'first_course')
+  if (fc) useDeckStore.getState().setPrimedCasts([3, 4, 5][Math.min(fc.stackCount, 3) - 1])
+}
+
 export const useGameStore = create<GameState>((set, get) => ({
   phase: 'menu', currentWave: 0, timeScale: 1,
   stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> },
@@ -30,11 +36,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   freezeUntil: 0,
   screenFlashUntil: 0,
   // Game flow
-  startShift: () => set({ phase: 'combat', currentWave: 1, timeScale: 1, stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> } }),
+  startShift: () => { set({ phase: 'combat', currentWave: 1, timeScale: 1, stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> } }); refillFirstCourseCasts() },
   completeWave: () => set((s) => ({ phase: 'reward', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } })),
-  nextWave: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })),
-  skipReward: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })),
-  startBoss: () => set({ phase: 'boss' }),
+  nextWave: () => { set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })); refillFirstCourseCasts() },
+  skipReward: () => { set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })); refillFirstCourseCasts() },
+  startBoss: () => { set({ phase: 'boss' }); refillFirstCourseCasts() },
   triggerVictory: () => set((s) => ({ phase: 'victory', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } })),
   triggerDeath: () => set({ phase: 'death', timeScale: 0.2 }),
   recordEnemyDefeated: () => set((s) => ({ stats: { ...s.stats, enemiesDefeated: s.stats.enemiesDefeated + 1 } })),

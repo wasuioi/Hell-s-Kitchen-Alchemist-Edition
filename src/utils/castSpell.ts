@@ -57,6 +57,14 @@ function buildSpell(spellType: SpellType): SpellEffect {
     }
   }
 
+  // FirstCourse perk: opening casts of each wave deal bonus damage
+  const fcPerk = useDeckStore.getState().activePerks.find((p) => p.id === 'first_course')
+  const primedRemaining = useDeckStore.getState().primedCastsRemaining
+  if (fcPerk && primedRemaining > 0) {
+    const tier = Math.min(fcPerk.stackCount, 3)
+    damage *= [1.40, 1.55, 1.75][tier - 1]
+  }
+
   return {
     id: `spell_${spellId++}`, type: spellType, position: targetPos,
     radius, damage, duration: config.duration, elapsed: 0,
@@ -86,5 +94,22 @@ export function castSpell(spellType: SpellType) {
       ;(window as any).__castSpell?.(bonusSpell)
       if (spellType === 'SALT_SPEED') applySaltSpeedBuff()
     }, 200)
+  }
+
+  // FirstCourse perk: post-cast — spawn VFX, consume primed cast, T3 echo
+  const fcPerk = useDeckStore.getState().activePerks.find((p) => p.id === 'first_course')
+  const primedRemaining = useDeckStore.getState().primedCastsRemaining
+  if (fcPerk && primedRemaining > 0) {
+    const tier = Math.min(fcPerk.stackCount, 3)
+    const playerPos = usePlayerStore.getState().position
+    spawnSpriteVfx('first_course_flash', playerPos.x, playerPos.z)
+    useDeckStore.getState().consumePrimedCast()
+    if (tier >= 3 && primedRemaining === 1) {
+      setTimeout(() => {
+        const echoSpell = buildSpell(spellType)
+        echoSpell.damage *= 1.75
+        ;(window as any).__castSpell?.(echoSpell)
+      }, 200)
+    }
   }
 }

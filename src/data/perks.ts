@@ -82,6 +82,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+15%', Decay: '4.0s' }, added: 'Heal +2 HP per Heat stack consumed' },
     ],
   },
+  {
+    id: 'first_course', name: 'First Course', icon: '/icons/first_course.png',
+    description: 'Your first spells of every wave deal bonus damage. Frontloaded.',
+    rarity: 'rare', vfxSprite: 'first_course_flash',
+    tiers: [
+      { stats: { 'Primed casts': 3, Damage: '+40%' } },
+      { stats: { 'Primed casts': 4, Damage: '+55%' }, added: 'While primed, cook cooldown -0.3s' },
+      { stats: { 'Primed casts': 5, Damage: '+75%' }, added: 'Last primed cast echoes 200ms later' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

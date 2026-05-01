@@ -8,13 +8,16 @@ function drawRandomIngredient(): Ingredient { return INGREDIENTS[Math.floor(Math
 interface DeckState {
   hand: Ingredient[]; cauldron: { slotA: Ingredient | null; slotB: Ingredient | null }
   activePerks: Perk[]; cookCooldown: number; cookCooldownDuration: number
+  primedCastsRemaining: number
   initHand: () => void; slotIngredient: (handIndex: number) => void
   cook: () => SpellType | null; addPerk: (perk: Perk) => void; clearPerks: () => void
   setCookCooldown: (timestamp: number, duration: number) => void; reset: () => void
+  setPrimedCasts: (n: number) => void; consumePrimedCast: () => void
 }
 
 export const useDeckStore = create<DeckState>((set, get) => ({
   hand: [], cauldron: { slotA: null, slotB: null }, activePerks: [], cookCooldown: 0, cookCooldownDuration: 1.5,
+  primedCastsRemaining: 0,
   initHand: () => set({ hand: [drawRandomIngredient(), drawRandomIngredient(), drawRandomIngredient()], cauldron: { slotA: null, slotB: null } }),
   slotIngredient: (handIndex) => {
     const state = get()
@@ -38,5 +41,7 @@ export const useDeckStore = create<DeckState>((set, get) => ({
   }),
   clearPerks: () => set({ activePerks: [] }),
   setCookCooldown: (timestamp, duration) => set({ cookCooldown: timestamp, cookCooldownDuration: duration }),
-  reset: () => set({ hand: [], cauldron: { slotA: null, slotB: null }, activePerks: [], cookCooldown: 0, cookCooldownDuration: 1.5 }),
+  setPrimedCasts: (n) => set({ primedCastsRemaining: n }),
+  consumePrimedCast: () => set((s) => ({ primedCastsRemaining: Math.max(0, s.primedCastsRemaining - 1) })),
+  reset: () => set({ hand: [], cauldron: { slotA: null, slotB: null }, activePerks: [], cookCooldown: 0, cookCooldownDuration: 1.5, primedCastsRemaining: 0 }),
 }))

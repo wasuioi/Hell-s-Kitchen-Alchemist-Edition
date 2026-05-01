@@ -35,13 +35,17 @@ export default function App() {
       else if (e.key === ' ') {
         e.preventDefault()
         const now = performance.now() / 1000
-        const fastPrepStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'fast_prep')?.stackCount || 0
-        const baseCooldown = Math.max(0.2, 1.5 - fastPrepStacks * 0.5)
+        const deckState = useDeckStore.getState()
+        const fastPrepStacks = deckState.activePerks.find((p) => p.id === 'fast_prep')?.stackCount || 0
+        const fc = deckState.activePerks.find((p) => p.id === 'first_course')
+        const fcTier = fc ? Math.min(fc.stackCount, 3) : 0
+        const fcReduction = fcTier >= 2 && deckState.primedCastsRemaining > 0 ? 0.3 : 0
+        const baseCooldown = Math.max(0.2, 1.5 - fastPrepStacks * 0.5 - fcReduction)
         if (now - cookCooldown.current < baseCooldown) return
-        const spell = useDeckStore.getState().cook()
+        const spell = deckState.cook()
         if (!spell) return
         cookCooldown.current = now
-        useDeckStore.getState().setCookCooldown(now, baseCooldown)
+        deckState.setCookCooldown(now, baseCooldown)
         useGameStore.getState().recordIngredientUsed()
         useGameStore.getState().recordIngredientUsed()
         useGameStore.getState().recordSpellCast(spell)
