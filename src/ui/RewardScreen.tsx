@@ -212,7 +212,7 @@ function HealCard({ hp, maxHp, onPick }: { hp: number; maxHp: number; onPick: ()
       <div style={{ color: '#fca5a5', fontSize: '24px', fontWeight: 'bold' }}>HEAL</div>
       <div style={{ color: 'white', fontSize: '32px', fontWeight: 'bold' }}>+30 HP</div>
       <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '13px', textAlign: 'center' }}>
-        {disabled ? 'HP เต็มแล้ว' : 'Skip the perk and recover health.'}
+        {disabled ? 'Already at full HP' : 'Skip the perk and recover health.'}
       </div>
     </div>
   )
