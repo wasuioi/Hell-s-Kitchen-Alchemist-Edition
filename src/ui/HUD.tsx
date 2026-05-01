@@ -3,11 +3,33 @@ import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { MAX_PERK_TIER } from '../data/perks'
+import { getRecipe } from '../data/recipes'
+import type { Ingredient } from '../types'
 import CardHand from './CardHand'
 import CauldronUI from './CauldronUI'
 import ScreenFlash from './ScreenFlash'
 import PerkIcon from './PerkIcon'
 import TierDots from './TierDots'
+
+const INGREDIENT_ICON: Record<Ingredient, string> = {
+  CHILI: '/icons/chili.png',
+  BOTTLE: '/icons/bottle.png',
+  SALT: '/icons/salt.png',
+}
+
+const SPELL_LABEL: Record<string, string> = {
+  INFERNO: 'Inferno 🔥', TIDAL_WAVE: 'Tidal Wave 🌊', SALT_SPEED: 'Salt Speed 👟',
+  STEAM: 'Steam 💨', METEOR: 'Meteor ☄️', MUD: 'Mud 🟫',
+}
+
+const RECIPES: Array<[Ingredient, Ingredient]> = [
+  ['CHILI', 'CHILI'],
+  ['BOTTLE', 'BOTTLE'],
+  ['SALT', 'SALT'],
+  ['CHILI', 'BOTTLE'],
+  ['CHILI', 'SALT'],
+  ['BOTTLE', 'SALT'],
+]
 
 export default function HUD() {
   const currentWave = useGameStore((s) => s.currentWave)
@@ -46,6 +68,37 @@ export default function HUD() {
         </div>
         <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '2px' }}>
           Enemies defeated: {stats.enemiesDefeated}
+        </div>
+      </div>
+
+      {/* Left side: recipe book */}
+      <div style={{
+        position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)',
+        zIndex: 10, padding: '12px 16px',
+        background: 'rgba(0,0,0,0.6)', borderRadius: '8px',
+        border: '1px solid rgba(245, 158, 11, 0.25)',
+      }}>
+        <div style={{
+          color: '#fbbf24', fontSize: '10px', fontWeight: 'bold',
+          letterSpacing: '2px', textAlign: 'center', marginBottom: '8px',
+        }}>
+          RECIPES
+        </div>
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: '6px',
+          color: '#d1d5db', fontSize: '11px',
+        }}>
+          {RECIPES.map(([a, b]) => (
+            <div key={`${a}+${b}`} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <img src={INGREDIENT_ICON[a]} alt={a} width={18} height={18} style={{ objectFit: 'contain' }} />
+              <span style={{ color: '#6b7280' }}>+</span>
+              <img src={INGREDIENT_ICON[b]} alt={b} width={18} height={18} style={{ objectFit: 'contain' }} />
+              <span style={{ color: '#6b7280' }}>=</span>
+              <span style={{ color: '#fcd34d', fontWeight: 'bold' }}>
+                {SPELL_LABEL[getRecipe(a, b)] ?? getRecipe(a, b)}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 

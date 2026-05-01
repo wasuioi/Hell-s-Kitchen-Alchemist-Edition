@@ -3,28 +3,6 @@ import { useDeckStore } from '../stores/deckStore'
 import { useGameStore } from '../stores/gameStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
-import { getRecipe } from '../data/recipes'
-import type { Ingredient } from '../types'
-
-const INGREDIENT_ICON: Record<Ingredient, string> = {
-  CHILI: '/icons/chili.png',
-  BOTTLE: '/icons/bottle.png',
-  SALT: '/icons/salt.png',
-}
-
-const SPELL_LABEL: Record<string, string> = {
-  INFERNO: 'Inferno 🔥', TIDAL_WAVE: 'Tidal Wave 🌊', SALT_SPEED: 'Salt Speed 👟',
-  STEAM: 'Steam 💨', METEOR: 'Meteor ☄️', MUD: 'Mud 🟫',
-}
-
-const RECIPES: Array<[Ingredient, Ingredient]> = [
-  ['CHILI', 'CHILI'],
-  ['BOTTLE', 'BOTTLE'],
-  ['SALT', 'SALT'],
-  ['CHILI', 'BOTTLE'],
-  ['CHILI', 'SALT'],
-  ['BOTTLE', 'SALT'],
-]
 
 function Key({ children }: { children: ReactNode }) {
   return (
@@ -127,45 +105,6 @@ export default function MainMenu() {
         <Key>Shift</Key><span>Dash <span style={{ color: '#6b7280' }}>— dodges through enemies</span></span>
         <Key>1 / 2 / 3</Key><span>Slot ingredient <span style={{ color: '#6b7280' }}>(or J / K / L)</span></span>
         <Key>Space</Key><span>Cook the cauldron</span>
-      </div>
-
-      <div style={{
-        marginTop: '20px',
-        padding: '12px 18px',
-        background: 'rgba(0,0,0,0.35)',
-        border: '1px solid rgba(245, 158, 11, 0.25)',
-        borderRadius: '8px',
-      }}>
-        <div style={{
-          color: '#fbbf24',
-          fontSize: '11px',
-          fontWeight: 'bold',
-          letterSpacing: '2px',
-          textAlign: 'center',
-          marginBottom: '8px',
-        }}>
-          RECIPE BOOK
-        </div>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(2, auto)',
-          columnGap: '24px',
-          rowGap: '6px',
-          color: '#d1d5db',
-          fontSize: '12px',
-        }}>
-          {RECIPES.map(([a, b]) => (
-            <div key={`${a}+${b}`} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <img src={INGREDIENT_ICON[a]} alt={a} width={22} height={22} style={{ objectFit: 'contain' }} />
-              <span style={{ color: '#6b7280' }}>+</span>
-              <img src={INGREDIENT_ICON[b]} alt={b} width={22} height={22} style={{ objectFit: 'contain' }} />
-              <span style={{ color: '#6b7280' }}>=</span>
-              <span style={{ color: '#fcd34d', fontWeight: 'bold' }}>
-                {SPELL_LABEL[getRecipe(a, b)] ?? getRecipe(a, b)}
-              </span>
-            </div>
-          ))}
-        </div>
       </div>
 
       <p style={{
