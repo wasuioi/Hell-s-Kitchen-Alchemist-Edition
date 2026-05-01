@@ -720,7 +720,7 @@ function HealCard({ hp, maxHp, onPick }: { hp: number; maxHp: number; onPick: ()
         e.currentTarget.style.boxShadow = disabled ? 'none' : '0 0 24px rgba(239,68,68,0.45)'
       }}
     >
-      <div style={{ fontSize: '72px', lineHeight: 1 }}>❤️</div>
+      <img src="/icons/heart_pickup.png" alt="Heart" style={{ width: '120px', height: '120px', objectFit: 'contain' }} />
       <div style={{ color: '#fca5a5', fontSize: '24px', fontWeight: 'bold' }}>HEAL</div>
       <div style={{ color: 'white', fontSize: '32px', fontWeight: 'bold' }}>+30 HP</div>
       <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: '13px', textAlign: 'center' }}>
@@ -797,8 +797,16 @@ If everything checks out, the heal system is complete.
 
 ---
 
+## Pre-requisite asset
+
+The heart icon (`public/icons/heart_pickup.png`, 1:1 PNG) is provided by the user
+out-of-band — saved directly into the worktree before Task 7 runs (Tasks 1–6 do
+not depend on it). Tasks 4 and 5 keep the in-world heart as a 3D emissive sphere
+for v1.
+
 ## Open follow-ups (not in this plan)
 
-- `/icons/heart_pickup.png` will land via the existing `/save-icon` workflow. Once it merges, swap the `❤️` emoji in `RewardScreen.tsx` (`HealCard`) for a `<img src="/icons/heart_pickup.png" />` and optionally render the same image as a flat sprite in `HeartPickup.tsx`.
-- Pickup VFX (`heart_pickup_idle.png` sprite sheet) is also out of scope for v1 — the 3D sphere is enough.
-- Heart-drop perks ("hearts heal +5 more", "drop rate +50%") would slot into `data/perks.ts` later without touching the heal core.
+- Pickup VFX (`heart_pickup_idle.png` sprite sheet) is out of scope for v1 — the
+  3D sphere is enough.
+- Heart-drop perks ("hearts heal +5 more", "drop rate +50%") would slot into
+  `data/perks.ts` later without touching the heal core.
