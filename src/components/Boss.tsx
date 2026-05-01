@@ -5,7 +5,6 @@ import { useGLTF, Html } from '@react-three/drei'
 import { useEnemyStore } from '../stores/enemyStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useGameStore } from '../stores/gameStore'
-import { useBossDevStore } from '../stores/bossDevStore'
 import { isInRange } from '../utils/collision'
 import { ARENA_SIZE } from './Arena'
 
@@ -67,14 +66,9 @@ export default function Boss() {
   const boss = useEnemyStore((s) => s.enemies.find((e) => e.type === 'boss'))
   const { scene } = useGLTF('/models/boss/boss.glb')
 
-  // Dev panel: live tweaks to the floating "BOSS" label above the head.
-  const labelOffsetX = useBossDevStore((s) => s.labelOffsetX)
-  const labelOffsetY = useBossDevStore((s) => s.labelOffsetY)
-  const labelFontSize = useBossDevStore((s) => s.labelFontSize)
-
   // Auto-fit: scale model to BOSS_HEIGHT units tall, then offset Y so the
   // model's lowest point sits at y=0.
-  const BOSS_HEIGHT = 6
+  const BOSS_HEIGHT = 5
   const { fittedScale, floorOffset } = useMemo(() => {
     const bbox = new THREE.Box3().setFromObject(scene)
     const size = new THREE.Vector3()
@@ -569,13 +563,9 @@ export default function Boss() {
         </>
       )}
 
-      {/* "BOSS" floating label — position + font size driven by BossDevPanel. */}
+      {/* "BOSS" floating label — anchor + font size locked from dev tuning. */}
       <Html
-        position={[
-          boss.position.x + labelOffsetX,
-          floorOffset + BOSS_HEIGHT - 0.2 + labelOffsetY,
-          boss.position.z,
-        ]}
+        position={[boss.position.x, floorOffset + BOSS_HEIGHT - 2.3, boss.position.z]}
         center
         distanceFactor={6}
         zIndexRange={[100, 0]}
@@ -587,7 +577,7 @@ export default function Boss() {
             border: '3px solid #ef4444',
             borderRadius: '6px',
             padding: '4px 18px',
-            fontSize: `${labelFontSize}px`,
+            fontSize: '53px',
             fontWeight: 'bold',
             letterSpacing: '4px',
             fontFamily: 'inherit',
