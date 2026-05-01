@@ -1,23 +1,24 @@
-import { useBossDevStore, DEFAULT_BOSS_HEIGHT } from '../stores/bossDevStore'
-import { ARENA_SIZE } from '../components/Arena'
+import {
+  useBossDevStore,
+  DEFAULT_LABEL_OFFSET_X,
+  DEFAULT_LABEL_OFFSET_Y,
+  DEFAULT_LABEL_FONT_SIZE,
+} from '../stores/bossDevStore'
 
-// Floating dev-only panel for tweaking the boss's position (X / Z) and visual
-// size in real time. When enabled, Enemy.tsx skips the boss's AI useFrame so
-// the slider values stick instead of being overridden each frame by chase
-// movement. Boss.tsx reads `size` from this store every render, and a
-// useEffect snaps the boss to (posX, posZ) whenever the sliders move.
-
-const ARENA_HALF = ARENA_SIZE / 2 - 1
+// Floating dev-only panel for tweaking the "BOSS" label that floats above
+// the golem's head. Sliders control horizontal/vertical offset (relative
+// to the default head-top anchor) and the label's font size in pixels.
+// The panel does not change the boss model itself.
 
 export default function BossDevPanel() {
   const enabled = useBossDevStore((s) => s.enabled)
-  const posX = useBossDevStore((s) => s.posX)
-  const posZ = useBossDevStore((s) => s.posZ)
-  const size = useBossDevStore((s) => s.size)
+  const offsetX = useBossDevStore((s) => s.labelOffsetX)
+  const offsetY = useBossDevStore((s) => s.labelOffsetY)
+  const fontSize = useBossDevStore((s) => s.labelFontSize)
   const setEnabled = useBossDevStore((s) => s.setEnabled)
-  const setPosX = useBossDevStore((s) => s.setPosX)
-  const setPosZ = useBossDevStore((s) => s.setPosZ)
-  const setSize = useBossDevStore((s) => s.setSize)
+  const setOffsetX = useBossDevStore((s) => s.setLabelOffsetX)
+  const setOffsetY = useBossDevStore((s) => s.setLabelOffsetY)
+  const setFontSize = useBossDevStore((s) => s.setLabelFontSize)
   const reset = useBossDevStore((s) => s.reset)
 
   return (
@@ -52,35 +53,38 @@ export default function BossDevPanel() {
           }}
         >
           <div style={{ color: '#a78bfa', fontWeight: 'bold', marginBottom: '4px' }}>
-            BOSS
+            BOSS label
           </div>
           <div style={{ opacity: 0.6, fontSize: '10px', marginBottom: '10px' }}>
-            Boss AI is frozen. Sliders set position and visual size.
+            Position the &quot;BOSS&quot; text floating above the golem&apos;s head.
           </div>
 
           <SliderRow
-            label="pos X"
-            value={posX}
-            min={-ARENA_HALF}
-            max={ARENA_HALF}
-            step={0.1}
-            onChange={setPosX}
+            label="off X"
+            value={offsetX}
+            min={-5}
+            max={5}
+            step={0.05}
+            onChange={setOffsetX}
+            unit=""
           />
           <SliderRow
-            label="pos Z"
-            value={posZ}
-            min={-ARENA_HALF}
-            max={ARENA_HALF}
-            step={0.1}
-            onChange={setPosZ}
+            label="off Y"
+            value={offsetY}
+            min={-3}
+            max={3}
+            step={0.05}
+            onChange={setOffsetY}
+            unit=""
           />
           <SliderRow
             label="size"
-            value={size}
-            min={1}
-            max={15}
-            step={0.1}
-            onChange={setSize}
+            value={fontSize}
+            min={10}
+            max={64}
+            step={1}
+            onChange={setFontSize}
+            unit="px"
           />
 
           <button
@@ -98,7 +102,7 @@ export default function BossDevPanel() {
               fontFamily: 'inherit',
             }}
           >
-            Reset to defaults (0, 0, {DEFAULT_BOSS_HEIGHT})
+            Reset to defaults ({DEFAULT_LABEL_OFFSET_X}, {DEFAULT_LABEL_OFFSET_Y}, {DEFAULT_LABEL_FONT_SIZE}px)
           </button>
         </div>
       )}
@@ -107,7 +111,7 @@ export default function BossDevPanel() {
 }
 
 function SliderRow({
-  label, value, min, max, step, onChange,
+  label, value, min, max, step, onChange, unit,
 }: {
   label: string
   value: number
@@ -115,6 +119,7 @@ function SliderRow({
   max: number
   step: number
   onChange: (n: number) => void
+  unit: string
 }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
@@ -128,8 +133,8 @@ function SliderRow({
         onChange={(e) => onChange(parseFloat(e.target.value))}
         style={{ flex: 1 }}
       />
-      <span style={{ width: '44px', textAlign: 'right', opacity: 0.85 }}>
-        {value.toFixed(1)}
+      <span style={{ width: '52px', textAlign: 'right', opacity: 0.85 }}>
+        {step >= 1 ? value.toFixed(0) : value.toFixed(2)}{unit}
       </span>
     </div>
   )

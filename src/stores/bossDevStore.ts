@@ -1,29 +1,36 @@
 import { create } from 'zustand'
 
-// Default boss visual height (units). When the dev panel is closed, the
-// store value sits at this default and the Boss component renders normally.
-export const DEFAULT_BOSS_HEIGHT = 6
+// Defaults for the floating "BOSS" label rendered above the boss's head.
+// offsets are relative to the boss's current position; the Boss component
+// adds them on top of the standard `floorOffset + BOSS_HEIGHT` anchor.
+export const DEFAULT_LABEL_OFFSET_X = 0
+export const DEFAULT_LABEL_OFFSET_Y = 0
+export const DEFAULT_LABEL_FONT_SIZE = 28
 
 interface BossDevState {
   enabled: boolean
-  posX: number
-  posZ: number
-  size: number
+  labelOffsetX: number
+  labelOffsetY: number
+  labelFontSize: number
   setEnabled: (b: boolean) => void
-  setPosX: (n: number) => void
-  setPosZ: (n: number) => void
-  setSize: (n: number) => void
+  setLabelOffsetX: (n: number) => void
+  setLabelOffsetY: (n: number) => void
+  setLabelFontSize: (n: number) => void
   reset: () => void
 }
 
 export const useBossDevStore = create<BossDevState>((set) => ({
   enabled: false,
-  posX: 0,
-  posZ: 0,
-  size: DEFAULT_BOSS_HEIGHT,
+  labelOffsetX: DEFAULT_LABEL_OFFSET_X,
+  labelOffsetY: DEFAULT_LABEL_OFFSET_Y,
+  labelFontSize: DEFAULT_LABEL_FONT_SIZE,
   setEnabled: (b) => set({ enabled: b }),
-  setPosX: (n) => set({ posX: n }),
-  setPosZ: (n) => set({ posZ: n }),
-  setSize: (n) => set({ size: n }),
-  reset: () => set({ posX: 0, posZ: 0, size: DEFAULT_BOSS_HEIGHT }),
+  setLabelOffsetX: (n) => set({ labelOffsetX: n }),
+  setLabelOffsetY: (n) => set({ labelOffsetY: n }),
+  setLabelFontSize: (n) => set({ labelFontSize: n }),
+  reset: () => set({
+    labelOffsetX: DEFAULT_LABEL_OFFSET_X,
+    labelOffsetY: DEFAULT_LABEL_OFFSET_Y,
+    labelFontSize: DEFAULT_LABEL_FONT_SIZE,
+  }),
 }))

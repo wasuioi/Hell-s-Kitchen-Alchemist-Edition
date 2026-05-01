@@ -67,31 +67,22 @@ export default function Boss() {
   const boss = useEnemyStore((s) => s.enemies.find((e) => e.type === 'boss'))
   const { scene } = useGLTF('/models/boss/boss.glb')
 
-  // Dev panel: snap boss position to slider values whenever they change while
-  // the panel is open. Enemy.tsx skips boss AI when devEnabled, so the slider
-  // values stick instead of being overridden by chase movement next frame.
-  const devEnabled = useBossDevStore((s) => s.enabled)
-  const devPosX = useBossDevStore((s) => s.posX)
-  const devPosZ = useBossDevStore((s) => s.posZ)
-  useEffect(() => {
-    if (!devEnabled || !boss) return
-    useEnemyStore.getState().updateEnemyPosition(boss.id, { x: devPosX, z: devPosZ })
-  }, [devEnabled, devPosX, devPosZ, boss?.id])
-  // Auto-fit: scale model to BOSS_HEIGHT units tall (driven by the dev
-  // panel store; defaults to DEFAULT_BOSS_HEIGHT), then offset Y so the
+  // Dev panel: live tweaks to the floating "BOSS" label above the head.
+  const labelOffsetX = useBossDevStore((s) => s.labelOffsetX)
+  const labelOffsetY = useBossDevStore((s) => s.labelOffsetY)
+  const labelFontSize = useBossDevStore((s) => s.labelFontSize)
+
+  // Auto-fit: scale model to BOSS_HEIGHT units tall, then offset Y so the
   // model's lowest point sits at y=0.
-  const BOSS_HEIGHT = useBossDevStore((s) => s.size)
-  // Cache the model's local-space bbox once so resizing via the dev panel
-  // is a cheap divide instead of re-traversing the scene graph on every
-  // slider tick.
-  const baseBbox = useMemo(() => {
+  const BOSS_HEIGHT = 5
+  const { fittedScale, floorOffset } = useMemo(() => {
     const bbox = new THREE.Box3().setFromObject(scene)
     const size = new THREE.Vector3()
     bbox.getSize(size)
-    return { sizeY: size.y, minY: bbox.min.y }
+    const scale = size.y > 0 ? BOSS_HEIGHT / size.y : 1
+    const offset = -bbox.min.y * scale
+    return { fittedScale: scale, floorOffset: offset }
   }, [scene])
-  const fittedScale = baseBbox.sizeY > 0 ? BOSS_HEIGHT / baseBbox.sizeY : 1
-  const floorOffset = -baseBbox.minY * fittedScale
 
   const bossGroupRef = useRef<THREE.Group>(null)
   const upperArmLRef = useRef<THREE.Object3D | null>(null)
@@ -578,9 +569,13 @@ export default function Boss() {
         </>
       )}
 
-      {/* "BOSS" floating label just above the head — always faces the camera. */}
+      {/* "BOSS" floating label — position + font size driven by BossDevPanel. */}
       <Html
-        position={[boss.position.x, floorOffset + BOSS_HEIGHT - 0.2, boss.position.z]}
+        position={[
+          boss.position.x + labelOffsetX,
+          floorOffset + BOSS_HEIGHT - 0.2 + labelOffsetY,
+          boss.position.z,
+        ]}
         center
         distanceFactor={6}
         zIndexRange={[100, 0]}
@@ -592,7 +587,7 @@ export default function Boss() {
             border: '3px solid #ef4444',
             borderRadius: '6px',
             padding: '4px 18px',
-            fontSize: '28px',
+            fontSize: `${labelFontSize}px`,
             fontWeight: 'bold',
             letterSpacing: '4px',
             fontFamily: 'inherit',
