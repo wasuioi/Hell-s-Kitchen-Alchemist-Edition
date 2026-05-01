@@ -3,6 +3,7 @@ import { useGameStore } from './stores/gameStore'
 import { useDeckStore } from './stores/deckStore'
 import { usePlayerStore } from './stores/playerStore'
 import { castSpell } from './utils/castSpell'
+import { triggerOnCook } from './utils/perkTriggers'
 import { preloadGameAssets } from './utils/preloadAssets'
 import HUD from './ui/HUD'
 import MainMenu from './ui/MainMenu'
@@ -95,6 +96,7 @@ export default function App() {
         useGameStore.getState().recordIngredientUsed()
         useGameStore.getState().recordIngredientUsed()
         useGameStore.getState().recordSpellCast(spell)
+        triggerOnCook(usePlayerStore.getState().position)
         castSpell(spell)
       }
       else if (e.key === 'Shift') {

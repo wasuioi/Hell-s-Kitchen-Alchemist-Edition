@@ -82,6 +82,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { Spell: 'INFERNO', 'Max Heat': 7, 'Per Stack': '+15%', Decay: '4.0s' }, added: 'Heal +2 HP per Heat stack consumed' },
     ],
   },
+  {
+    id: 'whisk_storm', name: 'Whisk Storm', icon: '/icons/whisk_storm.png',
+    description: 'Cooking a spell erupts a wind ring that shoves enemies away. Higher tiers stun and chip damage.',
+    rarity: 'rare', vfxSprite: 'whisk_storm',
+    tiers: [
+      { stats: { Range: 3.0, Knockback: 0.3, Damage: 0 } },
+      { stats: { Range: 4.0, Knockback: 0.4, Damage: 0 }, added: 'Stuns enemies hit for 0.3s' },
+      { stats: { Range: 5.0, Knockback: 0.5, Damage: 10 }, added: '+10 damage, Stun extended to 0.5s' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

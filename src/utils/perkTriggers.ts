@@ -94,3 +94,54 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
 export function resetGreaseFireCooldown() {
   lastGreaseFireAt = -Infinity
 }
+
+export function triggerOnCook(playerPosition: Position) {
+  const ws = useDeckStore.getState().activePerks.find((p) => p.id === 'whisk_storm')
+  if (!ws) return
+  const tier = Math.min(ws.stackCount, 3)
+  const range = [3.0, 4.0, 5.0][tier - 1]
+  // Scale issue's 0.3/0.4/0.5 to real velocity units above the 0.5 friction threshold
+  const knockSpeed = [3.0, 4.0, 5.0][tier - 1]
+  const dmg = [0, 0, 10][tier - 1]
+  const stunMs = [0, 300, 500][tier - 1]
+  const { x, z } = playerPosition
+  const { enemies } = useEnemyStore.getState()
+  for (const e of enemies) {
+    if (e.dying || e.detonating) continue
+    const dx = e.position.x - x
+    const dz = e.position.z - z
+    const d = Math.hypot(dx, dz)
+    if (d === 0 || d > range) continue
+    if (e.type !== 'boss') {
+      useEnemyStore.getState().setEnemyKnockback(e.id, { vx: (dx / d) * knockSpeed, vz: (dz / d) * knockSpeed })
+    }
+    if (stunMs > 0) {
+      useEnemyStore.getState().setEnemyStunned(e.id, performance.now() + stunMs)
+    }
+    if (dmg > 0) {
+      useEnemyStore.getState().damageEnemy(e.id, dmg)
+      useEnemyStore.getState().setEnemyHitFlash(e.id, performance.now() + 100)
+      spawnDamageNumberVfx(e.position.x, e.position.z, dmg)
+      const updated = useEnemyStore.getState().enemies.find((en) => en.id === e.id)
+      if (!updated || updated.hp > 0) continue
+      if (updated.type === 'exploder') {
+        useEnemyStore.getState().setEnemyDetonating(updated.id)
+        window.__queueDetonation?.(updated.id, 1)
+        continue
+      }
+      useEnemyStore.getState().setEnemyDying(updated.id)
+      useGameStore.getState().recordEnemyDefeated()
+      if (updated.type === 'boss') {
+        useEnemyStore.getState().reset()
+        useGameStore.getState().triggerVictory()
+        return
+      }
+    }
+  }
+  const def = PERK_POOL.find((p) => p.id === 'whisk_storm')
+  if (def?.vfxSprite) {
+    spawnSpriteVfx(def.vfxSprite, x, z)
+  } else {
+    spawnExplosionVfx(x, z)
+  }
+}
