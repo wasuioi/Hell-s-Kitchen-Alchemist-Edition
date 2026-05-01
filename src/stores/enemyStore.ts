@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { AiState, Enemy, EnemyType, Knockback, Position, StatusEffect } from '../types'
 import { isInRange } from '../utils/collision'
+import { usePickupStore, HEART_DROP_CHANCE } from './pickupStore'
 
 const BASE_HP = 30
 const HP_MULTIPLIER: Record<EnemyType, number> = { slow: 1, fast: 1, tanky: 3, boss: 15, exploder: 1 }
@@ -78,7 +79,13 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
   setEnemyKnockback: (id, knockback) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, knockback } : e) })),
   setEnemyHitFlash: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, hitFlashUntil: until } : e) })),
   setEnemyResistAura: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, resistAuraUntil: until } : e) })),
-  setEnemyDying: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, dying: true } : e) })),
+  setEnemyDying: (id) => {
+    const enemy = get().enemies.find((e) => e.id === id)
+    if (enemy && enemy.type !== 'boss' && Math.random() < HEART_DROP_CHANCE) {
+      usePickupStore.getState().spawn(enemy.position)
+    }
+    set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, dying: true } : e) }))
+  },
   setEnemyDetonating: (id) => {
     const startTime = performance.now()
     set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, detonating: true, detonationStartTime: startTime } : e) }))
