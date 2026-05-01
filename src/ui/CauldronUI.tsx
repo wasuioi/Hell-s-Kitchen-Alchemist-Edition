@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useDeckStore } from '../stores/deckStore'
 import { useGameStore } from '../stores/gameStore'
 import { getRecipe } from '../data/recipes'
@@ -24,12 +24,6 @@ export default function CauldronUI() {
   const ready = slotA !== null && slotB !== null
 
   const [cooldownProgress, setCooldownProgress] = useState(0)
-  const [consumeSnapshot, setConsumeSnapshot] = useState<{
-    slotA: Ingredient
-    slotB: Ingredient
-    startedAt: number
-  } | null>(null)
-  const [consumeProgress, setConsumeProgress] = useState(0)
 
   useEffect(() => {
     if (cookCooldown === 0) { setCooldownProgress(0); return }
@@ -42,37 +36,6 @@ export default function CauldronUI() {
     }, 30)
     return () => clearInterval(interval)
   }, [cookCooldown, cookCooldownDuration])
-
-  const prevCauldron = useRef(cauldron)
-  useEffect(() => {
-    const prev = prevCauldron.current
-    const wasFull = prev.slotA !== null && prev.slotB !== null
-    const nowEmpty = cauldron.slotA === null && cauldron.slotB === null
-    if (wasFull && nowEmpty) {
-      setConsumeSnapshot({
-        slotA: prev.slotA!.ingredient,
-        slotB: prev.slotB!.ingredient,
-        startedAt: performance.now(),
-      })
-      setConsumeProgress(0)
-    }
-    prevCauldron.current = cauldron
-  }, [cauldron])
-
-  useEffect(() => {
-    if (!consumeSnapshot) return
-    const id = setInterval(() => {
-      const elapsed = (performance.now() - consumeSnapshot.startedAt) / 1000
-      const progress = Math.min(1, elapsed / 0.5)
-      setConsumeProgress(progress)
-      if (progress >= 1) {
-        setConsumeSnapshot(null)
-        setConsumeProgress(0)
-        clearInterval(id)
-      }
-    }, 16)
-    return () => clearInterval(id)
-  }, [consumeSnapshot])
 
   const spellPreview = ready
     ? (SPELL_LABELS[getRecipe(slotA!.ingredient, slotB!.ingredient)] ?? getRecipe(slotA!.ingredient, slotB!.ingredient))
@@ -102,39 +65,15 @@ export default function CauldronUI() {
     fontWeight: 'bold',
   })
 
-  const renderSlotContent = (
-    slot: { ingredient: Ingredient } | null,
-    snapshotIngredient: Ingredient | undefined,
-    label: 'A' | 'B',
-  ) => {
-    if (slot) {
-      return <img src={ICON[slot.ingredient]} alt={slot.ingredient} width={42} height={42} style={{ objectFit: 'contain' }} />
-    }
-    if (snapshotIngredient) {
-      const wedgeDeg = (1 - consumeProgress) * 360
-      return (
-        <div style={{ position: 'relative', width: 42, height: 42 }}>
-          <img src={ICON[snapshotIngredient]} alt={snapshotIngredient} width={42} height={42} style={{ objectFit: 'contain' }} />
-          <div style={{
-            position: 'absolute', inset: 0, borderRadius: '50%',
-            background: `conic-gradient(from 0deg, rgba(0,0,0,0.85) 0deg, rgba(0,0,0,0.85) ${wedgeDeg}deg, transparent ${wedgeDeg}deg)`,
-            pointerEvents: 'none',
-          }} />
-        </div>
-      )
-    }
-    return label
-  }
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <div style={slotStyle(slotA !== null || consumeSnapshot !== null)}>
-          {renderSlotContent(slotA, consumeSnapshot?.slotA, 'A')}
+        <div style={slotStyle(slotA !== null)}>
+          {slotA ? <img src={ICON[slotA.ingredient]} alt={slotA.ingredient} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'A'}
         </div>
         <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '20px' }}>+</span>
-        <div style={slotStyle(slotB !== null || consumeSnapshot !== null)}>
-          {renderSlotContent(slotB, consumeSnapshot?.slotB, 'B')}
+        <div style={slotStyle(slotB !== null)}>
+          {slotB ? <img src={ICON[slotB.ingredient]} alt={slotB.ingredient} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'B'}
         </div>
       </div>
 

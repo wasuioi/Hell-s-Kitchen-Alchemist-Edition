@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import { useDeckStore } from '../stores/deckStore'
 import type { Ingredient } from '../types'
 
@@ -13,42 +14,111 @@ const GRADIENT: Record<Ingredient, string> = {
   SALT: 'linear-gradient(135deg, #374151, #9ca3af)',
 }
 
+interface ConsumeSnapshot {
+  indexA: number
+  indexB: number
+  oldA: Ingredient
+  oldB: Ingredient
+  startedAt: number
+}
+
 export default function CardHand() {
   const hand = useDeckStore((s) => s.hand)
   const cauldron = useDeckStore((s) => s.cauldron)
 
+  const [consumeSnapshot, setConsumeSnapshot] = useState<ConsumeSnapshot | null>(null)
+  const [consumeProgress, setConsumeProgress] = useState(0)
+
+  const prevHand = useRef(hand)
+  const prevCauldron = useRef(cauldron)
+  useEffect(() => {
+    const pHand = prevHand.current
+    const pCauldron = prevCauldron.current
+    const wasFull = pCauldron.slotA !== null && pCauldron.slotB !== null
+    const nowEmpty = cauldron.slotA === null && cauldron.slotB === null
+    if (wasFull && nowEmpty) {
+      const indexA = pCauldron.slotA!.fromHandIndex
+      const indexB = pCauldron.slotB!.fromHandIndex
+      setConsumeSnapshot({
+        indexA,
+        indexB,
+        oldA: pHand[indexA],
+        oldB: pHand[indexB],
+        startedAt: performance.now(),
+      })
+      setConsumeProgress(0)
+    }
+    prevHand.current = hand
+    prevCauldron.current = cauldron
+  }, [hand, cauldron])
+
+  useEffect(() => {
+    if (!consumeSnapshot) return
+    const id = setInterval(() => {
+      const elapsed = (performance.now() - consumeSnapshot.startedAt) / 1000
+      const progress = Math.min(1, elapsed / 0.5)
+      setConsumeProgress(progress)
+      if (progress >= 1) {
+        setConsumeSnapshot(null)
+        setConsumeProgress(0)
+        clearInterval(id)
+      }
+    }, 16)
+    return () => clearInterval(id)
+  }, [consumeSnapshot])
+
   const isSelected = (i: number) =>
     cauldron.slotA?.fromHandIndex === i || cauldron.slotB?.fromHandIndex === i
 
+  const consumingIngredient = (i: number): Ingredient | null => {
+    if (!consumeSnapshot) return null
+    if (consumeSnapshot.indexA === i) return consumeSnapshot.oldA
+    if (consumeSnapshot.indexB === i) return consumeSnapshot.oldB
+    return null
+  }
+
   return (
     <div style={{ display: 'flex', gap: '12px' }}>
-      {hand.map((ingredient, i) => {
+      {hand.map((liveIngredient, i) => {
+        const consuming = consumingIngredient(i)
+        const ingredient = consuming ?? liveIngredient
         const selected = isSelected(i)
+        const showGlow = selected || consuming !== null
+        const wedgeDeg = (1 - consumeProgress) * 360
         return (
           <button
             key={i}
             onClick={() => useDeckStore.getState().slotIngredient(i)}
             style={{
               width: '80px', height: '110px',
-              border: selected ? '2px solid #fbbf24' : '2px solid rgba(255,255,255,0.3)',
+              border: showGlow ? '2px solid #fbbf24' : '2px solid rgba(255,255,255,0.3)',
               borderRadius: '10px', background: GRADIENT[ingredient], color: 'white',
               cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center',
               justifyContent: 'center', gap: '6px',
               transition: 'transform 0.15s, box-shadow 0.15s, border-color 0.15s',
               fontFamily: 'inherit',
-              transform: selected ? 'translateY(-6px)' : 'translateY(0)',
-              boxShadow: selected ? '0 0 16px rgba(251, 191, 36, 0.7)' : 'none',
+              transform: showGlow ? 'translateY(-6px)' : 'translateY(0)',
+              boxShadow: showGlow ? '0 0 16px rgba(251, 191, 36, 0.7)' : 'none',
+              position: 'relative',
+              overflow: 'hidden',
             }}
             onMouseEnter={(e) => {
-              if (!selected) (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-4px)'
+              if (!showGlow) (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-4px)'
             }}
             onMouseLeave={(e) => {
-              if (!selected) (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'
+              if (!showGlow) (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'
             }}
           >
             <img src={ICON[ingredient]} alt={LABEL[ingredient]} width={48} height={48} style={{ objectFit: 'contain' }} />
             <span style={{ fontSize: '11px', fontWeight: 'bold' }}>{LABEL[ingredient]}</span>
             <span style={{ fontSize: '11px', opacity: 0.7 }}>[{i + 1}/{['J','K','L'][i]}]</span>
+            {consuming && (
+              <div style={{
+                position: 'absolute', inset: 0, borderRadius: '8px',
+                background: `conic-gradient(from 0deg, rgba(0,0,0,0.85) 0deg, rgba(0,0,0,0.85) ${wedgeDeg}deg, transparent ${wedgeDeg}deg)`,
+                pointerEvents: 'none',
+              }} />
+            )}
           </button>
         )
       })}
