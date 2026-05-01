@@ -12,6 +12,7 @@ import DamageNumbers from './DamageNumbers'
 import GroundCracks from './GroundCracks'
 import ExplosionEffects from './ExplosionEffect'
 import SpriteVfxEffects from './SpriteVfxEffect'
+import AmbientEmbers from './AmbientEmbers'
 
 export default function Scene() {
   const phase = useGameStore((s) => s.phase)
@@ -23,10 +24,14 @@ export default function Scene() {
         {/* Scene clear color — keeps the canvas from flashing pure black on
             first frame / between renders before lighting kicks in. */}
         <color attach="background" args={['#1a1612']} />
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 10, 5]} intensity={0.8} castShadow />
+        <ambientLight intensity={0.95} color="#a06848" />
+        <directionalLight position={[5, 10, 5]} intensity={1.5} color="#ffd49a" castShadow />
+        {/* Hemisphere fill — subtle warm-from-above / cooler-from-below so
+            the scene reads less flat without losing the forge mood. */}
+        <hemisphereLight color="#ffc890" groundColor="#3a1a10" intensity={0.5} />
         <Camera />
         <Arena />
+        <AmbientEmbers />
         <GroundCracks />
         <Player />
         <EnemyManager />
