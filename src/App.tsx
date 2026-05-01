@@ -9,6 +9,7 @@ import MainMenu from './ui/MainMenu'
 import RewardScreen from './ui/RewardScreen'
 import DeathScreen from './ui/DeathScreen'
 import VictoryScreen from './ui/VictoryScreen'
+import DevPanel from './ui/DevPanel'
 
 // Scene pulls in Three.js + react-three-fiber + drei (~310 KB gzipped). Lazy-
 // load it so the MainMenu — pure DOM UI — renders the instant React mounts,
@@ -140,6 +141,7 @@ export default function App() {
       {phase === 'reward' && sceneReady && <RewardScreen />}
       {phase === 'death' && <DeathScreen />}
       {phase === 'victory' && <VictoryScreen />}
+      {import.meta.env.DEV && <DevPanel />}
     </div>
   )
 }
