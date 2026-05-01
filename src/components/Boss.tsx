@@ -588,25 +588,25 @@ export default function Boss() {
         </>
       )}
 
-      {/* "BOSS" floating label above the head — always faces the camera. */}
+      {/* "BOSS" floating label just above the head — always faces the camera. */}
       <Html
-        position={[boss.position.x, floorOffset + BOSS_HEIGHT + 0.6, boss.position.z]}
+        position={[boss.position.x, floorOffset + BOSS_HEIGHT - 0.2, boss.position.z]}
         center
-        distanceFactor={10}
+        distanceFactor={6}
         zIndexRange={[100, 0]}
       >
         <div
           style={{
             color: '#fee2e2',
             background: 'rgba(127, 29, 29, 0.85)',
-            border: '2px solid #ef4444',
-            borderRadius: '4px',
-            padding: '2px 12px',
-            fontSize: '14px',
+            border: '3px solid #ef4444',
+            borderRadius: '6px',
+            padding: '4px 18px',
+            fontSize: '28px',
             fontWeight: 'bold',
-            letterSpacing: '2px',
+            letterSpacing: '4px',
             fontFamily: 'inherit',
-            textShadow: '0 0 6px #dc2626',
+            textShadow: '0 0 8px #dc2626',
             whiteSpace: 'nowrap',
             pointerEvents: 'none',
             userSelect: 'none',
