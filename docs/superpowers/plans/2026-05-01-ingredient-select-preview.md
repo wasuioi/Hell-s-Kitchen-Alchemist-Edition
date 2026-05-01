@@ -539,6 +539,161 @@ Only needed if Step 2 surfaced anything. Otherwise skip.
 
 ---
 
+### Task 6: Cook consume animation (CCW black wipe on slots, 0.5s)
+
+Added mid-stream after manual playtest: when Space fires, the ingredient currently vanishes from the cauldron with no visual feedback. Add a 0.5s "consume" animation — both cauldron slots keep their ingredient image visible, with a black overlay that starts fully covering the slot and shrinks counterclockwise from 12 o'clock, revealing the ingredient as it shrinks. At 0.5s the slot becomes empty (image and overlay both gone).
+
+**Why this lives in CauldronUI only:** The animation is pure visual feedback. The store already cleared `slotA` / `slotB` at the cook moment — we just track a transient snapshot in component state for the 0.5s display window.
+
+**Files:**
+- Modify: `src/ui/CauldronUI.tsx`
+
+- [ ] **Step 1: Add the consume snapshot + progress state, hook into cauldron transitions**
+
+In `src/ui/CauldronUI.tsx`, near the existing `cooldownProgress` state (around line 26), add:
+
+```tsx
+  const [consumeSnapshot, setConsumeSnapshot] = useState<{
+    slotA: Ingredient
+    slotB: Ingredient
+    startedAt: number
+  } | null>(null)
+  const [consumeProgress, setConsumeProgress] = useState(0)
+```
+
+(`Ingredient` is already imported.)
+
+Add a ref to track the previous cauldron values. Below the existing useEffect for `cookCooldown` (around line 39 after the closing `}, [cookCooldown, cookCooldownDuration])` line), insert:
+
+```tsx
+  const prevCauldron = useRef(cauldron)
+  useEffect(() => {
+    const prev = prevCauldron.current
+    const wasFull = prev.slotA !== null && prev.slotB !== null
+    const nowEmpty = cauldron.slotA === null && cauldron.slotB === null
+    if (wasFull && nowEmpty) {
+      setConsumeSnapshot({
+        slotA: prev.slotA!.ingredient,
+        slotB: prev.slotB!.ingredient,
+        startedAt: performance.now(),
+      })
+      setConsumeProgress(0)
+    }
+    prevCauldron.current = cauldron
+  }, [cauldron])
+
+  useEffect(() => {
+    if (!consumeSnapshot) return
+    const id = setInterval(() => {
+      const elapsed = (performance.now() - consumeSnapshot.startedAt) / 1000
+      const progress = Math.min(1, elapsed / 0.5)
+      setConsumeProgress(progress)
+      if (progress >= 1) {
+        setConsumeSnapshot(null)
+        setConsumeProgress(0)
+        clearInterval(id)
+      }
+    }, 16)
+    return () => clearInterval(id)
+  }, [consumeSnapshot])
+```
+
+You'll also need to add `useRef` to the imports at the top of the file:
+
+```tsx
+import { useState, useEffect, useRef } from 'react'
+```
+
+- [ ] **Step 2: Render the slot ingredient + black overlay during the consume window**
+
+The existing slot rendering looks like:
+
+```tsx
+        <div style={slotStyle(slotA !== null)}>
+          {slotA ? <img src={ICON[slotA.ingredient]} alt={slotA.ingredient} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'A'}
+        </div>
+```
+
+We need: when `slotA === null` BUT `consumeSnapshot !== null`, render the snapshotted ingredient with a black `conic-gradient` overlay. Same for slot B.
+
+Add a helper just inside the component (above the `return`):
+
+```tsx
+  const renderSlotContent = (
+    slot: { ingredient: Ingredient } | null,
+    snapshotIngredient: Ingredient | undefined,
+    label: 'A' | 'B',
+  ) => {
+    if (slot) {
+      return <img src={ICON[slot.ingredient]} alt={slot.ingredient} width={42} height={42} style={{ objectFit: 'contain' }} />
+    }
+    if (snapshotIngredient) {
+      // Black wedge starts at 360deg (full cover) and shrinks counterclockwise to 0deg.
+      // conic-gradient(from 0deg, black 0deg, black Xdeg, transparent Xdeg) covers
+      // a clockwise arc from 12 o'clock; as X decreases, the trailing edge moves CCW.
+      const wedgeDeg = (1 - consumeProgress) * 360
+      return (
+        <div style={{ position: 'relative', width: 42, height: 42 }}>
+          <img src={ICON[snapshotIngredient]} alt={snapshotIngredient} width={42} height={42} style={{ objectFit: 'contain' }} />
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            background: `conic-gradient(from 0deg, rgba(0,0,0,0.85) 0deg, rgba(0,0,0,0.85) ${wedgeDeg}deg, transparent ${wedgeDeg}deg)`,
+            pointerEvents: 'none',
+          }} />
+        </div>
+      )
+    }
+    return label
+  }
+```
+
+Replace the two slot `<div>` bodies. The existing block:
+
+```tsx
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={slotStyle(slotA !== null)}>
+          {slotA ? <img src={ICON[slotA.ingredient]} alt={slotA.ingredient} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'A'}
+        </div>
+        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '20px' }}>+</span>
+        <div style={slotStyle(slotB !== null)}>
+          {slotB ? <img src={ICON[slotB.ingredient]} alt={slotB.ingredient} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'B'}
+        </div>
+      </div>
+```
+
+becomes:
+
+```tsx
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={slotStyle(slotA !== null || consumeSnapshot !== null)}>
+          {renderSlotContent(slotA, consumeSnapshot?.slotA, 'A')}
+        </div>
+        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '20px' }}>+</span>
+        <div style={slotStyle(slotB !== null || consumeSnapshot !== null)}>
+          {renderSlotContent(slotB, consumeSnapshot?.slotB, 'B')}
+        </div>
+      </div>
+```
+
+The `slotStyle(...)` argument now treats "consuming" as "filled" so the slot keeps its gold border + lit background during the 0.5s wipe (visually the slot stays "active" while the consume plays out, then both border and content drop together).
+
+- [ ] **Step 3: Build, test, lint**
+
+Run: `npm run build`
+Run: `npm run test`
+Run: `npx eslint src/ui/CauldronUI.tsx`
+
+Expected: build succeeds, all tests pass, no eslint errors in the touched file. (Project-level `npm run lint` has pre-existing failures in unrelated files — that's not our concern.)
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/ui/CauldronUI.tsx
+git commit -m "feat(ui): cauldron slots play 0.5s CCW black wipe on cook"
+```
+
+---
+
 ## Spec Coverage
 
 - ✅ Click hand[i] → glow + ingredient enters cauldron, no hand mutation: Tasks 2 + 4
@@ -549,3 +704,4 @@ Only needed if Step 2 surfaced anything. Otherwise skip.
 - ✅ Cook cooldown unchanged + selecting during cooldown allowed: cook cooldown lives in `App.tsx` / `CauldronUI.tsx`, not touched. Manual verification covers it (Task 5, step 8)
 - ✅ Spell preview text uses slot.ingredient: Task 3
 - ✅ Glow style (gold border + bloom + lift): Task 4
+- ✅ Cook consume animation (CCW black wipe, 0.5s): Task 6 (added mid-stream)
