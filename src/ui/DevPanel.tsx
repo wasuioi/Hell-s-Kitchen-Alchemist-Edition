@@ -3,7 +3,9 @@ import { useGameStore } from '../stores/gameStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useHazardStore } from '../stores/hazardStore'
 import { usePlayerStore } from '../stores/playerStore'
+import { useDeckStore } from '../stores/deckStore'
 import { HAZARD_POOL } from '../data/hazards'
+import { PERK_POOL } from '../data/perks'
 import { rollHazardPlacement } from '../components/HazardManager'
 import type { HazardType } from '../types'
 
@@ -38,6 +40,16 @@ export default function DevPanel() {
 
   function healFull() {
     usePlayerStore.getState().heal(maxHp)
+  }
+
+  function giveBonemealStock() {
+    const def = PERK_POOL.find((p) => p.id === 'bonemeal_stock')
+    if (!def) return
+    useDeckStore.getState().addPerk({ ...def, stackCount: 1 })
+  }
+
+  function clearPerks() {
+    useDeckStore.getState().clearPerks()
   }
 
   if (!open) {
@@ -117,6 +129,29 @@ export default function DevPanel() {
             >{HAZARD_LABEL[type]}</button>
           ))}
         </div>
+      </div>
+
+      <div style={{ display: 'flex', gap: 4 }}>
+        <button
+          onClick={giveBonemealStock}
+          style={{
+            flex: 1, padding: '6px 10px', borderRadius: 4,
+            background: 'rgba(245,158,11,0.18)',
+            border: '1px solid rgba(245,158,11,0.55)',
+            color: '#fcd34d', cursor: 'pointer', font: 'inherit',
+            textAlign: 'left',
+          }}
+        >Give Bonemeal Stock</button>
+        <button
+          onClick={clearPerks}
+          title="Clear all perks"
+          style={{
+            padding: '6px 10px', borderRadius: 4,
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.2)',
+            color: '#aaa', cursor: 'pointer', font: 'inherit',
+          }}
+        >Clear</button>
       </div>
 
       <button
