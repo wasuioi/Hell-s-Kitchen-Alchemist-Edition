@@ -1,13 +1,13 @@
 import { useMemo, useRef, type RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { HAZARD_DEFS, type DiscHazardDef, type RectHazardDef } from '../data/hazards'
+import { HAZARD_DEFS, type DiscHazardDef, type FallingHazardDef, type RectHazardDef } from '../data/hazards'
 import type { Hazard as HazardType } from '../types'
 
-// Renders a single environmental hazard. Two visual phases per shape:
-// - Telegraph: pulsing color ring/footprint on the floor; no damage.
-// - Active: emissive surface + procedural particles (lava bubbles for disc,
-//   rising steam puffs for rect). Damage handled in HazardManager.
+// Renders a single environmental hazard. Three visual flavors:
+// - Disc (grease fire): pulsing ring → flickering emissive disc with bubbles.
+// - Rect (steam vent): wall-anchored rectangle → emissive heat trail with rising puffs.
+// - Falling (falling pot): shadow grows on floor while a pot mesh drops from above.
 //
 // Procedural Three.js geometry only — no PNG/MP4 assets.
 export default function Hazard({ hazard }: { hazard: HazardType }) {
@@ -16,6 +16,13 @@ export default function Hazard({ hazard }: { hazard: HazardType }) {
     return (
       <group position={[hazard.position.x, 0.015, hazard.position.z]}>
         <DiscHazard hazard={hazard} def={def} />
+      </group>
+    )
+  }
+  if (def.shape === 'falling') {
+    return (
+      <group position={[hazard.position.x, 0, hazard.position.z]}>
+        <FallingHazard hazard={hazard} def={def} />
       </group>
     )
   }
@@ -317,6 +324,120 @@ function RectHazard({ hazard, def }: { hazard: HazardType; def: RectHazardDef })
           />
         </mesh>
       ))}
+    </>
+  )
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Falling hazard — falling pot. Shadow on the floor grows during telegraph
+// while a cast-iron pot mesh drops in from y≈8 over the last ~33% of the
+// telegraph window. Active phase = pot resting on the ground, fading out.
+// Damage tick fires once at impact (def.damageInterval > activeMs).
+// ──────────────────────────────────────────────────────────────────────────────
+
+const POT_DROP_FRACTION = 0.33   // last 33% of telegraph is the visible drop
+const POT_START_Y = 8
+const POT_REST_Y = 0.45
+
+function FallingHazard({ hazard, def }: { hazard: HazardType; def: FallingHazardDef }) {
+  const shadowRef = useRef<THREE.Mesh>(null!)
+  const shadowMatRef = useRef<THREE.MeshBasicMaterial>(null!)
+  const potGroupRef = useRef<THREE.Group>(null!)
+  const potBodyMatRef = useRef<THREE.MeshStandardMaterial>(null!)
+  const potRimMatRef = useRef<THREE.MeshStandardMaterial>(null!)
+
+  // Pot rim accent — slightly darker brown for the lip, sells the cast-iron silhouette.
+  const rimColor = useMemo(() => {
+    const c = new THREE.Color(def.color)
+    c.lerp(new THREE.Color('#1a1008'), 0.55)
+    return c
+  }, [def.color])
+
+  useFrame(() => {
+    const now = performance.now()
+    const elapsed = now - hazard.spawnedAt
+    const inTelegraph = elapsed < def.telegraphMs
+    const telegraphProgress = Math.min(1, elapsed / def.telegraphMs)
+    const activeElapsed = Math.max(0, elapsed - def.telegraphMs)
+    const activeProgress = Math.min(1, activeElapsed / def.activeMs)
+
+    // Shadow grows + darkens while telegraphing, then fades during active.
+    if (shadowRef.current && shadowMatRef.current) {
+      let scale: number
+      let opacity: number
+      if (inTelegraph) {
+        scale = (0.35 + 0.65 * telegraphProgress) * def.radius
+        opacity = 0.35 + 0.45 * telegraphProgress
+      } else {
+        scale = def.radius
+        opacity = 0.8 * (1 - activeProgress)
+      }
+      shadowRef.current.scale.set(scale, scale, scale)
+      shadowMatRef.current.opacity = Math.max(0, opacity)
+    }
+
+    // Pot drop: hidden until POT_DROP_FRACTION of telegraph, then linearly drops.
+    // During active it lies on the ground and fades out.
+    if (potGroupRef.current) {
+      const dropStart = 1 - POT_DROP_FRACTION
+      if (inTelegraph && telegraphProgress < dropStart) {
+        potGroupRef.current.visible = false
+      } else if (inTelegraph) {
+        potGroupRef.current.visible = true
+        const dropT = (telegraphProgress - dropStart) / POT_DROP_FRACTION
+        potGroupRef.current.position.y = POT_START_Y + (POT_REST_Y - POT_START_Y) * dropT
+        if (potBodyMatRef.current) potBodyMatRef.current.opacity = 1
+        if (potRimMatRef.current) potRimMatRef.current.opacity = 1
+      } else {
+        potGroupRef.current.visible = true
+        potGroupRef.current.position.y = POT_REST_Y
+        const fade = 1 - activeProgress
+        if (potBodyMatRef.current) potBodyMatRef.current.opacity = fade
+        if (potRimMatRef.current) potRimMatRef.current.opacity = fade
+      }
+    }
+  })
+
+  return (
+    <>
+      {/* Floor shadow — dark unit-circle scaled in useFrame to track the
+          telegraph progress + impact radius. */}
+      <mesh ref={shadowRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+        <circleGeometry args={[1, 32]} />
+        <meshBasicMaterial
+          ref={shadowMatRef}
+          color="#000000"
+          transparent
+          opacity={0.35}
+          depthWrite={false}
+        />
+      </mesh>
+      {/* Pot mesh — cylinder body + thin torus rim. Visibility + Y position
+          mutate in useFrame so React doesn't re-render every drop frame. */}
+      <group ref={potGroupRef} visible={false} position={[0, POT_START_Y, 0]}>
+        <mesh castShadow>
+          <cylinderGeometry args={[0.55, 0.65, 0.8, 18]} />
+          <meshStandardMaterial
+            ref={potBodyMatRef}
+            color={def.color}
+            roughness={0.85}
+            metalness={0.25}
+            transparent
+            opacity={1}
+          />
+        </mesh>
+        <mesh position={[0, 0.42, 0]}>
+          <torusGeometry args={[0.55, 0.06, 8, 24]} />
+          <meshStandardMaterial
+            ref={potRimMatRef}
+            color={rimColor}
+            roughness={0.7}
+            metalness={0.4}
+            transparent
+            opacity={1}
+          />
+        </mesh>
+      </group>
     </>
   )
 }

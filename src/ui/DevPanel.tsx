@@ -10,6 +10,7 @@ import type { HazardType } from '../types'
 const HAZARD_LABEL: Record<HazardType, string> = {
   grease_fire: 'Grease fire',
   steam_vent: 'Steam vent',
+  falling_pot: 'Falling pot',
 }
 
 // Minimal dev panel — DEV-only (gated by `import.meta.env.DEV` at the App
