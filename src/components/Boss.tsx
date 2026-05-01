@@ -5,6 +5,8 @@ import { useGLTF } from '@react-three/drei'
 import { useEnemyStore } from '../stores/enemyStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useGameStore } from '../stores/gameStore'
+import { usePoseTesterStore, TESTABLE_BONES } from '../stores/poseTesterStore'
+import type { TestableBone } from '../stores/poseTesterStore'
 import { isInRange } from '../utils/collision'
 import { ARENA_SIZE } from './Arena'
 
@@ -54,6 +56,12 @@ export default function Boss() {
   type RestPose = { x: number; y: number; z: number }
   const restPose = useRef<{ upL?: RestPose; upR?: RestPose; fL?: RestPose; fR?: RestPose; thL?: RestPose; thR?: RestPose }>({})
 
+  // All bones the dev pose tester can drive — separate from the animation refs
+  // because the tester covers more bones (hands, shins, spine, face) and we
+  // need to write rest+override every frame regardless of attack state.
+  const testableBonesRef = useRef<Map<TestableBone, THREE.Object3D>>(new Map())
+  const testableRestRef = useRef<Map<TestableBone, RestPose>>(new Map())
+
   // Walk-cycle state
   const walkPhase = useRef(0)
   const walkAmp = useRef(0) // eases between 0 (still) and 1 (walking)
@@ -79,6 +87,16 @@ export default function Boss() {
     restPose.current = {
       upL: snap(upL), upR: snap(upR), fL: snap(fL), fR: snap(fR),
       thL: snap(thL), thR: snap(thR),
+    }
+    // Cache every testable bone for the dev pose tester
+    testableBonesRef.current.clear()
+    testableRestRef.current.clear()
+    for (const name of TESTABLE_BONES) {
+      const b = scene.getObjectByName(name)
+      if (b) {
+        testableBonesRef.current.set(name, b)
+        testableRestRef.current.set(name, { x: b.rotation.x, y: b.rotation.y, z: b.rotation.z })
+      }
     }
   }, [scene])
   const phase = useGameStore((s) => s.phase)
@@ -109,6 +127,23 @@ export default function Boss() {
 
   useFrame((_, delta) => {
     if (!boss || phase !== 'boss') return
+
+    // Pose tester (dev only). When enabled, write rest+override to every
+    // testable bone and skip everything else — body rotation, walk, attacks.
+    // When disabled, write rest+0 to all testable bones so any leftover tester
+    // values from a previous frame are reset; the animation block below then
+    // overwrites the few animated bones with rest+delta.
+    const tester = usePoseTesterStore.getState()
+    const overrides = tester.enabled ? tester.overrides : null
+    for (const [name, bone] of testableBonesRef.current) {
+      const rest = testableRestRef.current.get(name)
+      if (!rest) continue
+      const o = overrides?.[name]
+      bone.rotation.x = rest.x + (o?.x ?? 0)
+      bone.rotation.y = rest.y + (o?.y ?? 0)
+      bone.rotation.z = rest.z + (o?.z ?? 0)
+    }
+    if (tester.enabled) return
 
     // Rotate the whole boss body to face the player (Y-axis only)
     const playerPos = usePlayerStore.getState().position
