@@ -38,7 +38,7 @@ export default function CauldronUI() {
   }, [cookCooldown, cookCooldownDuration])
 
   const spellPreview = ready
-    ? (SPELL_LABELS[getRecipe(slotA!, slotB!)] ?? getRecipe(slotA!, slotB!))
+    ? (SPELL_LABELS[getRecipe(slotA!.ingredient, slotB!.ingredient)] ?? getRecipe(slotA!.ingredient, slotB!.ingredient))
     : null
 
   function handleCook() {
@@ -69,11 +69,11 @@ export default function CauldronUI() {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <div style={slotStyle(slotA !== null)}>
-          {slotA ? <img src={ICON[slotA]} alt={slotA} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'A'}
+          {slotA ? <img src={ICON[slotA.ingredient]} alt={slotA.ingredient} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'A'}
         </div>
         <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '20px' }}>+</span>
         <div style={slotStyle(slotB !== null)}>
-          {slotB ? <img src={ICON[slotB]} alt={slotB} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'B'}
+          {slotB ? <img src={ICON[slotB.ingredient]} alt={slotB.ingredient} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'B'}
         </div>
       </div>
 
