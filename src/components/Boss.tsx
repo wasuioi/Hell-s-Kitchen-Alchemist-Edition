@@ -31,6 +31,18 @@ const SLAM_WIND_UP_POSE = {
   spine003: { x: -0.12, y: -0.04, z: -0.06 },
 } as const
 
+// Hand-lance firing pose — also from the pose tester. Arms held forward
+// with palms turned up to "hold" the rotating water lasers. Eased in over
+// the first 0.4s of the attack via lanceExtendT (0 = rest, 1 = full pose).
+const HAND_LANCE_POSE = {
+  upper_armL: { x: -0.03, y: -0.60, z: 0.58 },
+  upper_armR: { x: 0.00, y: 0.89, z: -0.45 },
+  forearmL: { x: -0.09, y: -0.17, z: 0.37 },
+  forearmR: { x: 0.00, y: 0.00, z: -0.40 },
+  handL: { x: 1.55, y: -0.07, z: -0.08 },
+  handR: { x: 2.09, y: 0.00, z: 0.00 },
+} as const
+
 function getEdgeSpawnPosition(): { x: number; z: number } {
   const edge = Math.floor(Math.random() * 4)
   const half = ARENA_SIZE / 2 - 1
@@ -158,13 +170,18 @@ export default function Boss() {
     }
     if (tester.enabled) return
 
-    // Rotate the whole boss body to face the player (Y-axis only)
+    // Body Y-rotation: normally face the player, but during hand_lance attack
+    // the body spins together with the beams so the arms stay aligned with
+    // the lasers ("ขยับ spin_y ตามน้ำที่ยิง").
     const playerPos = usePlayerStore.getState().position
+    const isLanceAttack = currentAttack.current === 'hand_lance' && attackPhase.current === 'attack'
     if (bossGroupRef.current) {
-      bossGroupRef.current.rotation.y = Math.atan2(
-        playerPos.x - boss.position.x,
-        playerPos.z - boss.position.z,
-      )
+      bossGroupRef.current.rotation.y = isLanceAttack
+        ? beamAngle.current
+        : Math.atan2(
+          playerPos.x - boss.position.x,
+          playerPos.z - boss.position.z,
+        )
     }
 
     const bossPos = boss.position
@@ -227,9 +244,8 @@ export default function Boss() {
 
     // Apply animation as deltas on top of the snapshotted rest pose so that
     // writing 0 at idle returns the bones to their natural rig pose.
-    // Stone_slam writes ALL three axes via SLAM_WIND_UP_POSE; hand_lance adds
-    // its own delta on Z (upper arm) and X (forearm). The two attacks can't
-    // be active simultaneously, so the additive form here is safe.
+    // Stone_slam and hand_lance can never be active simultaneously, so we
+    // simply sum their contributions per axis — the inactive one is 0.
     const upL = upperArmLRef.current
     const upR = upperArmRRef.current
     const fL = forearmLRef.current
@@ -238,25 +254,26 @@ export default function Boss() {
     const thR = thighRRef.current
     const rp = restPose.current
     const slam = SLAM_WIND_UP_POSE
+    const lance = HAND_LANCE_POSE
     if (upL && rp.upL) {
-      upL.rotation.x = rp.upL.x + slamT * slam.upper_armL.x
-      upL.rotation.y = rp.upL.y + slamT * slam.upper_armL.y
-      upL.rotation.z = rp.upL.z + slamT * slam.upper_armL.z + lanceExtendT * 1.5
+      upL.rotation.x = rp.upL.x + slamT * slam.upper_armL.x + lanceExtendT * lance.upper_armL.x
+      upL.rotation.y = rp.upL.y + slamT * slam.upper_armL.y + lanceExtendT * lance.upper_armL.y
+      upL.rotation.z = rp.upL.z + slamT * slam.upper_armL.z + lanceExtendT * lance.upper_armL.z
     }
     if (upR && rp.upR) {
-      upR.rotation.x = rp.upR.x + slamT * slam.upper_armR.x
-      upR.rotation.y = rp.upR.y + slamT * slam.upper_armR.y
-      upR.rotation.z = rp.upR.z + slamT * slam.upper_armR.z + lanceExtendT * -1.5
+      upR.rotation.x = rp.upR.x + slamT * slam.upper_armR.x + lanceExtendT * lance.upper_armR.x
+      upR.rotation.y = rp.upR.y + slamT * slam.upper_armR.y + lanceExtendT * lance.upper_armR.y
+      upR.rotation.z = rp.upR.z + slamT * slam.upper_armR.z + lanceExtendT * lance.upper_armR.z
     }
     if (fL && rp.fL) {
-      fL.rotation.x = rp.fL.x + slamT * slam.forearmL.x + -lanceExtendT * 0.3
-      fL.rotation.y = rp.fL.y + slamT * slam.forearmL.y
-      fL.rotation.z = rp.fL.z + slamT * slam.forearmL.z
+      fL.rotation.x = rp.fL.x + slamT * slam.forearmL.x + lanceExtendT * lance.forearmL.x
+      fL.rotation.y = rp.fL.y + slamT * slam.forearmL.y + lanceExtendT * lance.forearmL.y
+      fL.rotation.z = rp.fL.z + slamT * slam.forearmL.z + lanceExtendT * lance.forearmL.z
     }
     if (fR && rp.fR) {
-      fR.rotation.x = rp.fR.x + slamT * slam.forearmR.x + -lanceExtendT * 0.3
-      fR.rotation.y = rp.fR.y + slamT * slam.forearmR.y
-      fR.rotation.z = rp.fR.z + slamT * slam.forearmR.z
+      fR.rotation.x = rp.fR.x + slamT * slam.forearmR.x + lanceExtendT * lance.forearmR.x
+      fR.rotation.y = rp.fR.y + slamT * slam.forearmR.y + lanceExtendT * lance.forearmR.y
+      fR.rotation.z = rp.fR.z + slamT * slam.forearmR.z + lanceExtendT * lance.forearmR.z
     }
     if (thL && rp.thL) thL.rotation.x = rp.thL.x + walkSwing
     if (thR && rp.thR) thR.rotation.x = rp.thR.x - walkSwing
@@ -267,6 +284,21 @@ export default function Boss() {
       sp003.rotation.x = sp003Rest.x + slamT * slam.spine003.x
       sp003.rotation.y = sp003Rest.y + slamT * slam.spine003.y
       sp003.rotation.z = sp003Rest.z + slamT * slam.spine003.z
+    }
+    // Hands — only hand_lance writes to them, palms turn up to "hold" beams
+    const handLBone = testableBonesRef.current.get('handL')
+    const handLRest = testableRestRef.current.get('handL')
+    if (handLBone && handLRest) {
+      handLBone.rotation.x = handLRest.x + lanceExtendT * lance.handL.x
+      handLBone.rotation.y = handLRest.y + lanceExtendT * lance.handL.y
+      handLBone.rotation.z = handLRest.z + lanceExtendT * lance.handL.z
+    }
+    const handRBone = testableBonesRef.current.get('handR')
+    const handRRest = testableRestRef.current.get('handR')
+    if (handRBone && handRRest) {
+      handRBone.rotation.x = handRRest.x + lanceExtendT * lance.handR.x
+      handRBone.rotation.y = handRRest.y + lanceExtendT * lance.handR.y
+      handRBone.rotation.z = handRRest.z + lanceExtendT * lance.handR.z
     }
 
     // Attack state machine
@@ -293,7 +325,14 @@ export default function Boss() {
           }
           setSaltCircles(circles)
         } else if (currentAttack.current === 'hand_lance') {
-          beamAngle.current = 0
+          // Seed beamAngle to the current player-facing angle so the body
+          // rotation (which is now driven by beamAngle during the attack)
+          // doesn't snap on the first frame.
+          const pp = usePlayerStore.getState().position
+          beamAngle.current = Math.atan2(
+            pp.x - boss.position.x,
+            pp.z - boss.position.z,
+          )
           setShowBeam(true)
           attackPhase.current = 'attack'
           return
