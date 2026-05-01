@@ -65,7 +65,7 @@ export const HAZARD_DEFS: Record<HazardType, HazardDef> = {
     damageInterval: 99,    // > activeMs ⇒ effectively single tick at impact
     telegraphMs: 1500,     // long enough to read the shadow + reposition
     activeMs: 500,         // brief landed window where the pot still hurts
-    color: '#7a4520',
+    color: '#3a3a3a',      // dark cast-iron gray
   },
 }
 

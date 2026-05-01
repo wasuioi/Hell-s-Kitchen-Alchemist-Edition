@@ -2,6 +2,7 @@ import { useMemo, useRef, type RefObject } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { HAZARD_DEFS, type DiscHazardDef, type FallingHazardDef, type RectHazardDef } from '../data/hazards'
+import { useGameStore } from '../stores/gameStore'
 import type { Hazard as HazardType } from '../types'
 
 // Renders a single environmental hazard. Three visual flavors:
@@ -339,19 +340,61 @@ const POT_DROP_FRACTION = 0.33   // last 33% of telegraph is the visible drop
 const POT_START_Y = 8
 const POT_REST_Y = 0.45
 
+const IMPACT_PARTICLE_COUNT = 12
+const IMPACT_PARTICLE_LIFETIME_S = 0.7
+const IMPACT_GRAVITY = 14         // u/s² — pulls particles back to floor
+const IMPACT_SHAKE_INTENSITY = 0.35
+const IMPACT_SHAKE_MS = 250
+
+interface ImpactParticle {
+  meshRef: RefObject<THREE.Mesh | null>
+  matRef: RefObject<THREE.MeshStandardMaterial | null>
+  vx: number          // u/s, horizontal x velocity
+  vz: number          // u/s, horizontal z velocity
+  vy: number          // u/s, initial upward velocity
+  spinSpeed: number   // rad/s, tumble around y axis
+  isRock: boolean     // rock (icosahedron, gray) vs dirt (sphere, brown)
+  baseScale: number
+}
+
 function FallingHazard({ hazard, def }: { hazard: HazardType; def: FallingHazardDef }) {
   const shadowRef = useRef<THREE.Mesh>(null!)
   const shadowMatRef = useRef<THREE.MeshBasicMaterial>(null!)
   const potGroupRef = useRef<THREE.Group>(null!)
   const potBodyMatRef = useRef<THREE.MeshStandardMaterial>(null!)
   const potRimMatRef = useRef<THREE.MeshStandardMaterial>(null!)
+  const impactFiredRef = useRef(false)
 
-  // Pot rim accent — slightly darker brown for the lip, sells the cast-iron silhouette.
+  // Pot rim accent — darker shade of the body, sells the cast-iron silhouette.
   const rimColor = useMemo(() => {
     const c = new THREE.Color(def.color)
-    c.lerp(new THREE.Color('#1a1008'), 0.55)
+    c.lerp(new THREE.Color('#0a0a0a'), 0.55)
     return c
   }, [def.color])
+
+  // Impact debris pool — rocks + dirt clods erupting from the impact point.
+  // Pre-allocated with random per-particle velocities; physics is parametric
+  // so we don't need per-frame integration.
+  const particles = useMemo<ImpactParticle[]>(
+    () =>
+      Array.from({ length: IMPACT_PARTICLE_COUNT }, () => {
+        const angle = Math.random() * Math.PI * 2
+        const horizSpeed = 1.4 + Math.random() * 1.8        // 1.4–3.2 u/s outward
+        const upSpeed = 1.6 + Math.random() * 2.2           // 1.6–3.8 u/s up
+        const isRock = Math.random() < 0.5
+        return {
+          meshRef: { current: null },
+          matRef: { current: null },
+          vx: Math.cos(angle) * horizSpeed,
+          vz: Math.sin(angle) * horizSpeed,
+          vy: upSpeed,
+          spinSpeed: (Math.random() - 0.5) * 6,
+          isRock,
+          baseScale: isRock ? 0.18 + Math.random() * 0.14 : 0.10 + Math.random() * 0.07,
+        }
+      }),
+    [],
+  )
 
   useFrame(() => {
     const now = performance.now()
@@ -396,6 +439,38 @@ function FallingHazard({ hazard, def }: { hazard: HazardType; def: FallingHazard
         if (potRimMatRef.current) potRimMatRef.current.opacity = fade
       }
     }
+
+    // Impact beat — fires once at the telegraph→active transition.
+    // Triggers a soft screenshake; debris animation is parametric below.
+    if (!inTelegraph && !impactFiredRef.current) {
+      impactFiredRef.current = true
+      useGameStore.getState().triggerScreenShake(IMPACT_SHAKE_INTENSITY, IMPACT_SHAKE_MS)
+    }
+
+    // Impact debris — only animate after impact has fired. Position + rotation
+    // are pure functions of (now − impactTime) so we never mutate the slot.
+    if (impactFiredRef.current) {
+      const t = activeElapsed / 1000  // seconds since impact
+      for (const p of particles) {
+        const mesh = p.meshRef.current
+        const mat = p.matRef.current
+        if (!mesh) continue
+        if (t < 0 || t > IMPACT_PARTICLE_LIFETIME_S) {
+          mesh.visible = false
+          continue
+        }
+        const x = p.vx * t
+        const z = p.vz * t
+        const y = Math.max(0.05, p.vy * t - 0.5 * IMPACT_GRAVITY * t * t)
+        const fadeT = t / IMPACT_PARTICLE_LIFETIME_S
+        mesh.visible = true
+        mesh.position.set(x, y, z)
+        mesh.rotation.y = p.spinSpeed * t
+        mesh.rotation.x = p.spinSpeed * t * 0.6
+        mesh.scale.setScalar(p.baseScale * (1 - fadeT * 0.35))
+        if (mat) mat.opacity = Math.max(0, 1 - fadeT)
+      }
+    }
   })
 
   return (
@@ -438,6 +513,25 @@ function FallingHazard({ hazard, def }: { hazard: HazardType; def: FallingHazard
           />
         </mesh>
       </group>
+      {/* Impact debris — rocks (gray icosahedrons) + dirt (small dark spheres).
+          Hidden until impactFired flips on at telegraph→active transition. */}
+      {particles.map((p, i) => (
+        <mesh key={i} ref={p.meshRef} visible={false}>
+          {p.isRock ? (
+            <icosahedronGeometry args={[1, 0]} />
+          ) : (
+            <sphereGeometry args={[1, 8, 6]} />
+          )}
+          <meshStandardMaterial
+            ref={p.matRef}
+            color={p.isRock ? '#5a5a5a' : '#3a2a18'}
+            roughness={p.isRock ? 0.95 : 1}
+            metalness={0}
+            transparent
+            opacity={1}
+          />
+        </mesh>
+      ))}
     </>
   )
 }
