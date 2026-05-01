@@ -341,10 +341,10 @@ const POT_START_Y = 8
 const POT_REST_Y = 0.45
 
 const IMPACT_PARTICLE_COUNT = 12
-const IMPACT_PARTICLE_LIFETIME_S = 0.7
-const IMPACT_GRAVITY = 14         // u/s² — pulls particles back to floor
-const IMPACT_SHAKE_INTENSITY = 0.35
-const IMPACT_SHAKE_MS = 250
+const IMPACT_PARTICLE_LIFETIME_S = 0.9
+const IMPACT_GRAVITY = 13         // u/s² — pulls particles back to floor
+const IMPACT_SHAKE_INTENSITY = 0.5
+const IMPACT_SHAKE_MS = 280
 
 interface ImpactParticle {
   meshRef: RefObject<THREE.Mesh | null>
@@ -379,8 +379,8 @@ function FallingHazard({ hazard, def }: { hazard: HazardType; def: FallingHazard
     () =>
       Array.from({ length: IMPACT_PARTICLE_COUNT }, () => {
         const angle = Math.random() * Math.PI * 2
-        const horizSpeed = 1.4 + Math.random() * 1.8        // 1.4–3.2 u/s outward
-        const upSpeed = 1.6 + Math.random() * 2.2           // 1.6–3.8 u/s up
+        const horizSpeed = 2.4 + Math.random() * 3.2        // 2.4–5.6 u/s outward
+        const upSpeed = 3.0 + Math.random() * 3.0           // 3.0–6.0 u/s up
         const isRock = Math.random() < 0.5
         return {
           meshRef: { current: null },
