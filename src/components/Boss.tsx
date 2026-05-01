@@ -74,7 +74,7 @@ export default function Boss() {
 
   // Auto-fit: scale model to BOSS_HEIGHT units tall, then offset Y so the
   // model's lowest point sits at y=0.
-  const BOSS_HEIGHT = 5
+  const BOSS_HEIGHT = 6
   const { fittedScale, floorOffset } = useMemo(() => {
     const bbox = new THREE.Box3().setFromObject(scene)
     const size = new THREE.Vector3()
