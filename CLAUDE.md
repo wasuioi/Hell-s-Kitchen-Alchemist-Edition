@@ -29,7 +29,7 @@ src/
   components/   # 3D scene components (Player, Enemy, Boss, Spell, ParticleSystem,
                 # ExplosionEffect, SpriteVfxEffect, etc.)
   ui/           # React UI (HUD, MainMenu, RewardScreen, DeathScreen, VictoryScreen,
-                # CardHand, CauldronUI, DevPanel, PerkIcon, TierDots, TierDiff)
+                # CardHand, CauldronUI, PerkCard, PerkIcon, TierDots, TierDiff)
   stores/       # Zustand stores (gameStore, deckStore, playerStore, enemyStore, vfxStore)
   data/         # Game config (recipes.ts, perks.ts)
   utils/        # castSpell.ts, collision.ts, perkTriggers.ts, spawnVfx.ts, preloadAssets.ts
@@ -59,7 +59,7 @@ public/
 
 - **PerkDefinition** in `data/perks.ts` carries `rarity`, optional `vfxSprite` slug, and optional `tiers: [PerkTierStats, PerkTierStats, PerkTierStats]` for the 3-tier upgrade UI.
 - **`MAX_PERK_TIER = 3`** — extra stacks beyond T3 still apply (typically `+x damage` per stack), but the dot indicator caps at T3 and shows `+N` for overflow.
-- **`RARITY_COLOR`** maps `common | rare | epic | legendary` to gray / blue / purple / gold. Used by RewardScreen + DevPanel for card border + glow.
+- **`RARITY_COLOR`** maps `common | rare | epic | legendary` to gray / blue / purple / gold. Used by `PerkCard` for the rarity-tinted name banner + glow.
 - **Reactive triggers** (e.g. `triggerOnDamageTaken` in `utils/perkTriggers.ts`) read stacks → tier → fire `damageEnemy` per enemy in radius + `setEnemyHitFlash` + `spawnDamageNumberVfx` + `spawnSpriteVfx(slug, x, z)` for the perk's bespoke VFX. Always check `enemy.dying || enemy.detonating` before damaging, and run the death-check loop (mark dying / queue exploder detonation / trigger boss victory) after damage so the perk doesn't leave enemies stuck at HP 0.
 - **Tier diff text**: when the player would upgrade a perk they already own, the reward / dev card uses `<TierDiff>` to show `Damage 15 → 25` with the new value in red plus a `+ <new effect>` line for the gameplay added at that tier.
 - **Tier-dot blink**: `<TierDots>` accepts `current` / `preview` / `hovered` — on hover the dots between current and preview blink to tease the upgrade. Static everywhere else (HUD).
@@ -76,10 +76,6 @@ public/
 - **`/save-icon <slug>`** — comment with attached PNG → workflow downloads, commits to `public/icons/<slug>.png`, opens PR.
 - **`/save-vfx <slug>`** — comment with attached MP4 → ffmpeg centre-crops + tiles into 6×4 / 24-frame sprite sheet (fps adapts to source duration), commits to `public/vfx/<slug>.png`, opens PR.
 - Both use the `ICON_DOWNLOAD_TOKEN` PAT secret because GitHub user-attachments require a user token (private repos).
-
-## Dev cheat panel
-
-- `<DevPanel>` mounts only in `import.meta.env.DEV`. Floating "DEV" button bottom-left → opens a reward-screen-style perk picker with unlimited rerolls + clear-perks. Use it to skip waves while iterating on perk balance, VFX, or UI.
 
 ## Routine prompts (canonical)
 

@@ -28,8 +28,8 @@ export interface PerkDefinition {
 
 export const MAX_PERK_TIER = 3
 
-// Card / glow color per rarity — used by RewardScreen and DevPanel to
-// tint the card border based on perk.rarity.
+// Card / glow color per rarity — used by RewardScreen / PerkCard to
+// tint the card name + glow based on perk.rarity.
 export const RARITY_COLOR: Record<PerkRarity, string> = {
   common: '#9ca3af',     // gray
   rare: '#3b82f6',       // blue
