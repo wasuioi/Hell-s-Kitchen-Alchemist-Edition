@@ -25,6 +25,7 @@ interface EnemyState {
   clearEnemyStunned: (id: string) => void
   setEnemyKnockback: (id: string, knockback: Knockback | null) => void
   setEnemyHitFlash: (id: string, until: number) => void
+  setEnemyResistAura: (id: string, until: number) => void
   setEnemyDying: (id: string) => void
   setEnemyDetonating: (id: string) => void
   reset: () => void
@@ -38,7 +39,7 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
       enemies: [...s.enemies, {
         id: `enemy_${nextId++}`, position, hp, maxHp: hp, type,
         soakedUntil: 0, frozenUntil: 0, burningUntil: 0, poisonedUntil: 0, slowedUntil: 0, stunnedUntil: 0,
-        knockback: null, hitFlashUntil: 0, dying: false, detonating: false,
+        knockback: null, hitFlashUntil: 0, resistAuraUntil: 0, dying: false, detonating: false,
       }],
     }))
   },
@@ -74,6 +75,7 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
   clearEnemyStunned: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, stunnedUntil: 0 } : e) })),
   setEnemyKnockback: (id, knockback) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, knockback } : e) })),
   setEnemyHitFlash: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, hitFlashUntil: until } : e) })),
+  setEnemyResistAura: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, resistAuraUntil: until } : e) })),
   setEnemyDying: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, dying: true } : e) })),
   setEnemyDetonating: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, detonating: true } : e) })),
   reset: () => set({ enemies: [] }),

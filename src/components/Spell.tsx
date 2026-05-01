@@ -75,17 +75,22 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
       if (dist <= currentRadius) {
         damaged.current.add(enemy.id)
 
-        // STEAM: push only, no damage, no status
+        // STEAM: push only, no damage, no status. Boss is immune to
+        // knockback — flash a brief gray "resist" aura instead.
         if (spell.type === 'STEAM') {
-          const dx = enemy.position.x - spell.position.x
-          const dz = enemy.position.z - spell.position.z
-          const len = Math.sqrt(dx * dx + dz * dz) || 1
-          const pushDist = spell.radius - len
-          const speed = Math.max(0, pushDist) * 8
-          useEnemyStore.getState().setEnemyKnockback(enemy.id, {
-            vx: (dx / len) * speed,
-            vz: (dz / len) * speed,
-          })
+          if (enemy.type === 'boss') {
+            useEnemyStore.getState().setEnemyResistAura(enemy.id, performance.now() + 350)
+          } else {
+            const dx = enemy.position.x - spell.position.x
+            const dz = enemy.position.z - spell.position.z
+            const len = Math.sqrt(dx * dx + dz * dz) || 1
+            const pushDist = spell.radius - len
+            const speed = Math.max(0, pushDist) * 8
+            useEnemyStore.getState().setEnemyKnockback(enemy.id, {
+              vx: (dx / len) * speed,
+              vz: (dz / len) * speed,
+            })
+          }
           continue
         }
 

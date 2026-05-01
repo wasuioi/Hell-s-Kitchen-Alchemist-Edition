@@ -43,6 +43,11 @@ const HAND_LANCE_POSE = {
   handR: { x: 2.09, y: 0.00, z: 0.00 },
 } as const
 
+// Reusable scratch vector for reading bone world positions every frame —
+// declared at module scope so we don't allocate per frame.
+const TMP_VEC = new THREE.Vector3()
+const RESIST_AURA_DURATION = 350 // ms — must match Spell.tsx's setEnemyResistAura window
+
 function getEdgeSpawnPosition(): { x: number; z: number } {
   const edge = Math.floor(Math.random() * 4)
   const half = ARENA_SIZE / 2 - 1
@@ -58,12 +63,14 @@ function getEdgeSpawnPosition(): { x: number; z: number } {
 export default function Boss() {
   const boss = useEnemyStore((s) => s.enemies.find((e) => e.type === 'boss'))
   const { scene } = useGLTF('/models/boss/boss.glb')
-  // Auto-fit: scale model to 3 units tall, then offset Y so its lowest point sits at y=0
+  // Auto-fit: scale model to BOSS_HEIGHT units tall, then offset Y so its
+  // lowest point sits at y=0. Bigger boss = more imposing presence.
+  const BOSS_HEIGHT = 4.5
   const { fittedScale, floorOffset } = useMemo(() => {
     const bbox = new THREE.Box3().setFromObject(scene)
     const size = new THREE.Vector3()
     bbox.getSize(size)
-    const scale = size.y > 0 ? 3 / size.y : 1
+    const scale = size.y > 0 ? BOSS_HEIGHT / size.y : 1
     const offset = -bbox.min.y * scale
     return { fittedScale: scale, floorOffset: offset }
   }, [scene])
@@ -144,6 +151,11 @@ export default function Boss() {
   const saltImpactTimer = useRef(0)
 
   const beamRef = useRef<THREE.Group>(null)
+  // Glowing water "muzzles" attached to each hand bone during hand_lance.
+  const handLMuzzleRef = useRef<THREE.Mesh>(null)
+  const handRMuzzleRef = useRef<THREE.Mesh>(null)
+  // Brief gray sphere flashed when the boss resists a knockback spell.
+  const resistAuraRef = useRef<THREE.Mesh>(null)
 
   const ATTACK_ORDER: AttackType[] = ['stone_slam', 'stone_spikes', 'hand_lance']
   const PAUSE_BETWEEN = 5
@@ -301,6 +313,29 @@ export default function Boss() {
       handRBone.rotation.z = handRRest.z + lanceExtendT * lance.handR.z
     }
 
+    // Hand muzzle "water" glows — track each hand bone's world position so
+    // the beams visually emit from the boss's palms during hand_lance.
+    if (handLBone && handLMuzzleRef.current) {
+      handLBone.getWorldPosition(TMP_VEC)
+      handLMuzzleRef.current.position.copy(TMP_VEC)
+    }
+    if (handRBone && handRMuzzleRef.current) {
+      handRBone.getWorldPosition(TMP_VEC)
+      handRMuzzleRef.current.position.copy(TMP_VEC)
+    }
+
+    // Resist aura — fades out over RESIST_AURA_DURATION ms after a STEAM hit.
+    if (resistAuraRef.current) {
+      const remaining = boss.resistAuraUntil - performance.now()
+      if (remaining > 0) {
+        resistAuraRef.current.visible = true
+        const mat = resistAuraRef.current.material as THREE.MeshStandardMaterial
+        mat.opacity = (remaining / RESIST_AURA_DURATION) * 0.55
+      } else {
+        resistAuraRef.current.visible = false
+      }
+    }
+
     // Attack state machine
     if (attackPhase.current === 'idle') {
       attackTimer.current += delta
@@ -444,7 +479,7 @@ export default function Boss() {
       {showHeatRing && (
         <mesh position={[boss.position.x, 0.05, boss.position.z]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[5.5, 6.5, 48]} />
-          <meshStandardMaterial color="#a16207" transparent opacity={0.6} emissive="#78350f" emissiveIntensity={0.5} />
+          <meshStandardMaterial color="#ef4444" transparent opacity={0.7} emissive="#dc2626" emissiveIntensity={0.8} />
         </mesh>
       )}
 
@@ -452,7 +487,7 @@ export default function Boss() {
       {saltCircles.map((c, i) => (
         <mesh key={i} position={[c.x, 0.05, c.z]} rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[1.5, 24]} />
-          <meshStandardMaterial color="#fb923c" transparent opacity={0.5} emissive="#fb923c" emissiveIntensity={0.6} />
+          <meshStandardMaterial color="#ef4444" transparent opacity={0.6} emissive="#dc2626" emissiveIntensity={0.8} />
         </mesh>
       ))}
 
@@ -512,6 +547,34 @@ export default function Boss() {
           </mesh>
         </group>
       )}
+
+      {/* Hand-muzzle water glows — bright blue spheres tracked to each hand
+          bone's world position via useFrame, only visible while the lance
+          beams are active. */}
+      {showBeam && (
+        <>
+          <mesh ref={handLMuzzleRef}>
+            <sphereGeometry args={[0.6, 16, 16]} />
+            <meshStandardMaterial color="#60a5fa" transparent opacity={0.85} emissive="#3b82f6" emissiveIntensity={3} />
+          </mesh>
+          <mesh ref={handRMuzzleRef}>
+            <sphereGeometry args={[0.6, 16, 16]} />
+            <meshStandardMaterial color="#60a5fa" transparent opacity={0.85} emissive="#3b82f6" emissiveIntensity={3} />
+          </mesh>
+        </>
+      )}
+
+      {/* Resist aura — gray sphere flashed when boss shrugs off a knockback.
+          Visibility + opacity are driven from useFrame so the fade animates
+          smoothly without forcing a re-render every frame. */}
+      <mesh
+        ref={resistAuraRef}
+        position={[boss.position.x, floorOffset + BOSS_HEIGHT / 2, boss.position.z]}
+        visible={false}
+      >
+        <sphereGeometry args={[BOSS_HEIGHT * 0.6, 24, 24]} />
+        <meshStandardMaterial color="#9ca3af" transparent opacity={0} emissive="#9ca3af" emissiveIntensity={0.7} />
+      </mesh>
     </group>
   )
 }
