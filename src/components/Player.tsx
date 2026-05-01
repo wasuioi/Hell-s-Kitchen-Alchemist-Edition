@@ -91,7 +91,7 @@ export default function Player() {
     }
 
     const phase = useGameStore.getState().phase
-    if (phase !== 'combat' && phase !== 'boss') return
+    if (phase !== 'combat' && phase !== 'boss' && phase !== 'pre-boss-lull') return
 
     // BoilingPoint Heat decay — fires every frame, but `decayHeat` is a
     // no-op until the 4s window since the last hit has elapsed.
@@ -249,7 +249,7 @@ export default function Player() {
   const bpStacks = useDeckStore((s) => s.activePerks.find((p) => p.id === 'boiling_point')?.stackCount ?? 0)
   const maxHeat = bpStacks > 0 ? BOILING_POINT_MAX_HEAT[Math.min(bpStacks, 3) - 1] : 0
 
-  if (phase !== 'combat' && phase !== 'boss') return null
+  if (phase !== 'combat' && phase !== 'boss' && phase !== 'pre-boss-lull') return null
 
   return (
     <>

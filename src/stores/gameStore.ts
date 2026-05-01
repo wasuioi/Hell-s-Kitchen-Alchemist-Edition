@@ -7,6 +7,9 @@ interface GameState {
   shakeIntensity: number; shakeEndTime: number
   freezeUntil: number
   screenFlashUntil: number
+  // Pacing state — pre-boss surge + lull (issue #69)
+  surgeActive: boolean; surgeEndTime: number
+  lullEndTime: number
   // Actions
   startShift: () => void; completeWave: () => void; nextWave: () => void
   skipReward: () => void
@@ -18,6 +21,10 @@ interface GameState {
   triggerHitFreeze: (durationMs: number) => void
   triggerScreenFlash: () => void
   checkHitFreezeExpiry: () => void
+  // Pacing actions
+  triggerSurge: (durationMs: number) => void
+  endSurge: () => void
+  triggerPreBossLull: (durationMs: number) => void
 }
 
 const initialStats: GameStats = { enemiesDefeated: 0, ingredientsUsed: 0, wavesCleared: 0, spellsCast: {} as Record<SpellType, number> }
@@ -29,6 +36,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   shakeIntensity: 0, shakeEndTime: 0,
   freezeUntil: 0,
   screenFlashUntil: 0,
+  // Pacing defaults
+  surgeActive: false, surgeEndTime: 0,
+  lullEndTime: 0,
   // Game flow
   startShift: () => set({ phase: 'combat', currentWave: 1, timeScale: 1, stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> } }),
   completeWave: () => set((s) => ({ phase: 'reward', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } })),
@@ -44,6 +54,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     phase: 'menu', currentWave: 0, timeScale: 1,
     stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> },
     shakeIntensity: 0, shakeEndTime: 0, freezeUntil: 0, screenFlashUntil: 0,
+    surgeActive: false, surgeEndTime: 0, lullEndTime: 0,
   }),
   // Juice actions
   triggerScreenShake: (intensity, durationMs) => {
@@ -67,4 +78,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ timeScale: 1, freezeUntil: 0 })
     }
   },
+  // Pacing — pre-boss surge + lull (issue #69)
+  triggerSurge: (durationMs) => set({ surgeActive: true, surgeEndTime: performance.now() + durationMs }),
+  endSurge: () => set({ surgeActive: false }),
+  triggerPreBossLull: (durationMs) => set({ phase: 'pre-boss-lull', lullEndTime: performance.now() + durationMs }),
 }))

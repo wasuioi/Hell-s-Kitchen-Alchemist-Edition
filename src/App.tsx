@@ -136,7 +136,7 @@ export default function App() {
 
       {/* Cauldron + ingredient cards (HUD) and reward screen wait for
           sceneReady so they don't appear over a blank world. */}
-      {(phase === 'combat' || phase === 'boss') && sceneReady && <HUD />}
+      {(phase === 'combat' || phase === 'boss' || phase === 'pre-boss-lull') && sceneReady && <HUD />}
       {phase === 'reward' && sceneReady && <RewardScreen />}
       {phase === 'death' && <DeathScreen />}
       {phase === 'victory' && <VictoryScreen />}
