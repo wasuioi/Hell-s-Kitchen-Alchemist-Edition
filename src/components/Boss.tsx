@@ -1,7 +1,7 @@
 import { useRef, useState, useMemo, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useGLTF } from '@react-three/drei'
+import { useGLTF, Html } from '@react-three/drei'
 import { useEnemyStore } from '../stores/enemyStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { useGameStore } from '../stores/gameStore'
@@ -47,6 +47,10 @@ const HAND_LANCE_POSE = {
 // declared at module scope so we don't allocate per frame.
 const TMP_VEC = new THREE.Vector3()
 const RESIST_AURA_DURATION = 350 // ms — must match Spell.tsx's setEnemyResistAura window
+const SLAM_RADIUS = 9 // m — stone_slam blast + telegraph + damage radius
+const SLAM_BLAST_INNER = SLAM_RADIUS - 1 // ring inner radius (1m thick)
+// Snapshot of one material's original emissive so the resist tint can restore it
+interface MatTint { mat: THREE.MeshStandardMaterial; emissive: THREE.Color; intensity: number }
 
 function getEdgeSpawnPosition(): { x: number; z: number } {
   const edge = Math.floor(Math.random() * 4)
@@ -130,6 +134,21 @@ export default function Boss() {
         testableRestRef.current.set(name, { x: b.rotation.x, y: b.rotation.y, z: b.rotation.z })
       }
     }
+    // Snapshot every MeshStandardMaterial in the model so the resist-aura
+    // useFrame can flash a gray emissive coating across the body and then
+    // restore the originals.
+    const tints: MatTint[] = []
+    scene.traverse((obj) => {
+      const o = obj as THREE.Mesh
+      if (!o.isMesh && !(o as THREE.SkinnedMesh).isSkinnedMesh) return
+      const mats = Array.isArray(o.material) ? o.material : [o.material]
+      for (const m of mats) {
+        if (m instanceof THREE.MeshStandardMaterial) {
+          tints.push({ mat: m, emissive: m.emissive.clone(), intensity: m.emissiveIntensity })
+        }
+      }
+    })
+    tintMatsRef.current = tints
   }, [scene])
   const phase = useGameStore((s) => s.phase)
 
@@ -154,8 +173,9 @@ export default function Boss() {
   // Glowing water "muzzles" attached to each hand bone during hand_lance.
   const handLMuzzleRef = useRef<THREE.Mesh>(null)
   const handRMuzzleRef = useRef<THREE.Mesh>(null)
-  // Brief gray sphere flashed when the boss resists a knockback spell.
-  const resistAuraRef = useRef<THREE.Mesh>(null)
+  // Cached MeshStandardMaterial snapshots used to flash a gray "armor coating"
+  // tint across the entire boss body when knockback is resisted.
+  const tintMatsRef = useRef<MatTint[]>([])
 
   const ATTACK_ORDER: AttackType[] = ['stone_slam', 'stone_spikes', 'hand_lance']
   const PAUSE_BETWEEN = 5
@@ -228,7 +248,7 @@ export default function Boss() {
       if (attackPhase.current === 'telegraph') {
         slamT = Math.min(attackPhaseTimer.current / TELEGRAPH_DURATION, 1)
       } else if (attackPhase.current === 'attack') {
-        const blastT = heatBlastScale.current / 6
+        const blastT = heatBlastScale.current / SLAM_RADIUS
         slamT = blastT < 0.2 ? 1 - blastT / 0.2 : 0
       }
     }
@@ -324,15 +344,19 @@ export default function Boss() {
       handRMuzzleRef.current.position.copy(TMP_VEC)
     }
 
-    // Resist aura — fades out over RESIST_AURA_DURATION ms after a STEAM hit.
-    if (resistAuraRef.current) {
-      const remaining = boss.resistAuraUntil - performance.now()
-      if (remaining > 0) {
-        resistAuraRef.current.visible = true
-        const mat = resistAuraRef.current.material as THREE.MeshStandardMaterial
-        mat.opacity = (remaining / RESIST_AURA_DURATION) * 0.55
+    // Resist coating — flash a gray emissive tint across every body material
+    // when the boss shrugs off a knockback. Fades 0.7 → 0 over the aura
+    // window, then restores the cached emissive colour/intensity.
+    const resistRemaining = boss.resistAuraUntil - performance.now()
+    const resistT = resistRemaining > 0 ? resistRemaining / RESIST_AURA_DURATION : 0
+    for (const t of tintMatsRef.current) {
+      if (resistT > 0) {
+        // Mix gray over the original emissive proportional to resistT
+        t.mat.emissive.setRGB(0.55 * resistT, 0.55 * resistT, 0.55 * resistT)
+        t.mat.emissiveIntensity = t.intensity + resistT * 1.5
       } else {
-        resistAuraRef.current.visible = false
+        t.mat.emissive.copy(t.emissive)
+        t.mat.emissiveIntensity = t.intensity
       }
     }
 
@@ -385,7 +409,7 @@ export default function Boss() {
           setHeatBlast(true)
           heatBlastScale.current = 0
           const playerPos = usePlayerStore.getState().position
-          if (isInRange(playerPos, bossPos, 6)) {
+          if (isInRange(playerPos, bossPos, SLAM_RADIUS)) {
             usePlayerStore.getState().takeDamage(25)
             const dx = playerPos.x - bossPos.x
             const dz = playerPos.z - bossPos.z
@@ -414,8 +438,8 @@ export default function Boss() {
     } else if (attackPhase.current === 'attack') {
       // Heat wave blast animation (expanding fire ring)
       if (currentAttack.current === 'stone_slam') {
-        heatBlastScale.current += delta * 8
-        if (heatBlastScale.current >= 6) {
+        heatBlastScale.current += delta * 12
+        if (heatBlastScale.current >= SLAM_RADIUS) {
           setHeatBlast(false)
           attackPhase.current = 'idle'
           attackTimer.current = 0
@@ -478,7 +502,7 @@ export default function Boss() {
       {/* Heat wave telegraph ring */}
       {showHeatRing && (
         <mesh position={[boss.position.x, 0.05, boss.position.z]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[5.5, 6.5, 48]} />
+          <ringGeometry args={[SLAM_BLAST_INNER, SLAM_RADIUS, 64]} />
           <meshStandardMaterial color="#ef4444" transparent opacity={0.7} emissive="#dc2626" emissiveIntensity={0.8} />
         </mesh>
       )}
@@ -498,7 +522,7 @@ export default function Boss() {
           <meshStandardMaterial
             color="#92400e"
             transparent
-            opacity={Math.max(0, 1 - heatBlastScale.current / 6)}
+            opacity={Math.max(0, 1 - heatBlastScale.current / SLAM_RADIUS)}
             emissive="#78350f"
             emissiveIntensity={1.5}
           />
@@ -513,7 +537,7 @@ export default function Boss() {
           <meshStandardMaterial
             color="#a16207"
             transparent
-            opacity={Math.max(0, 0.7 - heatBlastScale.current / 8)}
+            opacity={Math.max(0, 0.7 - heatBlastScale.current / (SLAM_RADIUS * 1.3))}
             emissive="#a16207"
             emissiveIntensity={0.6}
           />
@@ -564,17 +588,33 @@ export default function Boss() {
         </>
       )}
 
-      {/* Resist aura — gray sphere flashed when boss shrugs off a knockback.
-          Visibility + opacity are driven from useFrame so the fade animates
-          smoothly without forcing a re-render every frame. */}
-      <mesh
-        ref={resistAuraRef}
-        position={[boss.position.x, floorOffset + BOSS_HEIGHT / 2, boss.position.z]}
-        visible={false}
+      {/* "BOSS" floating label above the head — always faces the camera. */}
+      <Html
+        position={[boss.position.x, floorOffset + BOSS_HEIGHT + 0.6, boss.position.z]}
+        center
+        distanceFactor={10}
+        zIndexRange={[100, 0]}
       >
-        <sphereGeometry args={[BOSS_HEIGHT * 0.6, 24, 24]} />
-        <meshStandardMaterial color="#9ca3af" transparent opacity={0} emissive="#9ca3af" emissiveIntensity={0.7} />
-      </mesh>
+        <div
+          style={{
+            color: '#fee2e2',
+            background: 'rgba(127, 29, 29, 0.85)',
+            border: '2px solid #ef4444',
+            borderRadius: '4px',
+            padding: '2px 12px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            letterSpacing: '2px',
+            fontFamily: 'inherit',
+            textShadow: '0 0 6px #dc2626',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            userSelect: 'none',
+          }}
+        >
+          BOSS
+        </div>
+      </Html>
     </group>
   )
 }

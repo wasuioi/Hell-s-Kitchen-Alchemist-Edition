@@ -115,7 +115,10 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
           useEnemyStore.getState().setEnemyHitFlash(enemy.id, performance.now() + 100)
 
           const dmgColor = actualDamage >= 80 ? '#ef4444' : actualDamage >= 40 ? '#fbbf24' : '#ffffff'
-          spawnDamageNumber(enemy.position.x, enemy.position.z, actualDamage, dmgColor)
+          // Boss is ~4.5 units tall vs the default 1.5; lift the damage number
+          // above its head so the player can actually see it land.
+          const dmgY = enemy.type === 'boss' ? 5 : 1.5
+          spawnDamageNumber(enemy.position.x, enemy.position.z, actualDamage, dmgColor, dmgY)
 
           // Screen shake: stronger for big spells
           if (spell.type === 'METEOR' || spell.type === 'INFERNO') {
