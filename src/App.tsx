@@ -1,5 +1,4 @@
-import { useEffect, useRef } from 'react'
-import Scene from './components/Scene'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { useGameStore } from './stores/gameStore'
 import { useDeckStore } from './stores/deckStore'
 import { usePlayerStore } from './stores/playerStore'
@@ -13,6 +12,12 @@ import VictoryScreen from './ui/VictoryScreen'
 import DebugPanel from './ui/DebugPanel'
 import VfxPicker from './ui/VfxPicker'
 import DevPanel from './ui/DevPanel'
+
+// Scene pulls in Three.js + react-three-fiber + drei (~1 MB gzipped). Lazy-
+// load it so the MainMenu — pure DOM UI — renders the instant React mounts,
+// while the 3D engine downloads in the background. By the time the player
+// clicks "Start" it's already cached.
+const Scene = lazy(() => import('./components/Scene'))
 
 export default function App() {
   const phase = useGameStore((s) => s.phase)
@@ -75,7 +80,9 @@ export default function App() {
 
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
-      <Scene />
+      <Suspense fallback={null}>
+        <Scene />
+      </Suspense>
 
       {phase === 'menu' && <MainMenu />}
 
