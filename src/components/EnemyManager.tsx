@@ -59,6 +59,14 @@ export default function EnemyManager() {
     if (phase === 'boss' && prevPhase.current !== 'boss') {
       useEnemyStore.getState().spawnEnemy('boss', { x: 0, z: -7 })
     }
+    // Reset spawn state on entry to combat — guards against stale waveTimer
+    // after death/victory mid-wave restarts (allDead branch only fires on clean clears).
+    if (phase === 'combat' && prevPhase.current !== 'combat') {
+      waveTimer.current = 0
+      spawnTimer.current = 0
+      spawnedCount.current = 0
+      pendingDetonations.current.clear()
+    }
     prevPhase.current = phase
 
     if (phase !== 'combat') return
@@ -121,7 +129,12 @@ export default function EnemyManager() {
 
     waveTimer.current += dt
     spawnTimer.current += dt
-    const spawnInterval = Math.max(1, SPAWN_INTERVAL_BASE - currentWave * 0.2)
+    // RoR2-style director timer: spawn floor drops the longer the wave drags on.
+    // waveTimer term clamped to 20s so escalation caps; floor 0.4s prevents runaway density.
+    const spawnInterval = Math.max(
+      0.4,
+      SPAWN_INTERVAL_BASE - currentWave * 0.2 - Math.min(waveTimer.current, 20) * 0.05,
+    )
     if (spawnTimer.current >= spawnInterval && spawnedCount.current < ENEMIES_PER_WAVE) {
       spawnTimer.current = 0
       spawnedCount.current++
