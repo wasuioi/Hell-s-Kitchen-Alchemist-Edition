@@ -34,7 +34,7 @@ interface EnemyState {
   spawnEnemy: (type: EnemyType, position: Position) => void
   damageEnemy: (id: string, amount: number) => void
   damageEnemiesInRadius: (center: Position, radius: number, amount: number) => void
-  applyStatusInRadius: (center: Position, radius: number, status: StatusEffect | 'burning', duration: number) => void
+  applyStatusInRadius: (center: Position, radius: number, status: StatusEffect | 'burning' | 'slowed', duration: number) => void
   removeEnemy: (id: string) => void
   updateEnemyPosition: (id: string, position: Position) => void
   setEnemySoaked: (id: string, until: number) => void
@@ -80,6 +80,7 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
       status === 'soaked' ? 'soakedUntil' :
       status === 'stunned' ? 'stunnedUntil' :
       status === 'burning' ? 'burningUntil' :
+      status === 'slowed' ? 'slowedUntil' :
       null
     if (!field) return
     const until = performance.now() + duration * 1000

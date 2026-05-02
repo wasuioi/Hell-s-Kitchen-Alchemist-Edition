@@ -92,6 +92,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { 'Drop Chance': '50%', Heal: '+8 HP', Lifetime: '8.0s' } },
     ],
   },
+  {
+    id: 'flash_steam', name: 'Flash Steam', icon: '/icons/flash_steam.png',
+    description: 'BOTTLE spells against burning enemies erupt in scalding steam, soaking nearby enemies.',
+    rarity: 'rare', vfxSprite: 'flash_steam',
+    tiers: [
+      { stats: { 'Bonus Damage': '+30%', Radius: 3.0, 'Soak Duration': '2.0s' } },
+      { stats: { 'Bonus Damage': '+50%', Radius: 4.0, 'Soak Duration': '2.5s' }, added: 'Affected enemies are slowed by 25% for the soak duration' },
+      { stats: { 'Bonus Damage': '+80%', Radius: 5.0, 'Soak Duration': '3.0s' }, added: 'Steam burst deals 20 scalding damage to other enemies in radius' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

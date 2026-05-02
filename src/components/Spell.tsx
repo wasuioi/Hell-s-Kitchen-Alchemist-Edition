@@ -10,6 +10,7 @@ import { PARTICLE_CONFIG } from '../data/particleConfig'
 import ParticleSystem from './ParticleSystem'
 import { spawnDamageNumber } from './DamageNumbers'
 import { spawnGroundCrack } from './GroundCracks'
+import { spawnSpriteVfx, spawnDamageNumberVfx } from '../utils/spawnVfx'
 
 declare global {
   interface Window {
@@ -59,6 +60,7 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
     const activePerks = useDeckStore.getState().activePerks
     const deepFreezeStacks = activePerks.find((p) => p.id === 'deep_freeze')?.stackCount || 0
     const extraSpicyStacks = activePerks.find((p) => p.id === 'extra_spicy')?.stackCount || 0
+    const flashSteamStacks = activePerks.find((p) => p.id === 'flash_steam')?.stackCount || 0
     const BOTTLE_SPELLS: SpellType[] = ['TIDAL_WAVE', 'MUD']
     const BURN_SPELLS: SpellType[] = ['INFERNO', 'METEOR']
 
@@ -145,6 +147,32 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
         // INFERNO skips burn when it consumes Soak/Freeze — fire spent on melt/steam.
         if (BURN_SPELLS.includes(spell.type) && extraSpicyStacks > 0 && !infernoConsumedStatus) {
           useEnemyStore.getState().setEnemyBurning(enemy.id, now + BURN_DURATION_MS)
+        }
+
+        // Flash Steam perk: BOTTLE-based spells hitting burning enemies erupt in scalding steam.
+        // STEAM is excluded naturally — it hits `continue` before reaching here (push-only spell).
+        if (BOTTLE_SPELLS.includes(spell.type) && flashSteamStacks > 0 && now < enemy.burningUntil) {
+          const tier = Math.min(flashSteamStacks, 3)
+          const bonusMul = [0.30, 0.50, 0.80][tier - 1]
+          const radius = [3.0, 4.0, 5.0][tier - 1]
+          const soakS = [2.0, 2.5, 3.0][tier - 1]
+          const bonusDmg = actualDamage * bonusMul
+          useEnemyStore.getState().damageEnemy(enemy.id, bonusDmg)
+          useEnemyStore.getState().setEnemyHitFlash(enemy.id, performance.now() + 100)
+          spawnDamageNumberVfx(enemy.position.x, enemy.position.z, bonusDmg, '#bae6fd', enemy.type === 'boss' ? 5 : 1.5)
+          useEnemyStore.getState().applyStatusInRadius(enemy.position, radius, 'soaked', soakS)
+          if (tier >= 2) useEnemyStore.getState().applyStatusInRadius(enemy.position, radius, 'slowed', soakS)
+          if (tier >= 3) {
+            for (const other of useEnemyStore.getState().enemies) {
+              if (other.id === enemy.id || other.dying || other.detonating) continue
+              if (Math.hypot(other.position.x - enemy.position.x, other.position.z - enemy.position.z) > radius) continue
+              const aoeDmg = other.type === 'boss' ? 10 : 20
+              useEnemyStore.getState().damageEnemy(other.id, aoeDmg)
+              useEnemyStore.getState().setEnemyHitFlash(other.id, performance.now() + 100)
+              spawnDamageNumberVfx(other.position.x, other.position.z, aoeDmg, '#ffffff', other.type === 'boss' ? 5 : 1.5)
+            }
+          }
+          spawnSpriteVfx('flash_steam', enemy.position.x, enemy.position.z, radius * 2.5)
         }
       }
     }
