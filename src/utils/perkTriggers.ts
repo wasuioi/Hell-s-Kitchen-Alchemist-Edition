@@ -94,3 +94,50 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
 export function resetGreaseFireCooldown() {
   lastGreaseFireAt = -Infinity
 }
+
+const JULIENNE_TIERS = [
+  { count: 1, range: 2.5, mult: 0.50, stun: 0,   soak: 0 },
+  { count: 2, range: 3.0, mult: 0.70, stun: 0.5, soak: 0 },
+  { count: 3, range: 3.5, mult: 1.00, stun: 0.5, soak: 2.0 },
+] as const
+
+export function triggerJulienneChain(originId: string, baseDmg: number, tier: 1 | 2 | 3) {
+  const cfg = JULIENNE_TIERS[tier - 1]
+  const enemies = useEnemyStore.getState().enemies
+  const origin = enemies.find((e) => e.id === originId)
+  if (!origin) return
+
+  const targets = enemies
+    .filter((e) => e.id !== originId && !e.dying && !e.detonating)
+    .map((e) => ({ e, d: Math.hypot(e.position.x - origin.position.x, e.position.z - origin.position.z) }))
+    .filter((x) => x.d <= cfg.range)
+    .sort((a, b) => a.d - b.d)
+    .slice(0, cfg.count)
+
+  for (const { e } of targets) {
+    const dmg = baseDmg * cfg.mult
+    const dmgColor = dmg >= 80 ? '#ef4444' : dmg >= 40 ? '#fbbf24' : '#ffffff'
+    useEnemyStore.getState().damageEnemy(e.id, dmg)
+    useEnemyStore.getState().setEnemyHitFlash(e.id, performance.now() + 100)
+    if (cfg.stun > 0) useEnemyStore.getState().setEnemyStunned(e.id, performance.now() + cfg.stun * 1000)
+    if (cfg.soak > 0) useEnemyStore.getState().setEnemySoaked(e.id, performance.now() + cfg.soak * 1000)
+    spawnDamageNumberVfx(e.position.x, e.position.z, dmg, dmgColor)
+    spawnSpriteVfx('julienne', e.position.x, e.position.z)
+
+    const updated = useEnemyStore.getState().enemies.find((ae) => ae.id === e.id)
+    if (!updated || updated.hp > 0 || updated.dying || updated.detonating) continue
+
+    if (updated.type === 'exploder') {
+      useEnemyStore.getState().setEnemyDetonating(updated.id)
+      window.__queueDetonation?.(updated.id, 1)
+      continue
+    }
+    useEnemyStore.getState().setEnemyDying(updated.id)
+    useGameStore.getState().recordEnemyDefeated()
+    if (updated.type === 'boss') {
+      useEnemyStore.getState().reset()
+      useGameStore.getState().triggerVictory()
+      return
+    }
+  }
+}

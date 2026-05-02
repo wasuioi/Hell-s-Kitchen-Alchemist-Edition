@@ -92,6 +92,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { 'Drop Chance': '50%', Heal: '+8 HP', Lifetime: '8.0s' } },
     ],
   },
+  {
+    id: 'julienne', name: 'Julienne', icon: '/icons/julienne.png',
+    description: 'Direct spell hits arc a wind-blade to nearby enemies, chaining damage.',
+    rarity: 'rare', vfxSprite: 'julienne',
+    tiers: [
+      { stats: { Chains: 1, Range: '2.5u', Damage: '50%' } },
+      { stats: { Chains: 2, Range: '3.0u', Damage: '70%' }, added: 'Chained enemies are stunned for 0.5s' },
+      { stats: { Chains: 3, Range: '3.5u', Damage: '100%' }, added: 'Chained enemies are also soaked for 2s' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {
