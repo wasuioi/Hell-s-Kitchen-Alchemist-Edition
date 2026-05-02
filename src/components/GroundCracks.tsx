@@ -81,8 +81,8 @@ export default function GroundCracks() {
   }, [])
 
   useFrame(() => {
-    if (!(window as any).__spawnGroundCrack) {
-      ;(window as any).__spawnGroundCrack = addCrack
+    if (!window.__spawnGroundCrack) {
+      window.__spawnGroundCrack = addCrack
     }
     // Remove expired cracks
     const now = performance.now()
