@@ -4,14 +4,21 @@ import * as THREE from 'three'
 import { HAZARD_DEFS, type DiscHazardDef, type FallingHazardDef, type RectHazardDef } from '../data/hazards'
 import { useGameStore } from '../stores/gameStore'
 import type { Hazard as HazardType } from '../types'
+import SaltSigilEffect from './SaltSigilEffect'
 
 // Renders a single environmental hazard. Three visual flavors:
 // - Disc (grease fire): pulsing ring → flickering emissive disc with bubbles.
 // - Rect (steam vent): wall-anchored rectangle → emissive heat trail with rising puffs.
 // - Falling (falling pot): shadow grows on floor while a pot mesh drops from above.
+// - SaltSigil: looping sprite-sheet VFX via SaltSigilEffect.
 //
-// Procedural Three.js geometry only — no PNG/MP4 assets.
+// Procedural Three.js geometry only — no PNG/MP4 assets (except SaltSigil).
 export default function Hazard({ hazard }: { hazard: HazardType }) {
+  // SaltSigil hazards are player-planted and use a dedicated looping VFX component.
+  if (hazard.type === 'salt_sigil') {
+    return <SaltSigilEffect hazard={hazard} />
+  }
+
   const def = HAZARD_DEFS[hazard.type]
   if (def.shape === 'disc') {
     return (

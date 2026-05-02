@@ -39,6 +39,18 @@ export interface FallingHazardDef extends BaseHazardDef {
 export type HazardDef = DiscHazardDef | RectHazardDef | FallingHazardDef
 
 export const HAZARD_DEFS: Record<HazardType, HazardDef> = {
+  // Salt Sigil (perk #118) — player-planted; lifecycle/damage are handled entirely
+  // by tickSaltSigils() in perkTriggers.ts, not by HazardManager's main loop.
+  // This stub satisfies the Record<HazardType, HazardDef> constraint only.
+  salt_sigil: {
+    shape: 'disc',
+    radius: 4.0,
+    damage: 0,
+    damageInterval: 99,
+    telegraphMs: 0,
+    activeMs: 0,
+    color: '#f59e0b',
+  },
   grease_fire: {
     shape: 'disc',
     radius: 2.2,

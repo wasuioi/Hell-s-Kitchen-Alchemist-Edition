@@ -3,6 +3,7 @@ import { SPELL_CONFIG, SPEED_BUFF_DURATION_MS } from '../data/recipes'
 import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useDeckStore } from '../stores/deckStore'
+import { useHazardStore } from '../stores/hazardStore'
 import { findNearestEnemy } from './collision'
 import { spawnSpriteVfx } from './spawnVfx'
 
@@ -77,6 +78,17 @@ export function castSpell(spellType: SpellType) {
 
   // Salt Speed: grant the player a speed buff (stacks duration if cast again)
   if (spellType === 'SALT_SPEED') applySaltSpeedBuff()
+
+  // SaltSigil perk: plant a salt circle at the player's position on every cast
+  const sigilPerk = useDeckStore.getState().activePerks.find((p) => p.id === 'salt_sigil')
+  if (sigilPerk) {
+    const tier = Math.min(sigilPerk.stackCount, 3) as 1 | 2 | 3
+    const cap = tier  // cap 1/2/3 matches tier exactly
+    const hz = useHazardStore.getState()
+    const mine = hz.hazards.filter((h) => h.type === 'salt_sigil')
+    if (mine.length >= cap) hz.removeHazard(mine[0].id)
+    hz.spawnHazard('salt_sigil', usePlayerStore.getState().position)
+  }
 
   // Double Batch perk: chance to cast again after 200ms
   const doubleBatchStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'double_batch')?.stackCount || 0

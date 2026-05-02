@@ -83,6 +83,18 @@ export const PERK_POOL: PerkDefinition[] = [
     ],
   },
   {
+    id: 'salt_sigil', name: 'Salt Sigil', icon: '/icons/salt_sigil.png',
+    description: 'Casting draws a glowing salt circle at your feet — burns and slows enemies who cross it.',
+    rarity: 'rare', vfxSprite: 'salt_sigil',
+    tiers: [
+      { stats: { Radius: 4, Lifetime: '5.0s', DPS: 6, Slow: '30%', Cap: 1 } },
+      { stats: { Radius: 5, Lifetime: '6.0s', DPS: 8, Slow: '40%', Cap: 2 },
+        added: 'Entering a sigil deals a one-time 14 salt-burst' },
+      { stats: { Radius: 6, Lifetime: '7.0s', DPS: 12, Slow: '50%', Cap: 3 },
+        added: 'Kills inside refresh the sigil +2s and stun nearby enemies for 0.5s' },
+    ],
+  },
+  {
     id: 'bonemeal_stock', name: 'Bonemeal Stock', icon: '/icons/bonemeal_stock.png',
     description: 'Killed enemies leave glowing skull-shaped Stock Cubes — walk over them to heal.',
     rarity: 'legendary',

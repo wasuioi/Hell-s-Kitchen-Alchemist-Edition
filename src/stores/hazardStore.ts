@@ -11,6 +11,9 @@ interface HazardState {
   spawnHazard: (type: HazardType, position: Position, rotation?: number) => void
   removeHazard: (id: string) => void
   setLastDamageAt: (id: string, time: number) => void
+  /** Shift spawnedAt forward by delta ms — used by T3 SaltSigil to extend
+   *  lifetime when a kill happens inside the circle. */
+  setHazardSpawnedAt: (id: string, spawnedAt: number) => void
   reset: () => void
 }
 
@@ -29,6 +32,9 @@ export const useHazardStore = create<HazardState>((set) => ({
   removeHazard: (id) => set((s) => ({ hazards: s.hazards.filter((h) => h.id !== id) })),
   setLastDamageAt: (id, time) => set((s) => ({
     hazards: s.hazards.map((h) => h.id === id ? { ...h, lastDamageAt: time } : h),
+  })),
+  setHazardSpawnedAt: (id, spawnedAt) => set((s) => ({
+    hazards: s.hazards.map((h) => h.id === id ? { ...h, spawnedAt } : h),
   })),
   reset: () => set({ hazards: [] }),
 }))

@@ -8,6 +8,7 @@ import { HAZARD_DEFS, HAZARD_POOL, type HazardDef } from '../data/hazards'
 import { ARENA_SIZE } from './Arena'
 import type { Hazard, HazardType, Position } from '../types'
 import HazardComponent from './Hazard'
+import { tickSaltSigils } from '../utils/perkTriggers'
 
 // Living Kitchen — environmental hazards (issue #71).
 // Schedules grease fires / steam vents / falling pots on a wave-aware clock
@@ -119,12 +120,17 @@ export default function HazardManager() {
       nextHazardAt.current = nowMs + getHazardIntervalSec(phase, currentWave) * 1000
     }
 
+    // Salt sigils are player-planted perk hazards with their own tick logic.
+    tickSaltSigils(nowMs)
+
     // Lifecycle + collision. Iterate from a snapshot so removeHazard mid-loop is safe.
     const hazards = useHazardStore.getState().hazards
     const playerPos = usePlayerStore.getState().position
     const isDashing = usePlayerStore.getState().isDashing
 
     for (const h of hazards) {
+      // Salt sigils are fully managed by tickSaltSigils above — skip them here.
+      if (h.type === 'salt_sigil') continue
       const def = HAZARD_DEFS[h.type]
       const elapsed = nowMs - h.spawnedAt
       // Cleanup once the active phase has fully run.
