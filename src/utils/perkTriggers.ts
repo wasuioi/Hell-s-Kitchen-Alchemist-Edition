@@ -94,3 +94,67 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
 export function resetGreaseFireCooldown() {
   lastGreaseFireAt = -Infinity
 }
+
+const SWEET_SPOT_TIERS: { chance: number; mult: number; knockback: number; stun: number; pity: boolean }[] = [
+  { chance: 0.20, mult: 2.00, knockback: 1.0, stun: 0,    pity: false },
+  { chance: 0.30, mult: 2.25, knockback: 1.5, stun: 0.3,  pity: false },
+  { chance: 0.40, mult: 2.50, knockback: 2.0, stun: 0.5,  pity: true  },
+]
+
+let sweetSpotMisses = 0
+
+export function resetSweetSpotMisses() {
+  sweetSpotMisses = 0
+}
+
+export function triggerSweetSpot(
+  enemyId: string,
+  baseDmg: number,
+  impactOrigin: Position,
+  tier: 1 | 2 | 3,
+) {
+  const cfg = SWEET_SPOT_TIERS[tier - 1]
+  const enemy = useEnemyStore.getState().enemies.find((e) => e.id === enemyId)
+  if (!enemy || enemy.dying || enemy.detonating) return
+
+  const guaranteed = cfg.pity && sweetSpotMisses >= 2
+  if (!guaranteed && Math.random() >= cfg.chance) {
+    if (cfg.pity) sweetSpotMisses += 1
+    return
+  }
+  sweetSpotMisses = 0
+
+  const bonus = baseDmg * (cfg.mult - 1)
+  useEnemyStore.getState().damageEnemy(enemyId, bonus)
+  useEnemyStore.getState().setEnemyHitFlash(enemyId, performance.now() + 100)
+
+  const dx = enemy.position.x - impactOrigin.x
+  const dz = enemy.position.z - impactOrigin.z
+  const len = Math.hypot(dx, dz) || 1
+  const speed = cfg.knockback * 8
+  useEnemyStore.getState().setEnemyKnockback(enemyId, { vx: (dx / len) * speed, vz: (dz / len) * speed })
+
+  if (cfg.stun > 0) {
+    useEnemyStore.getState().setEnemyStunned(enemyId, performance.now() + cfg.stun * 1000)
+  }
+
+  const dmgColor = bonus >= 80 ? '#ef4444' : bonus >= 40 ? '#fbbf24' : '#ffffff'
+  spawnDamageNumberVfx(enemy.position.x, enemy.position.z, bonus, dmgColor)
+  spawnSpriteVfx('sweet_spot', enemy.position.x, enemy.position.z, 1.5)
+
+  // Death check — mirrors Spell.tsx and triggerOnDamageTaken so enemies
+  // killed by the bonus hit are properly cleaned up.
+  const updated = useEnemyStore.getState().enemies.find((e) => e.id === enemyId)
+  if (!updated || updated.hp > 0) return
+  if (updated.type === 'exploder') {
+    useEnemyStore.getState().setEnemyDetonating(updated.id)
+    window.__queueDetonation?.(updated.id, 1)
+    return
+  }
+  useEnemyStore.getState().setEnemyDying(updated.id)
+  useGameStore.getState().recordEnemyDefeated()
+  if (updated.type === 'boss') {
+    useEnemyStore.getState().reset()
+    useGameStore.getState().triggerVictory()
+  }
+}

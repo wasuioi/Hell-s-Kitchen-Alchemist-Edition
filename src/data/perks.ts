@@ -92,6 +92,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { 'Drop Chance': '50%', Heal: '+8 HP', Lifetime: '8.0s' } },
     ],
   },
+  {
+    id: 'sweet_spot', name: 'SweetSpot', icon: '/icons/sweet_spot.png',
+    description: 'Every cast has a chance to find the perfect hit on its closest target — bonus damage, hard knockback, and a pity timer so the variance never bites too long.',
+    rarity: 'rare', vfxSprite: 'sweet_spot',
+    tiers: [
+      { stats: { Chance: '20%', Damage: '×2.0', Knockback: '1.0u' } },
+      { stats: { Chance: '30%', Damage: '×2.25', Knockback: '1.5u' }, added: 'Stuns target for 0.3s' },
+      { stats: { Chance: '40%', Damage: '×2.5', Knockback: '2.0u', Stun: '0.5s' }, added: 'Pity timer: guaranteed crit after 2 consecutive misses' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

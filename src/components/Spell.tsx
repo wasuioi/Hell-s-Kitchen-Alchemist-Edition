@@ -7,6 +7,8 @@ import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import { getDistance } from '../utils/collision'
 import { PARTICLE_CONFIG } from '../data/particleConfig'
+import { MAX_PERK_TIER } from '../data/perks'
+import { triggerSweetSpot } from '../utils/perkTriggers'
 import ParticleSystem from './ParticleSystem'
 import { spawnDamageNumber } from './DamageNumbers'
 import { spawnGroundCrack } from './GroundCracks'
@@ -30,6 +32,7 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
   const meshRef = useRef<THREE.Mesh>(null)
   const elapsed = useRef(0)
   const damaged = useRef<Set<string>>(new Set())
+  const sweetSpotRolled = useRef(false)
 
   useFrame((_, delta) => {
     elapsed.current += delta
@@ -125,6 +128,16 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
             useGameStore.getState().triggerScreenShake(0.6, 200)
           } else {
             useGameStore.getState().triggerScreenShake(0.3, 150)
+          }
+
+          // SweetSpot perk: first enemy hit per cast gets a crit roll.
+          // sweetSpotRolled guards so only the closest (first-entered) enemy
+          // in the loop can trigger it — subsequent hits in the same cast skip.
+          const sweetSpotPerk = activePerks.find((p) => p.id === 'sweet_spot')
+          if (sweetSpotPerk && !sweetSpotRolled.current) {
+            sweetSpotRolled.current = true
+            const tier = Math.min(sweetSpotPerk.stackCount, MAX_PERK_TIER) as 1 | 2 | 3
+            triggerSweetSpot(enemy.id, actualDamage, spell.position, tier)
           }
         }
 
