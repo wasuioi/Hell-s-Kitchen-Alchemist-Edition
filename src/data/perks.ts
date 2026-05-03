@@ -92,6 +92,19 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { 'Drop Chance': '50%', Heal: '+8 HP', Lifetime: '8.0s' } },
     ],
   },
+  {
+    id: 'iced_towel', name: 'Iced Towel', icon: '/icons/iced_towel.png',
+    vfxSprite: 'iced_towel_burst',
+    description: 'Taking damage snaps a chilled mist around you that softens incoming hits.',
+    rarity: 'rare',
+    tiers: [
+      { stats: { 'Damage Reduction': '25%', Duration: '3.0s', Cooldown: '15s' } },
+      { stats: { 'Damage Reduction': '35%', Duration: '4.0s', Cooldown: '12s' },
+        added: 'Mist soaks enemies in 4-unit radius for 2s' },
+      { stats: { 'Damage Reduction': '50%', Duration: '5.0s', Cooldown: '10s' },
+        added: 'Mist deals 12 dmg + stuns enemies in 5-unit radius for 0.5s' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

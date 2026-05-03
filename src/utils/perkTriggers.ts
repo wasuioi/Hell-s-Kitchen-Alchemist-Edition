@@ -1,6 +1,7 @@
 import { useDeckStore } from '../stores/deckStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
+import { usePlayerStore } from '../stores/playerStore'
 import { PERK_POOL } from '../data/perks'
 import { spawnExplosionVfx, spawnSpriteVfx, spawnDamageNumberVfx } from './spawnVfx'
 import type { Position } from '../types'
@@ -93,4 +94,71 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
 
 export function resetGreaseFireCooldown() {
   lastGreaseFireAt = -Infinity
+}
+
+let icedTowelReadyAt = 0
+
+export function triggerIcedTowel(now: number) {
+  const towel = useDeckStore.getState().activePerks.find((p) => p.id === 'iced_towel')
+  if (!towel) return
+  if (now < icedTowelReadyAt) return
+
+  const tier = Math.min(towel.stackCount, 3)
+  const mult = [0.75, 0.65, 0.50][tier - 1]
+  const durationMs = [3000, 4000, 5000][tier - 1]
+  const cooldownMs = [15000, 12000, 10000][tier - 1]
+  const radius = [3.5, 4.0, 5.0][tier - 1]
+
+  const player = usePlayerStore.getState()
+  player.applyChilled(1 - mult, now + durationMs)
+
+  const def = PERK_POOL.find((p) => p.id === 'iced_towel')
+  if (def?.vfxSprite) {
+    spawnSpriteVfx(def.vfxSprite, player.position.x, player.position.z, radius * 2)
+  } else {
+    spawnExplosionVfx(player.position.x, player.position.z)
+  }
+
+  if (tier >= 2) {
+    const enemies = useEnemyStore.getState().enemies
+    const soakedUntil = now + 2000
+    for (const e of enemies) {
+      if (e.dying || e.detonating) continue
+      const dx = e.position.x - player.position.x
+      const dz = e.position.z - player.position.z
+      if (dx * dx + dz * dz > radius * radius) continue
+      useEnemyStore.getState().setEnemySoaked(e.id, soakedUntil)
+      if (tier === 3) {
+        useEnemyStore.getState().damageEnemy(e.id, 12)
+        useEnemyStore.getState().setEnemyHitFlash(e.id, now + 100)
+        spawnDamageNumberVfx(e.position.x, e.position.z, 12)
+        useEnemyStore.getState().setEnemyStunned(e.id, now + 500)
+      }
+    }
+
+    if (tier === 3) {
+      const updated = useEnemyStore.getState().enemies
+      for (const e of updated) {
+        if (e.hp > 0 || e.dying || e.detonating) continue
+        if (e.type === 'exploder') {
+          useEnemyStore.getState().setEnemyDetonating(e.id)
+          window.__queueDetonation?.(e.id, 1)
+          continue
+        }
+        useEnemyStore.getState().setEnemyDying(e.id)
+        useGameStore.getState().recordEnemyDefeated()
+        if (e.type === 'boss') {
+          useEnemyStore.getState().reset()
+          useGameStore.getState().triggerVictory()
+          return
+        }
+      }
+    }
+  }
+
+  icedTowelReadyAt = now + cooldownMs
+}
+
+export function resetIcedTowelCooldown() {
+  icedTowelReadyAt = 0
 }

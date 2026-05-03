@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Position, StatusEffect } from '../types'
-import { triggerOnDamageTaken } from '../utils/perkTriggers'
+import { triggerOnDamageTaken, triggerIcedTowel } from '../utils/perkTriggers'
 import { spawnDamageNumberVfx } from '../utils/spawnVfx'
 import { useDeckStore } from './deckStore'
 
@@ -21,6 +21,9 @@ interface PlayerState {
   lastHitAt: number
   // Speed buff (Salt Speed spell)
   speedBuffUntil: number
+  // Iced Towel chilled buff
+  chilledUntil: number
+  chilledMult: number
   // Actions
   setPosition: (pos: Position) => void; setRotation: (rot: number) => void
   takeDamage: (amount: number) => void; heal: (amount: number) => void
@@ -30,6 +33,7 @@ interface PlayerState {
   consumeHeat: () => number
   decayHeat: (decayMs: number) => void
   setSpeedBuff: (until: number) => void
+  applyChilled: (mult: number, untilMs: number) => void
   reset: () => void
 }
 
@@ -42,18 +46,23 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   isDashing: false, dashDirection: null, dashCooldownUntil: 0, dashEndTime: 0,
   heatStacks: 0, lastHitAt: 0,
   speedBuffUntil: 0,
+  chilledUntil: 0, chilledMult: 0,
   setPosition: (pos) => set({ position: pos }),
   setRotation: (rot) => set({ rotation: rot }),
   takeDamage: (amount) => {
+    const now = performance.now()
+    const { chilledUntil, chilledMult } = get()
+    const reduced = now < chilledUntil ? Math.max(1, Math.round(amount * (1 - chilledMult))) : amount
     if (amount > 0) {
       triggerOnDamageTaken(amount, get().position)
+      triggerIcedTowel(now)
       const bpStacks = useDeckStore.getState().activePerks.find((p) => p.id === 'boiling_point')?.stackCount ?? 0
       if (bpStacks > 0) {
         const tier = Math.min(bpStacks, 3)
         get().addHeat(BOILING_POINT_MAX_HEAT[tier - 1])
       }
     }
-    set((s) => ({ hp: Math.max(0, s.hp - amount) }))
+    set((s) => ({ hp: Math.max(0, s.hp - reduced) }))
   },
   heal: (amount) => set((s) => {
     const newHp = Math.min(s.maxHp, s.hp + amount)
@@ -91,9 +100,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({ heatStacks: s.heatStacks - 1, lastHitAt: performance.now() })
   },
   setSpeedBuff: (until) => set({ speedBuffUntil: until }),
+  applyChilled: (mult, untilMs) => set({ chilledMult: mult, chilledUntil: untilMs }),
   reset: () => set({
     position: { x: 0, z: 0 }, rotation: 0, hp: 100, maxHp: 100, status: 'normal',
     isDashing: false, dashDirection: null, dashCooldownUntil: 0, dashEndTime: 0,
     heatStacks: 0, lastHitAt: 0, speedBuffUntil: 0,
+    chilledUntil: 0, chilledMult: 0,
   }),
 }))

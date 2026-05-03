@@ -121,6 +121,44 @@ describe('playerStore heat', () => {
   })
 })
 
+describe('playerStore chilled state', () => {
+  beforeEach(() => { usePlayerStore.getState().reset() })
+
+  it('starts with no chilled buff', () => {
+    const s = usePlayerStore.getState()
+    expect(s.chilledUntil).toBe(0)
+    expect(s.chilledMult).toBe(0)
+  })
+
+  it('applyChilled sets chilledMult and chilledUntil', () => {
+    const until = performance.now() + 3000
+    usePlayerStore.getState().applyChilled(0.25, until)
+    const s = usePlayerStore.getState()
+    expect(s.chilledMult).toBe(0.25)
+    expect(s.chilledUntil).toBe(until)
+  })
+
+  it('takeDamage is reduced while chilled', () => {
+    usePlayerStore.getState().applyChilled(0.25, performance.now() + 10000)
+    usePlayerStore.getState().takeDamage(20)
+    // 25% reduction: 20 * (1 - 0.25) = 15
+    expect(usePlayerStore.getState().hp).toBe(85)
+  })
+
+  it('takeDamage is not reduced after chilledUntil expires', () => {
+    usePlayerStore.setState({ chilledUntil: performance.now() - 1, chilledMult: 0.25 })
+    usePlayerStore.getState().takeDamage(20)
+    expect(usePlayerStore.getState().hp).toBe(80)
+  })
+
+  it('reset clears chilled state', () => {
+    usePlayerStore.getState().applyChilled(0.5, performance.now() + 5000)
+    usePlayerStore.getState().reset()
+    expect(usePlayerStore.getState().chilledUntil).toBe(0)
+    expect(usePlayerStore.getState().chilledMult).toBe(0)
+  })
+})
+
 describe('playerStore takeDamage + boiling_point integration', () => {
   beforeEach(() => {
     usePlayerStore.getState().reset()
