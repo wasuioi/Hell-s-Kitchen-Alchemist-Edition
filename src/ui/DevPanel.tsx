@@ -207,7 +207,7 @@ export default function DevPanel() {
           border: '1px solid rgba(99,102,241,0.5)',
           color: '#a5b4fc', cursor: 'pointer', font: 'inherit',
         }}
-      >End wave → reward</button>
+      >End wave → rest room</button>
     </div>
   )
 }
