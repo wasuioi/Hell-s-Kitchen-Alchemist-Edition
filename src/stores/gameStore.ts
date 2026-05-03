@@ -51,7 +51,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   nextWave: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1, currentTier: s.pendingTier ?? 'mild', pendingTier: null })),
   chooseTier: (tier) => set({ pendingTier: tier }),
-  skipReward: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })),
+  skipReward: () => set((s) => ({
+    phase: 'combat',
+    currentWave: s.currentWave + 1,
+    currentTier: s.pendingTier ?? 'mild',
+    pendingTier: null,
+  })),
   startBoss: () => set({ phase: 'boss' }),
   triggerVictory: () => set((s) => ({ phase: 'victory', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } })),
   triggerDeath: () => set({ phase: 'death', timeScale: 0.2 }),

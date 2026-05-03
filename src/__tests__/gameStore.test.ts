@@ -126,7 +126,7 @@ describe('useGameStore', () => {
 describe('gameStore tier lifecycle', () => {
   beforeEach(() => useGameStore.getState().reset())
 
-  it('initial tier state is null/mild defaults', () => {
+  it('initial tier state: both null before startShift', () => {
     expect(useGameStore.getState().currentTier).toBe(null)
     expect(useGameStore.getState().pendingTier).toBe(null)
   })
@@ -147,6 +147,14 @@ describe('gameStore tier lifecycle', () => {
     useGameStore.getState().startShift()
     useGameStore.getState().chooseTier('hellfire')
     useGameStore.getState().nextWave()
+    expect(useGameStore.getState().currentTier).toBe<WaveTier>('hellfire')
+    expect(useGameStore.getState().pendingTier).toBe(null)
+  })
+
+  it('skipReward also promotes pendingTier (matches nextWave)', () => {
+    useGameStore.getState().startShift()
+    useGameStore.getState().chooseTier('hellfire')
+    useGameStore.getState().skipReward()
     expect(useGameStore.getState().currentTier).toBe<WaveTier>('hellfire')
     expect(useGameStore.getState().pendingTier).toBe(null)
   })
