@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useGameStore } from '../stores/gameStore'
+import type { WaveTier } from '../types'
 
 describe('gameStore juice', () => {
   beforeEach(() => {
@@ -119,5 +120,42 @@ describe('useGameStore', () => {
     expect(useGameStore.getState().phase).toBe('menu')
     expect(useGameStore.getState().currentWave).toBe(0)
     expect(useGameStore.getState().stats.enemiesDefeated).toBe(0)
+  })
+})
+
+describe('gameStore tier lifecycle', () => {
+  beforeEach(() => useGameStore.getState().reset())
+
+  it('initial tier state is null/mild defaults', () => {
+    expect(useGameStore.getState().currentTier).toBe(null)
+    expect(useGameStore.getState().pendingTier).toBe(null)
+  })
+
+  it('startShift sets currentTier to mild (wave 1 default)', () => {
+    useGameStore.getState().startShift()
+    expect(useGameStore.getState().currentTier).toBe<WaveTier>('mild')
+  })
+
+  it('chooseTier updates pendingTier only', () => {
+    useGameStore.getState().startShift()
+    useGameStore.getState().chooseTier('spicy')
+    expect(useGameStore.getState().pendingTier).toBe<WaveTier>('spicy')
+    expect(useGameStore.getState().currentTier).toBe<WaveTier>('mild')
+  })
+
+  it('nextWave promotes pendingTier to currentTier and clears pending', () => {
+    useGameStore.getState().startShift()
+    useGameStore.getState().chooseTier('hellfire')
+    useGameStore.getState().nextWave()
+    expect(useGameStore.getState().currentTier).toBe<WaveTier>('hellfire')
+    expect(useGameStore.getState().pendingTier).toBe(null)
+  })
+
+  it('reset clears both tiers', () => {
+    useGameStore.getState().startShift()
+    useGameStore.getState().chooseTier('spicy')
+    useGameStore.getState().reset()
+    expect(useGameStore.getState().currentTier).toBe(null)
+    expect(useGameStore.getState().pendingTier).toBe(null)
   })
 })
