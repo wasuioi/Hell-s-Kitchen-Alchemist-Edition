@@ -56,7 +56,7 @@ export default function App() {
   const preloadFiredRef = useRef(false)
   useEffect(() => {
     if (preloadFiredRef.current) return
-    if (phase === 'combat' || phase === 'reward') {
+    if (phase === 'combat' || phase === 'rest') {
       preloadFiredRef.current = true
       preloadGameAssets()
     }
@@ -138,7 +138,7 @@ export default function App() {
       {/* Cauldron + ingredient cards (HUD) and reward screen wait for
           sceneReady so they don't appear over a blank world. */}
       {(phase === 'combat' || phase === 'boss' || phase === 'pre-boss-lull') && sceneReady && <HUD />}
-      {phase === 'reward' && sceneReady && <RewardScreen />}
+      {phase === 'rest' && sceneReady && <RewardScreen />}
       {phase === 'death' && <DeathScreen />}
       {phase === 'victory' && <VictoryScreen />}
       {import.meta.env.DEV && <DevPanel />}

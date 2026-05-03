@@ -44,7 +44,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   startShift: () => set({ phase: 'combat', currentWave: 1, timeScale: 1, stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> } }),
   completeWave: () => {
     usePickupStore.getState().reset()
-    set((s) => ({ phase: 'reward', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } }))
+    set((s) => ({ phase: 'rest', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } }))
   },
   nextWave: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })),
   skipReward: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })),

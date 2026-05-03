@@ -32,7 +32,7 @@ describe('Skip reward behavior', () => {
   it('skipReward moves to combat phase', () => {
     useGameStore.getState().startShift()
     useGameStore.getState().completeWave()
-    expect(useGameStore.getState().phase).toBe('reward')
+    expect(useGameStore.getState().phase).toBe('rest')
     useGameStore.getState().skipReward()
     expect(useGameStore.getState().phase).toBe('combat')
   })

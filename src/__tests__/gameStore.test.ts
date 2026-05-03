@@ -61,10 +61,10 @@ describe('useGameStore', () => {
     expect(useGameStore.getState().phase).toBe('combat')
     expect(useGameStore.getState().currentWave).toBe(1)
   })
-  it('completeWave goes to reward phase', () => {
+  it('completeWave goes to rest phase', () => {
     useGameStore.getState().startShift()
     useGameStore.getState().completeWave()
-    expect(useGameStore.getState().phase).toBe('reward')
+    expect(useGameStore.getState().phase).toBe('rest')
     expect(useGameStore.getState().stats.wavesCleared).toBe(1)
   })
   it('nextWave transitions from reward to combat', () => {
