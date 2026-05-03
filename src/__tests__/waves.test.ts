@@ -13,18 +13,18 @@ describe('TIER_MODIFIERS', () => {
 
   it('spicy applies 25% speed boost, +1 elite, +4 perk pool, 1 pick', () => {
     const m = TIER_MODIFIERS.spicy
-    expect(m.speedMultiplier).toBeCloseTo(1.25)
+    expect(m.speedMultiplier).toBe(1.25)
     expect(m.extraEliteCount).toBe(1)
-    expect(m.hazardIntervalMultiplier).toBeLessThan(1)
+    expect(m.hazardIntervalMultiplier).toBe(0.75)
     expect(m.perkPoolSize).toBe(4)
     expect(m.perkPickCount).toBe(1)
   })
 
   it('hellfire applies 50% speed boost, +2 elite, double pick from 4', () => {
     const m = TIER_MODIFIERS.hellfire
-    expect(m.speedMultiplier).toBeCloseTo(1.5)
+    expect(m.speedMultiplier).toBe(1.5)
     expect(m.extraEliteCount).toBe(2)
-    expect(m.hazardIntervalMultiplier).toBeLessThan(TIER_MODIFIERS.spicy.hazardIntervalMultiplier)
+    expect(m.hazardIntervalMultiplier).toBeCloseTo(0.6)
     expect(m.perkPoolSize).toBe(4)
     expect(m.perkPickCount).toBe(2)
   })
