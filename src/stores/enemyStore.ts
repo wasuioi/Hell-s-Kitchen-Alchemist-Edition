@@ -46,6 +46,14 @@ interface EnemyState {
   clearEnemySoaked: (id: string) => void
   clearEnemyFrozen: (id: string) => void
   clearEnemyStunned: (id: string) => void
+  /** PanFlip: lift enemy airborne for `durationS` seconds. On landing, stun
+   *  for `landStunS` seconds; if `t3Splash` is true, apply 15 splash dmg
+   *  in a 2-unit radius (handled in Enemy.tsx useFrame). */
+  setEnemyAirborne: (id: string, durationS: number, landStunS: number, t3Splash: boolean) => void
+  /** Clear airborne state (called by Enemy.tsx when airborneUntil expires). */
+  clearEnemyAirborne: (id: string) => void
+  /** PanFlip slow: sets slowedUntil + per-enemy slowFactor instead of the fixed 0.5×. */
+  setEnemySlow: (id: string, factor: number, durationS: number) => void
   setEnemyKnockback: (id: string, knockback: Knockback | null) => void
   setEnemyHitFlash: (id: string, until: number) => void
   setEnemyResistAura: (id: string, until: number) => void
@@ -95,6 +103,25 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
   setEnemyPoisoned: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, poisonedUntil: until } : e) })),
   setEnemySlowed: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, slowedUntil: until } : e) })),
   setEnemyStunned: (id, until) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, stunnedUntil: until } : e) })),
+  setEnemyAirborne: (id, durationS, landStunS, t3Splash) => {
+    const until = performance.now() + durationS * 1000
+    set((s) => ({
+      enemies: s.enemies.map((e) => e.id === id ? {
+        ...e, airborne: true, airborneUntil: until, airborneStunS: landStunS, airborneSplash: t3Splash,
+      } : e),
+    }))
+  },
+  clearEnemyAirborne: (id) => set((s) => ({
+    enemies: s.enemies.map((e) => e.id === id ? {
+      ...e, airborne: false, airborneUntil: 0, airborneStunS: 0, airborneSplash: false,
+    } : e),
+  })),
+  setEnemySlow: (id, factor, durationS) => {
+    const until = performance.now() + durationS * 1000
+    set((s) => ({
+      enemies: s.enemies.map((e) => e.id === id ? { ...e, slowedUntil: until, slowFactor: factor } : e),
+    }))
+  },
   clearEnemySoaked: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, soakedUntil: 0 } : e) })),
   clearEnemyFrozen: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, frozenUntil: 0 } : e) })),
   clearEnemyStunned: (id) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, stunnedUntil: 0 } : e) })),

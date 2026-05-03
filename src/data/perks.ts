@@ -92,6 +92,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { 'Drop Chance': '50%', Heal: '+8 HP', Lifetime: '8.0s' } },
     ],
   },
+  {
+    id: 'pan_flip', name: 'Pan Flip', icon: '/icons/pan_flip.png',
+    description: 'Each spell impact flips light enemies airborne; heavies get shoved. Higher tiers add splash damage on landing.',
+    rarity: 'rare', vfxSprite: 'pan_flip_gust',
+    tiers: [
+      { stats: { Radius: 3, Lift: '0.5s', 'Land Stun': '0.3s', 'Heavy Slow': '30% / 1.0s' } },
+      { stats: { Radius: 4, Lift: '0.7s', 'Land Stun': '0.5s', 'Heavy Slow': '40% / 1.5s' }, added: 'Lifted enemies take +20% damage from spells' },
+      { stats: { Radius: 5, Lift: '0.9s', 'Land Stun': '0.7s', 'Heavy Slow': '50% / 2.0s' }, added: 'Lifted enemies deal 15 splash damage in 2u on landing' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

@@ -10,6 +10,7 @@ import { PARTICLE_CONFIG } from '../data/particleConfig'
 import ParticleSystem from './ParticleSystem'
 import { spawnDamageNumber } from './DamageNumbers'
 import { spawnGroundCrack } from './GroundCracks'
+import { triggerPanFlip } from '../utils/perkTriggers'
 
 declare global {
   interface Window {
@@ -30,6 +31,7 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
   const meshRef = useRef<THREE.Mesh>(null)
   const elapsed = useRef(0)
   const damaged = useRef<Set<string>>(new Set())
+  const panFlipFired = useRef(false)
 
   useFrame((_, delta) => {
     elapsed.current += delta
@@ -59,6 +61,8 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
     const activePerks = useDeckStore.getState().activePerks
     const deepFreezeStacks = activePerks.find((p) => p.id === 'deep_freeze')?.stackCount || 0
     const extraSpicyStacks = activePerks.find((p) => p.id === 'extra_spicy')?.stackCount || 0
+    const panFlipStacks = activePerks.find((p) => p.id === 'pan_flip')?.stackCount ?? 0
+    const panFlipTier = Math.min(panFlipStacks, 3)
     const BOTTLE_SPELLS: SpellType[] = ['TIDAL_WAVE', 'MUD']
     const BURN_SPELLS: SpellType[] = ['INFERNO', 'METEOR']
 
@@ -101,7 +105,9 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
         const isSoakedInferno = isInferno && wasSoaked
         const isFrozenInferno = isInferno && wasFrozen
         const infernoConsumedStatus = isSoakedInferno || isFrozenInferno
-        const actualDamage = isSoakedInferno ? spell.damage * 2 : spell.damage
+        // PanFlip T2: airborne enemies take +20% damage from spells
+        const airborneMult = panFlipStacks > 0 && panFlipTier >= 2 && enemy.airborne ? 1.2 : 1
+        const actualDamage = (isSoakedInferno ? spell.damage * 2 : spell.damage) * airborneMult
         if (isSoakedInferno) {
           useEnemyStore.getState().clearEnemySoaked(enemy.id)
         }
@@ -110,6 +116,10 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
         }
         if (spell.damage > 0) {
           useEnemyStore.getState().damageEnemy(enemy.id, actualDamage)
+          if (!panFlipFired.current) {
+            panFlipFired.current = true
+            triggerPanFlip(spell.position.x, spell.position.z)
+          }
 
           // --- JUICE: hit flash, damage number, screen shake ---
           useEnemyStore.getState().setEnemyHitFlash(enemy.id, performance.now() + 100)

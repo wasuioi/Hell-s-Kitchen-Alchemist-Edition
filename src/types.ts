@@ -35,7 +35,17 @@ export interface Enemy {
   burningUntil: number
   poisonedUntil: number
   slowedUntil: number
+  /** Per-enemy slow multiplier set by PanFlip. 0 = unset (default 0.5 applies). */
+  slowFactor?: number
   stunnedUntil: number
+  /** True while the enemy is airborne (PanFlip lift). */
+  airborne?: boolean
+  /** Timestamp when the lift expires and the enemy lands. */
+  airborneUntil?: number
+  /** Stun duration (seconds) to apply on landing. */
+  airborneStunS?: number
+  /** Whether to apply T3 splash damage on landing (15 dmg in 2-unit radius). */
+  airborneSplash?: boolean
   knockback: Knockback | null
   hitFlashUntil: number
   /** Timestamp until which a "resisted knockback" aura should be visible.

@@ -94,3 +94,38 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
 export function resetGreaseFireCooldown() {
   lastGreaseFireAt = -Infinity
 }
+
+export function triggerPanFlip(x: number, z: number) {
+  const perk = useDeckStore.getState().activePerks.find((p) => p.id === 'pan_flip')
+  if (!perk) return
+  const tier = Math.min(perk.stackCount, 3)
+  const radius = [3, 4, 5][tier - 1]
+  const liftS = [0.5, 0.7, 0.9][tier - 1]
+  const stunS = [0.3, 0.5, 0.7][tier - 1]
+  const slowFactor = [0.7, 0.6, 0.5][tier - 1]
+  const slowS = [1.0, 1.5, 2.0][tier - 1]
+  const t3Splash = tier === 3
+
+  const enemies = useEnemyStore.getState().enemies
+  for (const e of enemies) {
+    if (e.dying || e.detonating) continue
+    const d = Math.hypot(e.position.x - x, e.position.z - z)
+    if (d > radius) continue
+    if (e.type === 'slow' || e.type === 'fast') {
+      useEnemyStore.getState().setEnemyAirborne(e.id, liftS, stunS, t3Splash)
+    } else if (e.type === 'boss') {
+      useEnemyStore.getState().setEnemySlow(e.id, 0.85, 1.0)
+    } else {
+      // tanky, exploder
+      useEnemyStore.getState().setEnemySlow(e.id, slowFactor, slowS)
+    }
+    useEnemyStore.getState().setEnemyHitFlash(e.id, performance.now() + 100)
+  }
+
+  const def = PERK_POOL.find((p) => p.id === 'pan_flip')
+  if (def?.vfxSprite) {
+    spawnSpriteVfx(def.vfxSprite, x, z, radius * 2)
+  } else {
+    spawnExplosionVfx(x, z)
+  }
+}

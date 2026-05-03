@@ -88,6 +88,8 @@ export default function Enemy({ enemy }: Props) {
   const lastContactTime = useRef(0)
   const deathTimer = useRef(0)
   const [visualScale, setVisualScale] = useState(1)
+  const [airborneY, setAirborneY] = useState(0)
+  const airborneYRef = useRef(0)
   const burnTickRef = useRef(0)
   const stunRingRef = useRef<THREE.Group>(null)
   const facingGroupRef = useRef<THREE.Group>(null)
@@ -138,6 +140,48 @@ export default function Enemy({ enemy }: Props) {
       }
     }
 
+    // Airborne Y-offset lerp (PanFlip) — only runs while animating
+    const airborneTargetY = enemy.airborne ? 0.6 : 0
+    if (airborneTargetY > 0 || airborneYRef.current > 0.001) {
+      const newY = airborneYRef.current + (airborneTargetY - airborneYRef.current) * Math.min(1, delta * 12)
+      airborneYRef.current = newY < 0.001 ? 0 : newY
+      setAirborneY(airborneYRef.current)
+    }
+
+    // Airborne expiration (PanFlip): land the enemy, apply stun, T3 splash
+    if (enemy.airborne && enemy.airborneUntil && tickNow >= enemy.airborneUntil) {
+      const landStunS = enemy.airborneStunS ?? 0
+      const doSplash = enemy.airborneSplash ?? false
+      useEnemyStore.getState().clearEnemyAirborne(enemy.id)
+      if (landStunS > 0) {
+        useEnemyStore.getState().setEnemyStunned(enemy.id, tickNow + landStunS * 1000)
+      }
+      if (doSplash) {
+        const splashEnemies = useEnemyStore.getState().enemies
+        for (const other of splashEnemies) {
+          if (other.id === enemy.id) continue
+          if (other.dying || other.detonating) continue
+          if (Math.hypot(other.position.x - enemy.position.x, other.position.z - enemy.position.z) > 2) continue
+          useEnemyStore.getState().damageEnemy(other.id, 15)
+          useEnemyStore.getState().setEnemyHitFlash(other.id, tickNow + 100)
+          const splashUpdated = useEnemyStore.getState().enemies.find((e) => e.id === other.id)
+          if (!splashUpdated || splashUpdated.hp > 0) continue
+          if (splashUpdated.type === 'exploder') {
+            useEnemyStore.getState().setEnemyDetonating(splashUpdated.id)
+            ;(window as any).__queueDetonation?.(splashUpdated.id, 1)
+            continue
+          }
+          useEnemyStore.getState().setEnemyDying(splashUpdated.id)
+          useGameStore.getState().recordEnemyDefeated()
+          if (splashUpdated.type === 'boss') {
+            useEnemyStore.getState().reset()
+            useGameStore.getState().triggerVictory()
+            return
+          }
+        }
+      }
+    }
+
     // --- Death animation ---
     if (enemy.dying) {
       deathTimer.current += delta
@@ -179,7 +223,8 @@ export default function Enemy({ enemy }: Props) {
       const detStunned = detNow < enemy.stunnedUntil
       const detSoaked = detNow < enemy.soakedUntil
       const detSlowed = detNow < enemy.slowedUntil
-      const detMult = (detFrozen || detStunned) ? 0 : (detSoaked || detSlowed) ? 0.5 : 1
+      const detSlowMult = detSlowed ? (enemy.slowFactor ?? 0.5) : 1
+      const detMult = (detFrozen || detStunned) ? 0 : detSoaked ? 0.5 : detSlowMult
       const sdx = playerPos.x - enemy.position.x
       const sdz = playerPos.z - enemy.position.z
       const sdist = Math.sqrt(sdx * sdx + sdz * sdz) || 1
@@ -220,12 +265,16 @@ export default function Enemy({ enemy }: Props) {
       }
     }
 
+    // Skip pathing while airborne (PanFlip lift)
+    if (enemy.airborne) return
+
     const now = performance.now()
     const isFrozen = now < enemy.frozenUntil
     const isStunned = now < enemy.stunnedUntil
     const isSoaked = now < enemy.soakedUntil
     const isSlowed = now < enemy.slowedUntil
-    const statusMultiplier = (isFrozen || isStunned) ? 0 : (isSoaked || isSlowed) ? 0.5 : 1
+    const slowMult = isSlowed ? (enemy.slowFactor ?? 0.5) : 1
+    const statusMultiplier = (isFrozen || isStunned) ? 0 : isSoaked ? 0.5 : slowMult
     const speed = SPEED[enemy.type] * statusMultiplier * timeScale
     const dx = playerPos.x - enemy.position.x
     const dz = playerPos.z - enemy.position.z
@@ -383,7 +432,7 @@ export default function Enemy({ enemy }: Props) {
   if (enemy.type === 'boss') return null
 
   return (
-    <group position={[enemy.position.x, 0, enemy.position.z]}>
+    <group position={[enemy.position.x, airborneY, enemy.position.z]}>
       <primitive
         object={slimeModel}
         scale={[scale, scale, scale]}
