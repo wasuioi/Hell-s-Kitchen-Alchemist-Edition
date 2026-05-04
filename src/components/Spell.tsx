@@ -59,6 +59,8 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
     const activePerks = useDeckStore.getState().activePerks
     const deepFreezeStacks = activePerks.find((p) => p.id === 'deep_freeze')?.stackCount || 0
     const extraSpicyStacks = activePerks.find((p) => p.id === 'extra_spicy')?.stackCount || 0
+    const brineStacks = activePerks.find((p) => p.id === 'brine')?.stackCount ?? 0
+    const BRINE_MULT = [1, 1.25, 1.45, 1.70][Math.min(brineStacks, 3)]
     const BOTTLE_SPELLS: SpellType[] = ['TIDAL_WAVE', 'MUD']
     const BURN_SPELLS: SpellType[] = ['INFERNO', 'METEOR']
 
@@ -90,6 +92,15 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
               vx: (dx / len) * speed,
               vz: (dz / len) * speed,
             })
+          }
+          // Brine T3: STEAM applies Soaked so INFERNO can detonate
+          if (brineStacks >= 3) {
+            const steamNow = performance.now()
+            const stillSoaked = steamNow < enemy.soakedUntil
+            const stillFrozen = steamNow < enemy.frozenUntil
+            if (!stillSoaked && !stillFrozen) {
+              useEnemyStore.getState().setEnemySoaked(enemy.id, steamNow + 1500)
+            }
           }
           continue
         }
@@ -128,17 +139,27 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
           }
         }
 
-        // Apply status effects per spell
+        // Apply status effects per spell — Brine multiplies durations for BOTTLE recipes
         if (spell.type === 'TIDAL_WAVE') {
-          useEnemyStore.getState().setEnemySoaked(enemy.id, now + SOAK_DURATION_MS)
+          useEnemyStore.getState().setEnemySoaked(enemy.id, now + SOAK_DURATION_MS * BRINE_MULT)
         } else if (spell.type === 'MUD') {
-          useEnemyStore.getState().setEnemySlowed(enemy.id, now + SLOW_DURATION_MS)
+          useEnemyStore.getState().setEnemySlowed(enemy.id, now + SLOW_DURATION_MS * BRINE_MULT)
         }
 
         // Deep Freeze perk: BOTTLE-based spells freeze enemies; soak transforms into freeze.
         if (BOTTLE_SPELLS.includes(spell.type) && deepFreezeStacks > 0) {
-          useEnemyStore.getState().setEnemyFrozen(enemy.id, now + 2000 * deepFreezeStacks)
+          useEnemyStore.getState().setEnemyFrozen(enemy.id, now + 2000 * deepFreezeStacks * BRINE_MULT)
           useEnemyStore.getState().clearEnemySoaked(enemy.id)
+        }
+
+        // Brine T3: MUD also applies Soaked so INFERNO can detonate off it
+        // (TIDAL_WAVE already soaks; STEAM is handled in its own block above)
+        if (brineStacks >= 3 && spell.type === 'MUD') {
+          const stillSoaked = now < enemy.soakedUntil
+          const stillFrozen = now < enemy.frozenUntil
+          if (!stillSoaked && !stillFrozen) {
+            useEnemyStore.getState().setEnemySoaked(enemy.id, now + 1500)
+          }
         }
 
         // Extra Spicy perk: BURN_SPELLS ignite enemies (Burn). STEAM excluded.

@@ -92,6 +92,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { 'Drop Chance': '50%', Heal: '+8 HP', Lifetime: '8.0s' } },
     ],
   },
+  {
+    id: 'brine', name: 'Brine', icon: '/icons/brine.png',
+    description: 'BOTTLE spells make their statuses linger. Higher tiers also soak through STEAM and MUD.',
+    rarity: 'common',
+    tiers: [
+      { stats: { 'Status Duration': '+25%' } },
+      { stats: { 'Status Duration': '+45%' } },
+      { stats: { 'Status Duration': '+70%' }, added: 'STEAM and MUD also apply Soaked for 1.5s' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {
