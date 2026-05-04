@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { GamePhase, GameStats, SpellType } from '../types'
 import { usePickupStore } from './pickupStore'
+import { useEnemyStore } from './enemyStore'
 
 interface GameState {
   phase: GamePhase; currentWave: number; timeScale: number; stats: GameStats
@@ -46,8 +47,14 @@ export const useGameStore = create<GameState>((set, get) => ({
     usePickupStore.getState().reset()
     set((s) => ({ phase: 'reward', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } }))
   },
-  nextWave: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })),
-  skipReward: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })),
+  nextWave: () => {
+    useEnemyStore.getState().resetSearedFlags()
+    set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 }))
+  },
+  skipReward: () => {
+    useEnemyStore.getState().resetSearedFlags()
+    set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 }))
+  },
   startBoss: () => set({ phase: 'boss' }),
   triggerVictory: () => set((s) => ({ phase: 'victory', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } })),
   triggerDeath: () => set({ phase: 'death', timeScale: 0.2 }),

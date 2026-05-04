@@ -52,6 +52,8 @@ interface EnemyState {
   setEnemyDying: (id: string) => void
   setEnemyDetonating: (id: string) => void
   setEnemyAi: (id: string, ai: AiState) => void
+  markSeared: (id: string, mult: number) => void
+  resetSearedFlags: () => void
   reset: () => void
 }
 
@@ -65,6 +67,7 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
         id: `enemy_${nextId++}`, position, hp, maxHp: hp, type,
         soakedUntil: 0, frozenUntil: 0, burningUntil: 0, poisonedUntil: 0, slowedUntil: 0, stunnedUntil: 0,
         knockback: null, hitFlashUntil: 0, resistAuraUntil: 0, dying: false, detonating: false, detonationStartTime: 0, ai,
+        seared: false, searedDamageMult: 1,
       }],
     }))
   },
@@ -116,5 +119,11 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
     set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, detonating: true, detonationStartTime: startTime } : e) }))
   },
   setEnemyAi: (id, ai) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, ai } : e) })),
+  markSeared: (id, mult) => set((s) => ({
+    enemies: s.enemies.map((e) => e.id === id ? { ...e, seared: true, searedDamageMult: mult } : e),
+  })),
+  resetSearedFlags: () => set((s) => ({
+    enemies: s.enemies.map((e) => ({ ...e, seared: false, searedDamageMult: 1 })),
+  })),
   reset: () => set({ enemies: [] }),
 }))

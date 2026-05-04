@@ -77,6 +77,39 @@ describe('enemyStore juice + exploder', () => {
   })
 })
 
+describe('sear flags', () => {
+  beforeEach(() => { useEnemyStore.getState().reset() })
+
+  it('spawned enemy has seared=false and searedDamageMult=1', () => {
+    useEnemyStore.getState().spawnEnemy('slow', { x: 0, z: 0 })
+    const enemy = useEnemyStore.getState().enemies[0]
+    expect(enemy.seared).toBe(false)
+    expect(enemy.searedDamageMult).toBe(1)
+  })
+
+  it('markSeared sets seared=true and searedDamageMult', () => {
+    useEnemyStore.getState().spawnEnemy('slow', { x: 0, z: 0 })
+    const id = useEnemyStore.getState().enemies[0].id
+    useEnemyStore.getState().markSeared(id, 1.15)
+    const enemy = useEnemyStore.getState().enemies[0]
+    expect(enemy.seared).toBe(true)
+    expect(enemy.searedDamageMult).toBe(1.15)
+  })
+
+  it('resetSearedFlags resets seared and searedDamageMult on all enemies', () => {
+    useEnemyStore.getState().spawnEnemy('slow', { x: 0, z: 0 })
+    useEnemyStore.getState().spawnEnemy('fast', { x: 2, z: 0 })
+    const ids = useEnemyStore.getState().enemies.map((e) => e.id)
+    useEnemyStore.getState().markSeared(ids[0], 1.15)
+    useEnemyStore.getState().markSeared(ids[1], 1)
+    useEnemyStore.getState().resetSearedFlags()
+    for (const enemy of useEnemyStore.getState().enemies) {
+      expect(enemy.seared).toBe(false)
+      expect(enemy.searedDamageMult).toBe(1)
+    }
+  })
+})
+
 describe('damageEnemiesInRadius', () => {
   beforeEach(() => { useEnemyStore.getState().reset() })
 

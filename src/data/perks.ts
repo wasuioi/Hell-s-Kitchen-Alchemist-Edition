@@ -83,6 +83,16 @@ export const PERK_POOL: PerkDefinition[] = [
     ],
   },
   {
+    id: 'sear', name: 'Sear', icon: '/icons/sear.png',
+    description: 'First hit on each enemy each wave deals bonus damage and stuns.',
+    rarity: 'rare', vfxSprite: 'sear_strike',
+    tiers: [
+      { stats: { FirstHitDamage: '+50%', Stun: '0.5s' } },
+      { stats: { FirstHitDamage: '+75%', Stun: '0.75s' }, added: 'Seared enemies take +15% damage from all sources for the wave' },
+      { stats: { FirstHitDamage: '+100%', Stun: '1.0s' }, added: 'Sear spreads to enemies within 2.5 units of the target' },
+    ],
+  },
+  {
     id: 'bonemeal_stock', name: 'Bonemeal Stock', icon: '/icons/bonemeal_stock.png',
     description: 'Killed enemies leave glowing skull-shaped Stock Cubes — walk over them to heal.',
     rarity: 'legendary',

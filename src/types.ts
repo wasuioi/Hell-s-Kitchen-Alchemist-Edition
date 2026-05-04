@@ -46,6 +46,8 @@ export interface Enemy {
   detonating: boolean
   detonationStartTime: number
   ai: AiState
+  seared?: boolean
+  searedDamageMult?: number
 }
 
 export interface DamageNumber {

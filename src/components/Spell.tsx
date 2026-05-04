@@ -10,6 +10,7 @@ import { PARTICLE_CONFIG } from '../data/particleConfig'
 import ParticleSystem from './ParticleSystem'
 import { spawnDamageNumber } from './DamageNumbers'
 import { spawnGroundCrack } from './GroundCracks'
+import { spawnSpriteVfx } from '../utils/spawnVfx'
 
 declare global {
   interface Window {
@@ -59,6 +60,7 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
     const activePerks = useDeckStore.getState().activePerks
     const deepFreezeStacks = activePerks.find((p) => p.id === 'deep_freeze')?.stackCount || 0
     const extraSpicyStacks = activePerks.find((p) => p.id === 'extra_spicy')?.stackCount || 0
+    const sear = activePerks.find((p) => p.id === 'sear')
     const BOTTLE_SPELLS: SpellType[] = ['TIDAL_WAVE', 'MUD']
     const BURN_SPELLS: SpellType[] = ['INFERNO', 'METEOR']
 
@@ -109,16 +111,38 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
           useEnemyStore.getState().clearEnemyFrozen(enemy.id)
         }
         if (spell.damage > 0) {
-          useEnemyStore.getState().damageEnemy(enemy.id, actualDamage)
+          let hitDamage = actualDamage
+
+          // Sear perk — first hit per enemy per wave
+          if (sear && !enemy.seared) {
+            const tier = Math.min(sear.stackCount, 3)
+            const dmgMult = [1.50, 1.75, 2.00][tier - 1]
+            const stunS = [0.50, 0.75, 1.00][tier - 1]
+            hitDamage *= dmgMult
+            useEnemyStore.getState().setEnemyStunned(enemy.id, now + stunS * 1000)
+            spawnSpriteVfx('sear_strike', enemy.position.x, enemy.position.z)
+            useEnemyStore.getState().markSeared(enemy.id, tier >= 2 ? 1.15 : 1)
+            if (tier >= 3) {
+              for (const other of enemies) {
+                if (other.id !== enemy.id && !other.seared &&
+                    getDistance(other.position, enemy.position) <= 2.5) {
+                  useEnemyStore.getState().markSeared(other.id, 1.15)
+                }
+              }
+            }
+          }
+          hitDamage *= (enemy.searedDamageMult ?? 1)
+
+          useEnemyStore.getState().damageEnemy(enemy.id, hitDamage)
 
           // --- JUICE: hit flash, damage number, screen shake ---
           useEnemyStore.getState().setEnemyHitFlash(enemy.id, performance.now() + 100)
 
-          const dmgColor = actualDamage >= 80 ? '#ef4444' : actualDamage >= 40 ? '#fbbf24' : '#ffffff'
+          const dmgColor = hitDamage >= 80 ? '#ef4444' : hitDamage >= 40 ? '#fbbf24' : '#ffffff'
           // Boss is ~4.5 units tall vs the default 1.5; lift the damage number
           // above its head so the player can actually see it land.
           const dmgY = enemy.type === 'boss' ? 5 : 1.5
-          spawnDamageNumber(enemy.position.x, enemy.position.z, actualDamage, dmgColor, dmgY)
+          spawnDamageNumber(enemy.position.x, enemy.position.z, hitDamage, dmgColor, dmgY)
 
           // Screen shake: stronger for big spells
           if (spell.type === 'METEOR' || spell.type === 'INFERNO') {
