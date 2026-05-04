@@ -92,6 +92,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { 'Drop Chance': '50%', Heal: '+8 HP', Lifetime: '8.0s' } },
     ],
   },
+  {
+    id: 'fillet', name: 'Fillet', icon: '/icons/fillet.png',
+    description: 'Spells deal massive bonus damage to weakened enemies. Higher tiers heal on kill and stun nearby foes.',
+    rarity: 'rare', vfxSprite: 'fillet',
+    tiers: [
+      { stats: { Threshold: '20% HP', Bonus: '+60%' } },
+      { stats: { Threshold: '28% HP', Bonus: '+90%' }, added: 'Fillet kills heal +2 HP' },
+      { stats: { Threshold: '35% HP', Bonus: '+130%' }, added: 'Fillet kills stun enemies within 3.5u for 0.6s' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

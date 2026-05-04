@@ -5,11 +5,13 @@ import type { SpellEffect, SpellType } from '../types'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
+import { usePlayerStore } from '../stores/playerStore'
 import { getDistance } from '../utils/collision'
 import { PARTICLE_CONFIG } from '../data/particleConfig'
 import ParticleSystem from './ParticleSystem'
 import { spawnDamageNumber } from './DamageNumbers'
 import { spawnGroundCrack } from './GroundCracks'
+import { spawnSpriteVfx } from '../utils/spawnVfx'
 
 declare global {
   interface Window {
@@ -59,6 +61,7 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
     const activePerks = useDeckStore.getState().activePerks
     const deepFreezeStacks = activePerks.find((p) => p.id === 'deep_freeze')?.stackCount || 0
     const extraSpicyStacks = activePerks.find((p) => p.id === 'extra_spicy')?.stackCount || 0
+    const filletStacks = activePerks.find((p) => p.id === 'fillet')?.stackCount ?? 0
     const BOTTLE_SPELLS: SpellType[] = ['TIDAL_WAVE', 'MUD']
     const BURN_SPELLS: SpellType[] = ['INFERNO', 'METEOR']
 
@@ -101,13 +104,26 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
         const isSoakedInferno = isInferno && wasSoaked
         const isFrozenInferno = isInferno && wasFrozen
         const infernoConsumedStatus = isSoakedInferno || isFrozenInferno
-        const actualDamage = isSoakedInferno ? spell.damage * 2 : spell.damage
+        let actualDamage = isSoakedInferno ? spell.damage * 2 : spell.damage
         if (isSoakedInferno) {
           useEnemyStore.getState().clearEnemySoaked(enemy.id)
         }
         if (isFrozenInferno) {
           useEnemyStore.getState().clearEnemyFrozen(enemy.id)
         }
+
+        let filletProcced = false
+        if (filletStacks > 0 && enemy.hp > 0 && spell.damage > 0) {
+          const tier = Math.min(filletStacks, 3)
+          const threshold = [0.20, 0.28, 0.35][tier - 1]
+          const bonus = [1.60, 1.90, 2.30][tier - 1]
+          if (enemy.hp / enemy.maxHp <= threshold) {
+            actualDamage = actualDamage * bonus
+            filletProcced = true
+            spawnSpriteVfx('fillet', enemy.position.x, enemy.position.z, 2)
+          }
+        }
+
         if (spell.damage > 0) {
           useEnemyStore.getState().damageEnemy(enemy.id, actualDamage)
 
@@ -125,6 +141,17 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
             useGameStore.getState().triggerScreenShake(0.6, 200)
           } else {
             useGameStore.getState().triggerScreenShake(0.3, 150)
+          }
+
+          if (filletProcced) {
+            const updatedEnemy = useEnemyStore.getState().enemies.find((e) => e.id === enemy.id)
+            if (updatedEnemy && updatedEnemy.hp <= 0 && !updatedEnemy.dying && !updatedEnemy.detonating) {
+              const tier = Math.min(filletStacks, 3)
+              if (tier >= 2) usePlayerStore.getState().heal(2)
+              if (tier >= 3) {
+                useEnemyStore.getState().applyStatusInRadius(enemy.position, 3.5, 'stunned', 0.6)
+              }
+            }
           }
         }
 
