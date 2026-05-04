@@ -92,6 +92,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { 'Drop Chance': '50%', Heal: '+8 HP', Lifetime: '8.0s' } },
     ],
   },
+  {
+    id: 'chefs_kiss', name: "Chef's Kiss", icon: '/icons/chefs_kiss.png',
+    description: "Spell hits have a chance to crit for bonus damage. Higher tiers stun and chain.",
+    rarity: 'rare', vfxSprite: 'chefs_kiss',
+    tiers: [
+      { stats: { 'Crit Chance': '15%', 'Crit Damage': '2.0x' } },
+      { stats: { 'Crit Chance': '22%', 'Crit Damage': '2.0x' }, added: 'Crits stun for 0.5s' },
+      { stats: { 'Crit Chance': '30%', 'Crit Damage': '2.5x' }, added: 'Crits chain to nearest enemy within 3u for 1.0x base damage' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

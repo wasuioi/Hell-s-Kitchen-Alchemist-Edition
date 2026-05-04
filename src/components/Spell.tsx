@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import type { SpellEffect, SpellType } from '../types'
+import type { Enemy, SpellEffect, SpellType } from '../types'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
@@ -10,6 +10,7 @@ import { PARTICLE_CONFIG } from '../data/particleConfig'
 import ParticleSystem from './ParticleSystem'
 import { spawnDamageNumber } from './DamageNumbers'
 import { spawnGroundCrack } from './GroundCracks'
+import { spawnSpriteVfx } from '../utils/spawnVfx'
 
 declare global {
   interface Window {
@@ -59,6 +60,7 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
     const activePerks = useDeckStore.getState().activePerks
     const deepFreezeStacks = activePerks.find((p) => p.id === 'deep_freeze')?.stackCount || 0
     const extraSpicyStacks = activePerks.find((p) => p.id === 'extra_spicy')?.stackCount || 0
+    const chefsKissStacks = activePerks.find((p) => p.id === 'chefs_kiss')?.stackCount || 0
     const BOTTLE_SPELLS: SpellType[] = ['TIDAL_WAVE', 'MUD']
     const BURN_SPELLS: SpellType[] = ['INFERNO', 'METEOR']
 
@@ -109,16 +111,51 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
           useEnemyStore.getState().clearEnemyFrozen(enemy.id)
         }
         if (spell.damage > 0) {
-          useEnemyStore.getState().damageEnemy(enemy.id, actualDamage)
+          // Chef's Kiss perk: per-hit crit roll, independent per enemy
+          let finalDamage = actualDamage
+          if (chefsKissStacks > 0 && !enemy.dying && !enemy.detonating) {
+            const tier = Math.min(chefsKissStacks, 3)
+            const chance = [0.15, 0.22, 0.30][tier - 1]
+            const mult = [2.0, 2.0, 2.5][tier - 1]
+            if (Math.random() < chance) {
+              finalDamage = actualDamage * mult
+              spawnSpriteVfx('chefs_kiss', enemy.position.x, enemy.position.z)
+              if (tier >= 2) {
+                useEnemyStore.getState().setEnemyStunned(enemy.id, now + 500)
+              }
+              if (tier >= 3) {
+                let nearestDist = Infinity
+                let neighbor: Enemy | null = null
+                for (const other of enemies) {
+                  if (other.id === enemy.id || other.dying || other.detonating) continue
+                  const d = getDistance(other.position, enemy.position)
+                  if (d <= 3 && d < nearestDist) {
+                    nearestDist = d
+                    neighbor = other
+                  }
+                }
+                if (neighbor) {
+                  useEnemyStore.getState().damageEnemy(neighbor.id, actualDamage)
+                  useEnemyStore.getState().setEnemyHitFlash(neighbor.id, now + 100)
+                  const neighborDmgColor = actualDamage >= 80 ? '#ef4444' : actualDamage >= 40 ? '#fbbf24' : '#ffffff'
+                  const neighborDmgY = neighbor.type === 'boss' ? 5 : 1.5
+                  spawnDamageNumber(neighbor.position.x, neighbor.position.z, actualDamage, neighborDmgColor, neighborDmgY)
+                  spawnSpriteVfx('chefs_kiss', neighbor.position.x, neighbor.position.z)
+                }
+              }
+            }
+          }
+
+          useEnemyStore.getState().damageEnemy(enemy.id, finalDamage)
 
           // --- JUICE: hit flash, damage number, screen shake ---
-          useEnemyStore.getState().setEnemyHitFlash(enemy.id, performance.now() + 100)
+          useEnemyStore.getState().setEnemyHitFlash(enemy.id, now + 100)
 
-          const dmgColor = actualDamage >= 80 ? '#ef4444' : actualDamage >= 40 ? '#fbbf24' : '#ffffff'
+          const dmgColor = finalDamage >= 80 ? '#ef4444' : finalDamage >= 40 ? '#fbbf24' : '#ffffff'
           // Boss is ~4.5 units tall vs the default 1.5; lift the damage number
           // above its head so the player can actually see it land.
           const dmgY = enemy.type === 'boss' ? 5 : 1.5
-          spawnDamageNumber(enemy.position.x, enemy.position.z, actualDamage, dmgColor, dmgY)
+          spawnDamageNumber(enemy.position.x, enemy.position.z, finalDamage, dmgColor, dmgY)
 
           // Screen shake: stronger for big spells
           if (spell.type === 'METEOR' || spell.type === 'INFERNO') {
