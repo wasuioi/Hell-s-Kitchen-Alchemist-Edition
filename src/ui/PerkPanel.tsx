@@ -57,7 +57,7 @@ export default function PerkPanel() {
   }
 
   function handleReroll() {
-    if (rerollsLeft <= 0 || pickedIds.size > 0) return
+    if (!canReroll) return
     setPerks(drawPerksWithRarity(mods.perkPoolSize))
     setRerollsLeft(0)
   }
@@ -108,7 +108,7 @@ export default function PerkPanel() {
         {canReroll
           ? 'Reroll (1)'
           : rerollsLeft > 0
-            ? 'Reroll (locked — pick first)'
+            ? 'Reroll (no picks left)'
             : 'Reroll (0 — used)'}
       </button>
     </div>
