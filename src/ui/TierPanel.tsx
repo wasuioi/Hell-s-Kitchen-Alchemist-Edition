@@ -1,5 +1,4 @@
 import { useGameStore } from '../stores/gameStore'
-import { TIER_MODIFIERS } from '../data/waves'
 import type { WaveTier } from '../types'
 
 interface TierCardData {
@@ -26,7 +25,7 @@ const TIERS: TierCardData[] = [
   },
   {
     tier: 'hellfire', emoji: '🔥', label: 'HELLFIRE',
-    blurb: '+50% enemy speed, +2 elites, mid-wave reinforcement. Pick 2 of 4 perks.',
+    blurb: '+50% enemy speed, +2 elites, faster hazards. Pick 2 of 4 perks.',
     borderColor: '#dc2626',
     glow: 'rgba(220,38,38,0.55)',
   },
@@ -46,13 +45,11 @@ export default function TierPanel() {
       <div style={{ display: 'flex', gap: '16px' }}>
         {TIERS.map((t) => {
           const selected = pendingTier === t.tier
-          // Reference TIER_MODIFIERS so the tooltip stays in sync if numbers change.
-          // (Not rendered yet — kept for future tooltip extension.)
-          void TIER_MODIFIERS[t.tier]
           return (
             <button
               key={t.tier}
               onClick={() => chooseTier(t.tier)}
+              aria-pressed={selected}
               style={{
                 width: '180px', minHeight: '200px',
                 padding: '16px 12px',
@@ -61,7 +58,6 @@ export default function TierPanel() {
                 background: 'rgba(20,10,10,0.85)',
                 boxShadow: selected ? `0 0 24px ${t.glow}` : 'none',
                 cursor: 'pointer',
-                transition: 'all 0.15s',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px',
                 color: 'white', fontFamily: 'inherit',
               }}
