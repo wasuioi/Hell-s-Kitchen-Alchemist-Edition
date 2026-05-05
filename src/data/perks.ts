@@ -92,6 +92,16 @@ export const PERK_POOL: PerkDefinition[] = [
       { stats: { 'Drop Chance': '50%', Heal: '+8 HP', Lifetime: '8.0s' } },
     ],
   },
+  {
+    id: 'char_star', name: 'Char Star', icon: '/icons/char_star.png',
+    vfxSprite: 'char_star_idle', rarity: 'epic',
+    description: 'Enemies killed by CHILI spells leave a smoldering Char Star that detonates after a beat.',
+    tiers: [
+      { stats: { Lifetime: '1.0s', Damage: 25, Radius: 3 } },
+      { stats: { Lifetime: '1.2s', Damage: 40, Radius: 4 }, added: 'CharStar kills on CHILI-marked enemies chain a new CharStar' },
+      { stats: { Lifetime: '1.5s', Damage: 55, Radius: 5 }, added: 'Any CharStar kill chains; survivors stunned 0.4s' },
+    ],
+  },
 ]
 
 function pickWeightedRarity(): PerkRarity {

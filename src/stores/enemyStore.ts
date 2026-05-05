@@ -32,7 +32,7 @@ let nextId = 0
 interface EnemyState {
   enemies: Enemy[]
   spawnEnemy: (type: EnemyType, position: Position) => void
-  damageEnemy: (id: string, amount: number) => void
+  damageEnemy: (id: string, amount: number, recipeKind?: 'CHILI' | 'BOTTLE' | 'SALT' | 'chain') => void
   damageEnemiesInRadius: (center: Position, radius: number, amount: number) => void
   applyStatusInRadius: (center: Position, radius: number, status: StatusEffect | 'burning', duration: number) => void
   removeEnemy: (id: string) => void
@@ -68,7 +68,16 @@ export const useEnemyStore = create<EnemyState>((set, get) => ({
       }],
     }))
   },
-  damageEnemy: (id, amount) => set((s) => ({ enemies: s.enemies.map((e) => e.id === id ? { ...e, hp: Math.max(0, e.hp - amount) } : e) })),
+  damageEnemy: (id, amount, recipeKind) => set((s) => ({
+    enemies: s.enemies.map((e) => {
+      if (e.id !== id) return e
+      return {
+        ...e,
+        hp: Math.max(0, e.hp - amount),
+        ...(recipeKind !== undefined ? { lastHitRecipeKind: recipeKind, lastHitAt: performance.now() } : {}),
+      }
+    }),
+  })),
   damageEnemiesInRadius: (center, radius, amount) => set((s) => ({
     enemies: s.enemies.map((e) => isInRange(center, e.position, radius) ? { ...e, hp: Math.max(0, e.hp - amount) } : e),
   })),

@@ -1,9 +1,10 @@
 import { useDeckStore } from '../stores/deckStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
+import { useCharStarStore } from '../stores/charStarStore'
 import { PERK_POOL } from '../data/perks'
 import { spawnExplosionVfx, spawnSpriteVfx, spawnDamageNumberVfx } from './spawnVfx'
-import type { Position } from '../types'
+import type { Enemy, Position } from '../types'
 
 // Convention for future on-trigger perks: alongside the gameplay logic
 // (damage, status, etc.), spawn visible feedback so the player actually
@@ -70,6 +71,7 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
       useGameStore.getState().triggerVictory()
       return
     }
+    triggerOnEnemyDeath(updated, 'other')
   }
 
   if (tier >= 3) {
@@ -93,4 +95,42 @@ export function triggerOnDamageTaken(amount: number, position: Position) {
 
 export function resetGreaseFireCooldown() {
   lastGreaseFireAt = -Infinity
+}
+
+// Called whenever a non-boss, non-exploder enemy transitions to dying.
+// Handles the CharStar perk: CHILI kills spawn a carcass; at T2+ CharStar
+// detonation chain-kills can also spawn one.
+//
+// `killSource` is 'chili' when a CHILI-recipe spell delivered the killing
+// blow, 'chain' when a CharStar detonation did, and 'other' otherwise.
+// The `enemy` argument should be the pre-damage snapshot so that
+// `lastHitRecipeKind` reflects the spell that marked it, not the killing hit.
+export function triggerOnEnemyDeath(enemy: Enemy, killSource: 'chili' | 'chain' | 'other') {
+  if (enemy.type === 'boss' || enemy.type === 'exploder') return
+  const stacks = useDeckStore.getState().activePerks.find((p) => p.id === 'char_star')?.stackCount ?? 0
+  if (stacks === 0) return
+
+  const tier = Math.min(stacks, 3)
+
+  // For chain kills at T2: check if the enemy had a recent CHILI hit (within 3s)
+  // before the CharStar detonated. We use the enemy snapshot (pre-detonation
+  // lastHitRecipeKind) so the CharStar's own damage doesn't clobber the flag.
+  const isChiliMarked =
+    enemy.lastHitRecipeKind === 'CHILI' &&
+    performance.now() - (enemy.lastHitAt ?? 0) < 3000
+
+  const eligible =
+    killSource === 'chili' ||
+    (tier >= 2 && killSource === 'chain' && isChiliMarked) ||
+    (tier >= 3 && killSource === 'chain')
+
+  if (!eligible) return
+
+  const lifetimeMsValues: [number, number, number] = [1000, 1200, 1500]
+  useCharStarStore.getState().addCharStar({
+    position: { x: enemy.position.x, z: enemy.position.z },
+    spawnedAt: performance.now(),
+    lifetimeMs: lifetimeMsValues[tier - 1],
+    source: killSource === 'chili' ? 'chili' : 'chain',
+  })
 }

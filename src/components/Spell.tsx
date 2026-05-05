@@ -10,6 +10,7 @@ import { PARTICLE_CONFIG } from '../data/particleConfig'
 import ParticleSystem from './ParticleSystem'
 import { spawnDamageNumber } from './DamageNumbers'
 import { spawnGroundCrack } from './GroundCracks'
+import { triggerOnEnemyDeath } from '../utils/perkTriggers'
 
 declare global {
   interface Window {
@@ -61,6 +62,10 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
     const extraSpicyStacks = activePerks.find((p) => p.id === 'extra_spicy')?.stackCount || 0
     const BOTTLE_SPELLS: SpellType[] = ['TIDAL_WAVE', 'MUD']
     const BURN_SPELLS: SpellType[] = ['INFERNO', 'METEOR']
+    // Recipe kind to track on each hit — used by CharStar T2 chain eligibility.
+    const spellRecipeKind: 'CHILI' | 'BOTTLE' | undefined =
+      (spell.type === 'INFERNO' || spell.type === 'STEAM' || spell.type === 'METEOR') ? 'CHILI' :
+      (spell.type === 'TIDAL_WAVE' || spell.type === 'MUD') ? 'BOTTLE' : undefined
 
     // SALT_SPEED is a self-buff with no enemy interaction
     if (spell.type === 'SALT_SPEED') {
@@ -109,7 +114,7 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
           useEnemyStore.getState().clearEnemyFrozen(enemy.id)
         }
         if (spell.damage > 0) {
-          useEnemyStore.getState().damageEnemy(enemy.id, actualDamage)
+          useEnemyStore.getState().damageEnemy(enemy.id, actualDamage, spellRecipeKind)
 
           // --- JUICE: hit flash, damage number, screen shake ---
           useEnemyStore.getState().setEnemyHitFlash(enemy.id, performance.now() + 100)
@@ -188,6 +193,9 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
         useGameStore.getState().triggerVictory()
         return
       }
+      // Notify on-death perks (e.g. CharStar). deadEnemy is the pre-damage
+      // snapshot so its lastHitRecipeKind reflects the spell that marked it.
+      triggerOnEnemyDeath(deadEnemy, spellRecipeKind === 'CHILI' ? 'chili' : 'other')
     }
 
     if (elapsed.current >= spell.duration) {

@@ -46,6 +46,11 @@ export interface Enemy {
   detonating: boolean
   detonationStartTime: number
   ai: AiState
+  /** Recipe kind of the last damaging hit — used by CharStar to determine
+   *  chain eligibility at T2 (must have been CHILI-marked recently). */
+  lastHitRecipeKind?: 'CHILI' | 'BOTTLE' | 'SALT' | 'chain'
+  /** performance.now() timestamp of the last damaging hit. */
+  lastHitAt?: number
 }
 
 export interface DamageNumber {
@@ -94,6 +99,16 @@ export interface Hazard {
   rotation: number
   spawnedAt: number   // performance.now() at spawn — drives both telegraph and active timing
   lastDamageAt: number
+}
+
+/** CharStar world object (perk char_star). Spawned at a dying enemy's position
+ *  when killed by a CHILI spell; detonates after lifetimeMs. */
+export interface CharStar {
+  id: string
+  position: Position
+  spawnedAt: number
+  lifetimeMs: number
+  source: 'chili' | 'chain'
 }
 
 /** Bonemeal Stock cube (perk #28). Dropped from killed non-boss enemies; the

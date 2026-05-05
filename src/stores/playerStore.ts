@@ -23,7 +23,9 @@ interface PlayerState {
   speedBuffUntil: number
   // Actions
   setPosition: (pos: Position) => void; setRotation: (rot: number) => void
-  takeDamage: (amount: number) => void; heal: (amount: number) => void
+  takeDamage: (amount: number) => void
+  takeTrueDamage: (amount: number) => void
+  heal: (amount: number) => void
   setStatus: (status: StatusEffect) => void
   startDash: (direction: Position) => void; endDash: () => void
   addHeat: (maxStacks: number) => void
@@ -55,6 +57,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
     set((s) => ({ hp: Math.max(0, s.hp - amount) }))
   },
+  // Bypasses all reactive perk triggers (e.g. grease_fire, boiling_point heat).
+  // Used by CharStar self-damage when the player stands on a detonating carcass.
+  takeTrueDamage: (amount) => set((s) => ({ hp: Math.max(0, s.hp - amount) })),
   heal: (amount) => set((s) => {
     const newHp = Math.min(s.maxHp, s.hp + amount)
     const actualHealed = newHp - s.hp
