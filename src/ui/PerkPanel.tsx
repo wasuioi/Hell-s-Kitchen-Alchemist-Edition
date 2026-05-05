@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import { usePlayerStore } from '../stores/playerStore'
@@ -13,6 +13,7 @@ const HEAL_PERK_GAP = 56
 
 export default function PerkPanel() {
   const currentTier = useGameStore((s) => s.currentTier) ?? 'mild'
+  const currentWave = useGameStore((s) => s.currentWave)
   const mods = TIER_MODIFIERS[currentTier]
   const activePerks = useDeckStore((s) => s.activePerks)
   const hp = usePlayerStore((s) => s.hp)
@@ -22,7 +23,19 @@ export default function PerkPanel() {
   const [pickedIds, setPickedIds] = useState<Set<string>>(new Set())
   const [rerollsLeft, setRerollsLeft] = useState(1)
   const picksRemaining = mods.perkPickCount - pickedIds.size
-  const canReroll = rerollsLeft > 0 && pickedIds.size === 0
+  const canReroll = rerollsLeft > 0 && picksRemaining > 0
+
+  // Reset offer + pick budget on every Rest Room visit. Defensive: today the
+  // RestRoom remounts on each phase change so this would re-init anyway, but
+  // pinning to currentWave guarantees a fresh roll even if the mount strategy
+  // ever changes.
+  useEffect(() => {
+    setPerks(drawPerksWithRarity(mods.perkPoolSize))
+    setPickedIds(new Set())
+    setRerollsLeft(1)
+    // mods.perkPoolSize is derived from currentTier; both change in lockstep.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWave])
 
   function pickHeal() {
     if (hp >= maxHp || picksRemaining <= 0 || pickedIds.has('heal')) return
