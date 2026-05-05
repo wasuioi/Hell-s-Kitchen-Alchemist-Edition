@@ -23,7 +23,7 @@ declare global {
 let nextExplosionId = 0
 
 export function spawnExplosion(x: number, z: number, chainDepth = 0) {
-  window.__spawnExplosion?.({ x, z, chainDepth } as any)
+  window.__spawnExplosion?.({ x, z, chainDepth })
 }
 
 const EXPLOSION_LIFETIME = 1.2
