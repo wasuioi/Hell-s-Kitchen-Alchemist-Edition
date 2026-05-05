@@ -1,0 +1,46 @@
+import { useGameStore } from '../stores/gameStore'
+import { useDeckStore } from '../stores/deckStore'
+
+const LULL_DURATION_MS = 3000  // matches EnemyManager.LULL_DURATION_MS
+
+export default function BeginWaveButton() {
+  const currentWave = useGameStore((s) => s.currentWave)
+  const pendingTier = useGameStore((s) => s.pendingTier)
+  const isPreBoss = currentWave >= 7
+
+  const enabled = isPreBoss || pendingTier !== null
+  const label = isPreBoss
+    ? '▶ Begin Boss Fight'
+    : pendingTier
+      ? `▶ Begin Wave ${currentWave + 1} (${pendingTier})`
+      : '▶ Begin Wave — choose a tier first'
+
+  function onClick() {
+    if (!enabled) return
+    useDeckStore.getState().initHand()
+    if (isPreBoss) {
+      useGameStore.getState().triggerPreBossLull(LULL_DURATION_MS)
+    } else {
+      useGameStore.getState().nextWave()
+    }
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={!enabled}
+      style={{
+        padding: '14px 32px', borderRadius: '10px', fontSize: '18px', fontWeight: 'bold',
+        fontFamily: 'inherit', letterSpacing: '1px',
+        cursor: enabled ? 'pointer' : 'not-allowed',
+        background: enabled ? 'linear-gradient(180deg, #f59e0b, #b45309)' : 'rgba(255,255,255,0.08)',
+        border: `2px solid ${enabled ? '#fcd34d' : 'rgba(255,255,255,0.15)'}`,
+        color: enabled ? '#1a0606' : 'rgba(255,255,255,0.4)',
+        boxShadow: enabled ? '0 0 20px rgba(245,158,11,0.5)' : 'none',
+        transition: 'all 0.15s',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
