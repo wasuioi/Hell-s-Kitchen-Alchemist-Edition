@@ -1,5 +1,11 @@
 import type { WaveTier } from '../types'
 
+/** The last regular wave; the next phase after this is the pre-boss lull → boss. */
+export const BOSS_WAVE = 7
+
+/** How long the arena stays empty between the last wave and the boss spawn. */
+export const PRE_BOSS_LULL_MS = 3000
+
 export interface TierModifier {
   /** Multiply enemy movement speed by this value. 1 = no change. */
   speedMultiplier: number

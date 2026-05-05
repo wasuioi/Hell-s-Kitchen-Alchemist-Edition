@@ -3,7 +3,7 @@ import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { drawPerksWithRarity, type PerkDefinition } from '../data/perks'
-import { TIER_MODIFIERS } from '../data/waves'
+import { TIER_MODIFIERS, BOSS_WAVE, PRE_BOSS_LULL_MS } from '../data/waves'
 import PerkCard, { CARD_SCALE, CARD_WIDTH_PX } from './PerkCard'
 
 const CARD_GAP = 24
@@ -28,11 +28,14 @@ export default function PerkPanel() {
     if (hp >= maxHp) return
     usePlayerStore.getState().heal(30)
     useDeckStore.getState().initHand()
-    // TODO(Task 8): heal currently auto-advances via nextWave(), which means
-    // pendingTier is silently dropped if the player heals without picking a
-    // tier in TierPanel first. Resolve when heal moves under BeginWaveButton's
-    // tier-required gate.
-    useGameStore.getState().nextWave()
+    // Mirror BeginWaveButton: wave 7+ triggers the pre-boss lull instead of
+    // calling nextWave(), which would skip to a nonexistent wave 8.
+    const isPreBoss = useGameStore.getState().currentWave >= BOSS_WAVE
+    if (isPreBoss) {
+      useGameStore.getState().triggerPreBossLull(PRE_BOSS_LULL_MS)
+    } else {
+      useGameStore.getState().nextWave()
+    }
   }
 
   function currentTierFor(perkId: string): number {
@@ -96,7 +99,11 @@ export default function PerkPanel() {
           color: canReroll ? '#a5b4fc' : 'rgba(255,255,255,0.3)',
         }}
       >
-        {rerollsLeft > 0 ? 'Reroll (1)' : 'Reroll (0 — used)'}
+        {canReroll
+          ? 'Reroll (1)'
+          : rerollsLeft > 0
+            ? 'Reroll (locked — pick first)'
+            : 'Reroll (0 — used)'}
       </button>
     </div>
   )

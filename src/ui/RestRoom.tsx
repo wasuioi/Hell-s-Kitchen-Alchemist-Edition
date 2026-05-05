@@ -1,4 +1,5 @@
 import { useGameStore } from '../stores/gameStore'
+import { BOSS_WAVE } from '../data/waves'
 import PerkPanel from './PerkPanel'
 import TierPanel from './TierPanel'
 import RecipeBookPanel from './RecipeBookPanel'
@@ -6,7 +7,7 @@ import BeginWaveButton from './BeginWaveButton'
 
 export default function RestRoom() {
   const currentWave = useGameStore((s) => s.currentWave)
-  const isPreBoss = currentWave >= 7
+  const isPreBoss = currentWave >= BOSS_WAVE
 
   return (
     <div style={{

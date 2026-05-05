@@ -9,6 +9,7 @@ import { spawnDamageNumber } from './DamageNumbers'
 import { getDistance } from '../utils/collision'
 import type { EnemyType } from '../types'
 import { spawnExplosion } from './ExplosionEffect'
+import { PRE_BOSS_LULL_MS } from '../data/waves'
 
 const SPAWN_INTERVAL_BASE = 3
 // Per-wave enemy count — ramps up so early waves feel compact and the peak hits fast.
@@ -25,7 +26,6 @@ const CHAIN_DETONATION_DELAY_MS = 400 // chain reaction — kept tight so chains
 // Pre-boss surge / lull (issue #69)
 const SURGE_TRIGGER_RATIO = 0.6 // wave 7+ flips into surge once 60% of base wave is spawned
 const SURGE_DURATION_MS = 20_000
-const LULL_DURATION_MS = 3_000
 const SURGE_CLUSTER_SIZE = 3
 const SURGE_CLUSTER_INTERVAL = 3 // seconds between clusters
 const SURGE_CLUSTER_JITTER = 1.0 // world units
@@ -221,7 +221,7 @@ export default function EnemyManager() {
       spawnTimer.current = 0; spawnedCount.current = 0; waveTimer.current = 0
       pendingDetonations.current.clear()
       useEnemyStore.getState().reset()
-      if (currentWave >= 7) useGameStore.getState().triggerPreBossLull(LULL_DURATION_MS)
+      if (currentWave >= 7) useGameStore.getState().triggerPreBossLull(PRE_BOSS_LULL_MS)
       else useGameStore.getState().completeWave()
     }
   })
