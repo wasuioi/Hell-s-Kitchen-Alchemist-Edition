@@ -9,7 +9,6 @@ import { spawnDamageNumber } from './DamageNumbers'
 import { getDistance } from '../utils/collision'
 import type { EnemyType } from '../types'
 import { spawnExplosion } from './ExplosionEffect'
-import { PRE_BOSS_LULL_MS } from '../data/waves'
 
 const SPAWN_INTERVAL_BASE = 3
 // Per-wave enemy count — ramps up so early waves feel compact and the peak hits fast.
@@ -221,8 +220,9 @@ export default function EnemyManager() {
       spawnTimer.current = 0; spawnedCount.current = 0; waveTimer.current = 0
       pendingDetonations.current.clear()
       useEnemyStore.getState().reset()
-      if (currentWave >= 7) useGameStore.getState().triggerPreBossLull(PRE_BOSS_LULL_MS)
-      else useGameStore.getState().completeWave()
+      // All waves (1-7) route through Rest Room. The BeginWaveButton handles
+      // the pre-boss lull transition for wave 7.
+      useGameStore.getState().completeWave()
     }
   })
 
