@@ -6,7 +6,7 @@ import { castSpell } from './utils/castSpell'
 import { preloadGameAssets } from './utils/preloadAssets'
 import HUD from './ui/HUD'
 import MainMenu from './ui/MainMenu'
-import RestRoom from './ui/RestRoom'
+import RewardScreen from './ui/RewardScreen'
 import DeathScreen from './ui/DeathScreen'
 import VictoryScreen from './ui/VictoryScreen'
 import DevPanel from './ui/DevPanel'
@@ -42,7 +42,7 @@ export default function App() {
   const phase = useGameStore((s) => s.phase)
   const cookCooldown = useRef(0)
   // Flips true the moment the lazy Scene chunk has loaded and Scene's tree
-  // has mounted. Gates the HUD + rest-room screen so the cauldron and cards
+  // has mounted. Gates the HUD + reward screen so the cauldron and cards
   // don't show up over a still-blank canvas while the player waits for
   // models to come in on a slow link.
   const [sceneReady, setSceneReady] = useState(false)
@@ -56,7 +56,7 @@ export default function App() {
   const preloadFiredRef = useRef(false)
   useEffect(() => {
     if (preloadFiredRef.current) return
-    if (phase === 'combat' || phase === 'rest') {
+    if (phase === 'combat' || phase === 'reward') {
       preloadFiredRef.current = true
       preloadGameAssets()
     }
@@ -135,10 +135,10 @@ export default function App() {
 
       {phase === 'menu' && <MainMenu />}
 
-      {/* Cauldron + ingredient cards (HUD) and rest-room screen wait for
+      {/* Cauldron + ingredient cards (HUD) and reward screen wait for
           sceneReady so they don't appear over a blank world. */}
       {(phase === 'combat' || phase === 'boss' || phase === 'pre-boss-lull') && sceneReady && <HUD />}
-      {phase === 'rest' && sceneReady && <RestRoom />}
+      {phase === 'reward' && sceneReady && <RewardScreen />}
       {phase === 'death' && <DeathScreen />}
       {phase === 'victory' && <VictoryScreen />}
       {import.meta.env.DEV && <DevPanel />}

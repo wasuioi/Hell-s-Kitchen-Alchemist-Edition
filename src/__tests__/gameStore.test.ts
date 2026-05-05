@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useGameStore } from '../stores/gameStore'
-import type { WaveTier } from '../types'
 
 describe('gameStore juice', () => {
   beforeEach(() => {
@@ -62,10 +61,10 @@ describe('useGameStore', () => {
     expect(useGameStore.getState().phase).toBe('combat')
     expect(useGameStore.getState().currentWave).toBe(1)
   })
-  it('completeWave goes to rest phase', () => {
+  it('completeWave goes to reward phase', () => {
     useGameStore.getState().startShift()
     useGameStore.getState().completeWave()
-    expect(useGameStore.getState().phase).toBe('rest')
+    expect(useGameStore.getState().phase).toBe('reward')
     expect(useGameStore.getState().stats.wavesCleared).toBe(1)
   })
   it('nextWave transitions from reward to combat', () => {
@@ -98,6 +97,21 @@ describe('useGameStore', () => {
     useGameStore.getState().recordIngredientUsed()
     expect(useGameStore.getState().stats.ingredientsUsed).toBe(1)
   })
+  it('skipReward advances wave and returns to combat without applying perk', () => {
+    useGameStore.getState().startShift()
+    useGameStore.getState().completeWave()
+    const waveBefore = useGameStore.getState().currentWave
+    useGameStore.getState().skipReward()
+    expect(useGameStore.getState().phase).toBe('combat')
+    expect(useGameStore.getState().currentWave).toBe(waveBefore + 1)
+  })
+  it('skipReward from reward phase increments wave by 1 (same as nextWave)', () => {
+    useGameStore.getState().startShift()
+    useGameStore.getState().completeWave()
+    const waveAfterSkip = useGameStore.getState().currentWave + 1
+    useGameStore.getState().skipReward()
+    expect(useGameStore.getState().currentWave).toBe(waveAfterSkip)
+  })
   it('reset returns to initial state', () => {
     useGameStore.getState().startShift()
     useGameStore.getState().recordEnemyDefeated()
@@ -105,42 +119,5 @@ describe('useGameStore', () => {
     expect(useGameStore.getState().phase).toBe('menu')
     expect(useGameStore.getState().currentWave).toBe(0)
     expect(useGameStore.getState().stats.enemiesDefeated).toBe(0)
-  })
-})
-
-describe('gameStore tier lifecycle', () => {
-  beforeEach(() => useGameStore.getState().reset())
-
-  it('initial tier state: both null before startShift', () => {
-    expect(useGameStore.getState().currentTier).toBe(null)
-    expect(useGameStore.getState().pendingTier).toBe(null)
-  })
-
-  it('startShift sets currentTier to mild (wave 1 default)', () => {
-    useGameStore.getState().startShift()
-    expect(useGameStore.getState().currentTier).toBe<WaveTier>('mild')
-  })
-
-  it('chooseTier updates pendingTier only', () => {
-    useGameStore.getState().startShift()
-    useGameStore.getState().chooseTier('spicy')
-    expect(useGameStore.getState().pendingTier).toBe<WaveTier>('spicy')
-    expect(useGameStore.getState().currentTier).toBe<WaveTier>('mild')
-  })
-
-  it('nextWave promotes pendingTier to currentTier and clears pending', () => {
-    useGameStore.getState().startShift()
-    useGameStore.getState().chooseTier('hellfire')
-    useGameStore.getState().nextWave()
-    expect(useGameStore.getState().currentTier).toBe<WaveTier>('hellfire')
-    expect(useGameStore.getState().pendingTier).toBe(null)
-  })
-
-  it('reset clears both tiers', () => {
-    useGameStore.getState().startShift()
-    useGameStore.getState().chooseTier('spicy')
-    useGameStore.getState().reset()
-    expect(useGameStore.getState().currentTier).toBe(null)
-    expect(useGameStore.getState().pendingTier).toBe(null)
   })
 })

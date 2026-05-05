@@ -31,9 +31,7 @@ export default function DevPanel() {
     useEnemyStore.getState().reset()
     useHazardStore.getState().reset()
     useGameStore.getState().endSurge()
-    // Reset tier state so dev jumps don't carry stale pendingTier and
-    // always start the new wave at the predictable Mild defaults.
-    useGameStore.setState({ phase: 'combat', currentWave: targetWave, currentTier: 'mild', pendingTier: null })
+    useGameStore.setState({ phase: 'combat', currentWave: targetWave })
   }
 
   function spawnHazard(type: HazardType) {
@@ -209,7 +207,7 @@ export default function DevPanel() {
           border: '1px solid rgba(99,102,241,0.5)',
           color: '#a5b4fc', cursor: 'pointer', font: 'inherit',
         }}
-      >End wave → rest room</button>
+      >End wave → reward</button>
     </div>
   )
 }

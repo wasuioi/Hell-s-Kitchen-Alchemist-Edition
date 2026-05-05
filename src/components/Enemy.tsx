@@ -5,7 +5,6 @@ import * as THREE from 'three'
 import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
-import { TIER_MODIFIERS } from '../data/waves'
 import { ARENA_SIZE } from './Arena'
 import { spawnDamageNumber } from './DamageNumbers'
 import type { Enemy as EnemyType } from '../types'
@@ -85,9 +84,6 @@ export default function Enemy({ enemy }: Props) {
     })
     return clone
   }, [scene, enemy.type])
-
-  const currentTier = useGameStore((s) => s.currentTier) ?? 'mild'
-  const tierSpeed = TIER_MODIFIERS[currentTier].speedMultiplier
 
   const lastContactTime = useRef(0)
   const deathTimer = useRef(0)
@@ -187,7 +183,7 @@ export default function Enemy({ enemy }: Props) {
       const sdx = playerPos.x - enemy.position.x
       const sdz = playerPos.z - enemy.position.z
       const sdist = Math.sqrt(sdx * sdx + sdz * sdz) || 1
-      const sprintSpeed = SPEED.exploder * EXPLODER_SPRINT_MULT * detMult * timeScale * tierSpeed
+      const sprintSpeed = SPEED.exploder * EXPLODER_SPRINT_MULT * detMult * timeScale
       useEnemyStore.getState().updateEnemyPosition(enemy.id, {
         x: enemy.position.x + (sdx / sdist) * sprintSpeed * delta,
         z: enemy.position.z + (sdz / sdist) * sprintSpeed * delta,
@@ -230,10 +226,7 @@ export default function Enemy({ enemy }: Props) {
     const isSoaked = now < enemy.soakedUntil
     const isSlowed = now < enemy.slowedUntil
     const statusMultiplier = (isFrozen || isStunned) ? 0 : (isSoaked || isSlowed) ? 0.5 : 1
-    // baseSpeed = pre-tier movement; tierSpeed scales chase only, not push (separation
-    // physics shouldn't get faster on harder tiers — keeps crowd behavior consistent).
-    const baseSpeed = SPEED[enemy.type] * statusMultiplier * timeScale
-    const speed = baseSpeed * tierSpeed
+    const speed = SPEED[enemy.type] * statusMultiplier * timeScale
     const dx = playerPos.x - enemy.position.x
     const dz = playerPos.z - enemy.position.z
     const dist = Math.sqrt(dx * dx + dz * dz)
@@ -247,7 +240,7 @@ export default function Enemy({ enemy }: Props) {
       // player's position when the wind-up finishes, not where they are now).
       if (now >= ai.until && statusMultiplier > 0) {
         const tlen = dist || 1
-        const chargeSpeed = SPEED.tanky * TANKY_CHARGE_MULT * tierSpeed
+        const chargeSpeed = SPEED.tanky * TANKY_CHARGE_MULT
         useEnemyStore.getState().setEnemyAi(enemy.id, {
           kind: 'tanky_charge',
           until: now + TANKY_CHARGE_MS,
@@ -331,7 +324,7 @@ export default function Enemy({ enemy }: Props) {
         }
       }
       if (pushX !== 0 || pushZ !== 0) {
-        const pushSpeed = baseSpeed * 0.8
+        const pushSpeed = speed * 0.8
         const pushLen = Math.sqrt(pushX * pushX + pushZ * pushZ)
         useEnemyStore.getState().updateEnemyPosition(enemy.id, {
           x: currentPos.position.x + (pushX / pushLen) * pushSpeed * delta,

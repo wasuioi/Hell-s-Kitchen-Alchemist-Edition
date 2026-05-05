@@ -1,17 +1,9 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
-
-declare global {
-  interface Window {
-    __queueDetonation?: (enemyId: string, chainDepth?: number) => void
-  }
-}
-
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { ARENA_SIZE } from './Arena'
-import { TIER_MODIFIERS } from '../data/waves'
 import Enemy from './Enemy'
 import { spawnDamageNumber } from './DamageNumbers'
 import { getDistance } from '../utils/collision'
@@ -33,6 +25,7 @@ const CHAIN_DETONATION_DELAY_MS = 400 // chain reaction — kept tight so chains
 // Pre-boss surge / lull (issue #69)
 const SURGE_TRIGGER_RATIO = 0.6 // wave 7+ flips into surge once 60% of base wave is spawned
 const SURGE_DURATION_MS = 20_000
+const LULL_DURATION_MS = 3_000
 const SURGE_CLUSTER_SIZE = 3
 const SURGE_CLUSTER_INTERVAL = 3 // seconds between clusters
 const SURGE_CLUSTER_JITTER = 1.0 // world units
@@ -113,14 +106,6 @@ export default function EnemyManager() {
       pendingDetonations.current.clear()
       // Defensive: if a previous run left surge flag on, clear it.
       if (surgeActive) useGameStore.getState().endSurge()
-
-      // Tier modifier: force-spawn extra elites at wave start.
-      const tier = useGameStore.getState().currentTier ?? 'mild'
-      const extraElites = TIER_MODIFIERS[tier].extraEliteCount
-      for (let i = 0; i < extraElites; i++) {
-        useEnemyStore.getState().spawnEnemy('tanky', getSpawnPosition())
-        spawnedCount.current++  // count toward wave target so the wave still ends
-      }
     }
     prevPhase.current = phase
 
@@ -236,9 +221,8 @@ export default function EnemyManager() {
       spawnTimer.current = 0; spawnedCount.current = 0; waveTimer.current = 0
       pendingDetonations.current.clear()
       useEnemyStore.getState().reset()
-      // All waves (1-7) route through Rest Room. The BeginWaveButton handles
-      // the pre-boss lull transition for wave 7.
-      useGameStore.getState().completeWave()
+      if (currentWave >= 7) useGameStore.getState().triggerPreBossLull(LULL_DURATION_MS)
+      else useGameStore.getState().completeWave()
     }
   })
 
