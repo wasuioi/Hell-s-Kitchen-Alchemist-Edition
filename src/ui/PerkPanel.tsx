@@ -3,7 +3,7 @@ import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { drawPerksWithRarity, type PerkDefinition } from '../data/perks'
-import { TIER_MODIFIERS, BOSS_WAVE, PRE_BOSS_LULL_MS } from '../data/waves'
+import { TIER_MODIFIERS } from '../data/waves'
 import PerkCard, { CARD_SCALE, CARD_WIDTH_PX } from './PerkCard'
 
 const CARD_GAP = 24
@@ -25,17 +25,10 @@ export default function PerkPanel() {
   const canReroll = rerollsLeft > 0 && pickedIds.size === 0
 
   function pickHeal() {
-    if (hp >= maxHp) return
+    if (hp >= maxHp || picksRemaining <= 0 || pickedIds.has('heal')) return
     usePlayerStore.getState().heal(30)
     useDeckStore.getState().initHand()
-    // Mirror BeginWaveButton: wave 7+ triggers the pre-boss lull instead of
-    // calling nextWave(), which would skip to a nonexistent wave 8.
-    const isPreBoss = useGameStore.getState().currentWave >= BOSS_WAVE
-    if (isPreBoss) {
-      useGameStore.getState().triggerPreBossLull(PRE_BOSS_LULL_MS)
-    } else {
-      useGameStore.getState().nextWave()
-    }
+    setPickedIds((s) => new Set(s).add('heal'))
   }
 
   function currentTierFor(perkId: string): number {
@@ -68,7 +61,7 @@ export default function PerkPanel() {
         display: 'flex', gap: `${HEAL_PERK_GAP}px`,
         alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center',
       }}>
-        <div style={{ zoom: HEAL_CARD_SCALE }}>
+        <div style={{ zoom: HEAL_CARD_SCALE, opacity: pickedIds.has('heal') ? 0.4 : 1 }}>
           <HealCard hp={hp} maxHp={maxHp} onPick={pickHeal} />
         </div>
 
