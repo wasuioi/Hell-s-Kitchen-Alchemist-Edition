@@ -230,7 +230,10 @@ export default function Enemy({ enemy }: Props) {
     const isSoaked = now < enemy.soakedUntil
     const isSlowed = now < enemy.slowedUntil
     const statusMultiplier = (isFrozen || isStunned) ? 0 : (isSoaked || isSlowed) ? 0.5 : 1
-    const speed = SPEED[enemy.type] * statusMultiplier * timeScale * tierSpeed
+    // baseSpeed = pre-tier movement; tierSpeed scales chase only, not push (separation
+    // physics shouldn't get faster on harder tiers — keeps crowd behavior consistent).
+    const baseSpeed = SPEED[enemy.type] * statusMultiplier * timeScale
+    const speed = baseSpeed * tierSpeed
     const dx = playerPos.x - enemy.position.x
     const dz = playerPos.z - enemy.position.z
     const dist = Math.sqrt(dx * dx + dz * dz)
@@ -328,7 +331,7 @@ export default function Enemy({ enemy }: Props) {
         }
       }
       if (pushX !== 0 || pushZ !== 0) {
-        const pushSpeed = speed * 0.8
+        const pushSpeed = baseSpeed * 0.8
         const pushLen = Math.sqrt(pushX * pushX + pushZ * pushZ)
         useEnemyStore.getState().updateEnemyPosition(enemy.id, {
           x: currentPos.position.x + (pushX / pushLen) * pushSpeed * delta,
