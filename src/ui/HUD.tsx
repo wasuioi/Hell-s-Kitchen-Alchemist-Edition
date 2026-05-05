@@ -3,7 +3,7 @@ import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { MAX_PERK_TIER } from '../data/perks'
-import { getRecipe } from '../data/recipes'
+import { getRecipe, SPELL_LABELS, INGREDIENT_ICONS } from '../data/recipes'
 import type { Ingredient } from '../types'
 import CardHand from './CardHand'
 import CauldronUI from './CauldronUI'
@@ -15,17 +15,6 @@ function hpColor(ratio: number): string {
   if (ratio > 0.5) return '#22c55e'
   if (ratio > 0.2) return '#fcd34d'
   return '#ef4444'
-}
-
-const INGREDIENT_ICON: Record<Ingredient, string> = {
-  CHILI: '/icons/chili.png',
-  BOTTLE: '/icons/bottle.png',
-  SALT: '/icons/salt.png',
-}
-
-const SPELL_LABEL: Record<string, string> = {
-  INFERNO: 'Inferno 🔥', TIDAL_WAVE: 'Tidal Wave 🌊', SALT_SPEED: 'Salt Speed 👟',
-  STEAM: 'Steam 💨', METEOR: 'Meteor ☄️', MUD: 'Mud 🟫',
 }
 
 const RECIPES: Array<[Ingredient, Ingredient]> = [
@@ -104,12 +93,12 @@ export default function HUD() {
         }}>
           {RECIPES.map(([a, b]) => (
             <div key={`${a}+${b}`} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-              <img src={INGREDIENT_ICON[a]} alt={a} width={18} height={18} style={{ objectFit: 'contain' }} />
+              <img src={INGREDIENT_ICONS[a]} alt={a} width={18} height={18} style={{ objectFit: 'contain' }} />
               <span style={{ color: '#6b7280' }}>+</span>
-              <img src={INGREDIENT_ICON[b]} alt={b} width={18} height={18} style={{ objectFit: 'contain' }} />
+              <img src={INGREDIENT_ICONS[b]} alt={b} width={18} height={18} style={{ objectFit: 'contain' }} />
               <span style={{ color: '#6b7280' }}>=</span>
               <span style={{ color: '#fcd34d', fontWeight: 'bold' }}>
-                {SPELL_LABEL[getRecipe(a, b)] ?? getRecipe(a, b)}
+                {SPELL_LABELS[getRecipe(a, b)] ?? getRecipe(a, b)}
               </span>
             </div>
           ))}
