@@ -16,7 +16,6 @@ function hpColor(ratio: number): string {
   return '#ef4444'
 }
 
-
 export default function HUD() {
   const currentWave = useGameStore((s) => s.currentWave)
   const stats = useGameStore((s) => s.stats)

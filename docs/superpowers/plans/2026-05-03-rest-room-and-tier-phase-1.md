@@ -374,9 +374,9 @@ const RECIPES: Array<[Ingredient, Ingredient]> = [
 ]
 
 interface Props {
-  /** Visual variant — `hud` is the small left-panel style; `restRoom` is
+  /** Visual variant — `hud` is the small left-panel style; `rest-room` is
    *  the larger version embedded in the Rest Room hub. */
-  variant: 'hud' | 'restRoom'
+  variant: 'hud' | 'rest-room'
 }
 
 export default function RecipeBookPanel({ variant }: Props) {
@@ -835,7 +835,7 @@ export default function RestRoom() {
         flexWrap: 'wrap', justifyContent: 'center',
       }}>
         <PerkPanel />
-        <RecipeBookPanel variant="restRoom" />
+        <RecipeBookPanel variant="rest-room" />
       </div>
 
       {!isPreBoss && <TierPanel />}
