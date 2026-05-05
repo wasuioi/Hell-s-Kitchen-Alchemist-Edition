@@ -6,7 +6,7 @@ import { castSpell } from './utils/castSpell'
 import { preloadGameAssets } from './utils/preloadAssets'
 import HUD from './ui/HUD'
 import MainMenu from './ui/MainMenu'
-import RewardScreen from './ui/RewardScreen'
+import RestRoom from './ui/RestRoom'
 import DeathScreen from './ui/DeathScreen'
 import VictoryScreen from './ui/VictoryScreen'
 import DevPanel from './ui/DevPanel'
@@ -138,7 +138,7 @@ export default function App() {
       {/* Cauldron + ingredient cards (HUD) and rest-room screen wait for
           sceneReady so they don't appear over a blank world. */}
       {(phase === 'combat' || phase === 'boss' || phase === 'pre-boss-lull') && sceneReady && <HUD />}
-      {phase === 'rest' && sceneReady && <RewardScreen />}
+      {phase === 'rest' && sceneReady && <RestRoom />}
       {phase === 'death' && <DeathScreen />}
       {phase === 'victory' && <VictoryScreen />}
       {import.meta.env.DEV && <DevPanel />}
