@@ -1,6 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { useGameStore } from '../stores/gameStore'
-import { useDeckStore } from '../stores/deckStore'
+import { describe, it, expect } from 'vitest'
 import { drawPerksWithRarity } from '../data/perks'
 
 describe('Reroll behavior', () => {
@@ -20,35 +18,5 @@ describe('Reroll behavior', () => {
     const rerolled = drawPerksWithRarity(3)
     expect(rerolled).toHaveLength(3)
     expect(new Set(rerolled.map(p => p.id)).size).toBe(3)
-  })
-})
-
-describe('Skip reward behavior', () => {
-  beforeEach(() => {
-    useGameStore.getState().reset()
-    useDeckStore.getState().reset()
-  })
-
-  it('skipReward moves to combat phase', () => {
-    useGameStore.getState().startShift()
-    useGameStore.getState().completeWave()
-    expect(useGameStore.getState().phase).toBe('rest')
-    useGameStore.getState().skipReward()
-    expect(useGameStore.getState().phase).toBe('combat')
-  })
-
-  it('skipReward does not add any perk to activePerks', () => {
-    useGameStore.getState().startShift()
-    useGameStore.getState().completeWave()
-    useGameStore.getState().skipReward()
-    expect(useDeckStore.getState().activePerks).toHaveLength(0)
-  })
-
-  it('skipReward advances wave by 1', () => {
-    useGameStore.getState().startShift()
-    const waveBefore = useGameStore.getState().currentWave
-    useGameStore.getState().completeWave()
-    useGameStore.getState().skipReward()
-    expect(useGameStore.getState().currentWave).toBe(waveBefore + 1)
   })
 })

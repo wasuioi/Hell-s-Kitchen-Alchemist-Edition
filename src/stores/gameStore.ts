@@ -15,7 +15,6 @@ interface GameState {
   // Actions
   startShift: () => void; completeWave: () => void; nextWave: () => void
   chooseTier: (tier: WaveTier) => void
-  skipReward: () => void
   startBoss: () => void; triggerVictory: () => void; triggerDeath: () => void
   recordEnemyDefeated: () => void; recordIngredientUsed: () => void
   recordSpellCast: (spell: SpellType) => void; reset: () => void
@@ -51,12 +50,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
   nextWave: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1, currentTier: s.pendingTier ?? 'mild', pendingTier: null })),
   chooseTier: (tier) => set({ pendingTier: tier }),
-  skipReward: () => set((s) => ({
-    phase: 'combat',
-    currentWave: s.currentWave + 1,
-    currentTier: s.pendingTier ?? 'mild',
-    pendingTier: null,
-  })),
   startBoss: () => set({ phase: 'boss' }),
   triggerVictory: () => set((s) => ({ phase: 'victory', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } })),
   triggerDeath: () => set({ phase: 'death', timeScale: 0.2 }),
