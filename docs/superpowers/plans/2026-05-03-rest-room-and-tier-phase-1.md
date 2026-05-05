@@ -39,7 +39,8 @@
 | `src/App.tsx` | modify | render `<RestRoom />` for phase `'rest'`; update preload phase check |
 | `src/__tests__/gameStore.test.ts` | modify | new tier state tests |
 | `src/__tests__/waves.test.ts` | **create** | tier modifier table sanity |
-| `src/__tests__/restRoom.test.ts` | **create** | flow tests (replaces `rewardScreen.test.ts`) |
+| `src/__tests__/perkPanel.test.ts` | rename | renamed from `rewardScreen.test.ts`; reroll/store flow tests |
+| `src/__tests__/perkPanelRender.test.tsx` | **create** | tier-aware perk count rendering tests (Task 13) |
 
 ---
 
@@ -1206,3 +1207,15 @@ git commit -m "chore(rest): final lint pass for Phase 1 Rest Room + Tier system"
 - [x] No placeholders — every code step shows actual code or exact commands.
 - [x] Type consistency — `WaveTier`, `TIER_MODIFIERS.speedMultiplier`, `currentTier`, `pendingTier`, `chooseTier` are referenced consistently across tasks.
 - [x] No duplicated future-phase work — branches, tokens, and variants are explicitly out of scope.
+
+---
+
+## Implementation epilogue (changes from the plan as written)
+
+These shifts happened during implementation review — the plan above captures the original intent; this note captures what actually shipped. Phase 2 should treat the SHIPPED version as the source of truth.
+
+- **Variant prop casing.** `RecipeBookPanel.variant` shipped as `'hud' | 'rest-room'` (kebab) instead of `'restRoom'` (camel) to match the project's other string-union convention (`GamePhase = '... | pre-boss-lull | ...'`).
+- **Heal counts as a pick** (Task 14 cleanup). The plan described heal as "auto-advance after heal" (Task 5). After Task 8 review surfaced the heal-bypasses-pendingTier and heal-on-wave-7-skips-boss bugs, the cleanest fix was to make heal consume one of the player's `picksRemaining` budget instead of triggering its own wave advance. BeginWaveButton remains the single gate from `'rest'` to `'combat'`. Hellfire players (2 picks) can now combine heal + 1 perk; Mild/Spicy (1 pick) get heal *or* a perk as before.
+- **`skipReward` removed.** With BeginWaveButton owning all rest→combat transitions, the old store action became dead code and was deleted with its tests.
+- **`isPreBoss(currentWave)` helper** (post-merge cleanup). The `currentWave >= BOSS_WAVE` boundary check was duplicated in RestRoom and BeginWaveButton; centralized into `data/waves.ts` so Phase 2 boss-tier work only flips one site.
+- **`reroll` gate loosened.** The plan allowed reroll only before any pick (`pickedIds.size === 0`). Shipped logic is `picksRemaining > 0` so Hellfire players can reroll between their two picks.
