@@ -4,6 +4,7 @@ import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { ARENA_SIZE } from './Arena'
+import { TIER_MODIFIERS } from '../data/waves'
 import Enemy from './Enemy'
 import { spawnDamageNumber } from './DamageNumbers'
 import { getDistance } from '../utils/collision'
@@ -105,6 +106,14 @@ export default function EnemyManager() {
       pendingDetonations.current.clear()
       // Defensive: if a previous run left surge flag on, clear it.
       if (surgeActive) useGameStore.getState().endSurge()
+
+      // Tier modifier: force-spawn extra elites at wave start.
+      const tier = useGameStore.getState().currentTier ?? 'mild'
+      const extraElites = TIER_MODIFIERS[tier].extraEliteCount
+      for (let i = 0; i < extraElites; i++) {
+        useEnemyStore.getState().spawnEnemy('tanky', getSpawnPosition())
+        spawnedCount.current++  // count toward wave target so the wave still ends
+      }
     }
     prevPhase.current = phase
 
