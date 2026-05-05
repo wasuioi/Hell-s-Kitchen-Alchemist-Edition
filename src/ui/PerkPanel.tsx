@@ -22,11 +22,16 @@ export default function PerkPanel() {
   const [pickedIds, setPickedIds] = useState<Set<string>>(new Set())
   const [rerollsLeft, setRerollsLeft] = useState(1)
   const picksRemaining = mods.perkPickCount - pickedIds.size
+  const canReroll = rerollsLeft > 0 && pickedIds.size === 0
 
   function pickHeal() {
     if (hp >= maxHp) return
     usePlayerStore.getState().heal(30)
     useDeckStore.getState().initHand()
+    // TODO(Task 8): heal currently auto-advances via nextWave(), which means
+    // pendingTier is silently dropped if the player heals without picking a
+    // tier in TierPanel first. Resolve when heal moves under BeginWaveButton's
+    // tier-required gate.
     useGameStore.getState().nextWave()
   }
 
@@ -82,13 +87,13 @@ export default function PerkPanel() {
 
       <button
         onClick={handleReroll}
-        disabled={rerollsLeft === 0 || pickedIds.size > 0}
+        disabled={!canReroll}
         style={{
           padding: '8px 16px', borderRadius: '8px', fontSize: '13px',
-          cursor: rerollsLeft > 0 && pickedIds.size === 0 ? 'pointer' : 'not-allowed',
-          background: rerollsLeft > 0 ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)',
-          border: `2px solid ${rerollsLeft > 0 ? '#6366f1' : 'rgba(255,255,255,0.1)'}`,
-          color: rerollsLeft > 0 ? '#a5b4fc' : 'rgba(255,255,255,0.3)',
+          cursor: canReroll ? 'pointer' : 'not-allowed',
+          background: canReroll ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.05)',
+          border: `2px solid ${canReroll ? '#6366f1' : 'rgba(255,255,255,0.1)'}`,
+          color: canReroll ? '#a5b4fc' : 'rgba(255,255,255,0.3)',
         }}
       >
         {rerollsLeft > 0 ? 'Reroll (1)' : 'Reroll (0 — used)'}
