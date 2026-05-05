@@ -1,20 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useDeckStore } from '../stores/deckStore'
 import { useGameStore } from '../stores/gameStore'
-import { getRecipe } from '../data/recipes'
+import { getRecipe, SPELL_LABELS, INGREDIENT_ICONS } from '../data/recipes'
 import { castSpell } from '../utils/castSpell'
-import type { Ingredient } from '../types'
-
-const ICON: Record<Ingredient, string> = {
-  CHILI: '/icons/chili.png',
-  BOTTLE: '/icons/bottle.png',
-  SALT: '/icons/salt.png',
-}
-
-const SPELL_LABELS: Record<string, string> = {
-  INFERNO: 'Inferno 🔥', TIDAL_WAVE: 'Tidal Wave 🌊', SALT_SPEED: 'Salt Speed 👟',
-  STEAM: 'Steam 💨', METEOR: 'Meteor ☄️', MUD: 'Mud 🟫',
-}
 
 export default function CauldronUI() {
   const cauldron = useDeckStore((s) => s.cauldron)
@@ -69,11 +57,11 @@ export default function CauldronUI() {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <div style={slotStyle(slotA !== null)}>
-          {slotA ? <img src={ICON[slotA.ingredient]} alt={slotA.ingredient} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'A'}
+          {slotA ? <img src={INGREDIENT_ICONS[slotA.ingredient]} alt={slotA.ingredient} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'A'}
         </div>
         <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '20px' }}>+</span>
         <div style={slotStyle(slotB !== null)}>
-          {slotB ? <img src={ICON[slotB.ingredient]} alt={slotB.ingredient} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'B'}
+          {slotB ? <img src={INGREDIENT_ICONS[slotB.ingredient]} alt={slotB.ingredient} width={42} height={42} style={{ objectFit: 'contain' }} /> : 'B'}
         </div>
       </div>
 
