@@ -115,7 +115,7 @@ export default function EnemyManager() {
 
     // Register global detonation callback so Spell.tsx and Enemy.tsx can queue detonations.
     // Re-register every frame so HMR / remounts always point to the live pendingDetonations Map.
-    ;(window as any).__queueDetonation = (enemyId: string, chainDepth = 0) => {
+    window.__queueDetonation = (enemyId: string, chainDepth = 0) => {
       const delay = chainDepth === 0 ? INITIAL_DETONATION_DELAY_MS : CHAIN_DETONATION_DELAY_MS
       pendingDetonations.current.set(enemyId, { time: performance.now() + delay, chainDepth })
     }
