@@ -1,7 +1,14 @@
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
+import type { WaveTier } from '../types'
 
 const LULL_DURATION_MS = 3000  // matches EnemyManager.LULL_DURATION_MS
+
+const TIER_LABEL: Record<WaveTier, string> = {
+  mild: 'Mild',
+  spicy: 'Spicy',
+  hellfire: 'Hellfire',
+}
 
 export default function BeginWaveButton() {
   const currentWave = useGameStore((s) => s.currentWave)
@@ -12,7 +19,7 @@ export default function BeginWaveButton() {
   const label = isPreBoss
     ? '▶ Begin Boss Fight'
     : pendingTier
-      ? `▶ Begin Wave ${currentWave + 1} (${pendingTier})`
+      ? `▶ Begin Wave ${currentWave + 1} (${TIER_LABEL[pendingTier]})`
       : '▶ Begin Wave — choose a tier first'
 
   function onClick() {
