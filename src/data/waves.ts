@@ -6,6 +6,13 @@ export const BOSS_WAVE = 7
 /** How long the arena stays empty between the last wave and the boss spawn. */
 export const PRE_BOSS_LULL_MS = 3000
 
+/** True when the player has just cleared the last regular wave (next "wave" is the boss).
+ *  Multiple Rest Room components hide tier choice and re-label "Begin Wave" → "Begin Boss"
+ *  on this condition; centralizing avoids drift if BOSS_WAVE ever changes. */
+export function isPreBoss(currentWave: number): boolean {
+  return currentWave >= BOSS_WAVE
+}
+
 export interface TierModifier {
   /** Multiply enemy movement speed by this value. 1 = no change. */
   speedMultiplier: number

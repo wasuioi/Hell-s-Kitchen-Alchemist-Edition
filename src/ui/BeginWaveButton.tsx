@@ -1,7 +1,7 @@
 import { useGameStore } from '../stores/gameStore'
 import { useDeckStore } from '../stores/deckStore'
 import type { WaveTier } from '../types'
-import { BOSS_WAVE, PRE_BOSS_LULL_MS } from '../data/waves'
+import { isPreBoss, PRE_BOSS_LULL_MS } from '../data/waves'
 
 const TIER_LABEL: Record<WaveTier, string> = {
   mild: 'Mild',
@@ -12,10 +12,10 @@ const TIER_LABEL: Record<WaveTier, string> = {
 export default function BeginWaveButton() {
   const currentWave = useGameStore((s) => s.currentWave)
   const pendingTier = useGameStore((s) => s.pendingTier)
-  const isPreBoss = currentWave >= BOSS_WAVE
+  const preBoss = isPreBoss(currentWave)
 
-  const enabled = isPreBoss || pendingTier !== null
-  const label = isPreBoss
+  const enabled = preBoss || pendingTier !== null
+  const label = preBoss
     ? '▶ Begin Boss Fight'
     : pendingTier
       ? `▶ Begin Wave ${currentWave + 1} (${TIER_LABEL[pendingTier]})`
@@ -24,7 +24,7 @@ export default function BeginWaveButton() {
   function onClick() {
     if (!enabled) return
     useDeckStore.getState().initHand()
-    if (isPreBoss) {
+    if (preBoss) {
       useGameStore.getState().triggerPreBossLull(PRE_BOSS_LULL_MS)
     } else {
       useGameStore.getState().nextWave()
