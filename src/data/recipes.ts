@@ -23,5 +23,20 @@ export const SPELL_CONFIG: Record<SpellType, { damage: number; radius: number; d
   MUD:        { damage: 0,  radius: 4,   duration: 5   },
 }
 
+export const SPELL_LABELS: Record<SpellType, string> = {
+  INFERNO: 'Inferno 🔥',
+  TIDAL_WAVE: 'Tidal Wave 🌊',
+  SALT_SPEED: 'Salt Speed 👟',
+  STEAM: 'Steam 💨',
+  METEOR: 'Meteor ☄️',
+  MUD: 'Mud 🟫',
+}
+
+export const INGREDIENT_ICONS: Record<Ingredient, string> = {
+  CHILI: '/icons/chili.png',
+  BOTTLE: '/icons/bottle.png',
+  SALT: '/icons/salt.png',
+}
+
 export const SPEED_BUFF_DURATION_MS = 3000
 export const SPEED_BUFF_MULTIPLIER = 1.2

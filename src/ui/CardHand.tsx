@@ -1,12 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useDeckStore } from '../stores/deckStore'
+import { INGREDIENT_ICONS } from '../data/recipes'
 import type { Ingredient } from '../types'
 
-const ICON: Record<Ingredient, string> = {
-  CHILI: '/icons/chili.png',
-  BOTTLE: '/icons/bottle.png',
-  SALT: '/icons/salt.png',
-}
 const LABEL: Record<Ingredient, string> = { CHILI: 'Chili', BOTTLE: 'Bottle', SALT: 'Salt' }
 const GRADIENT: Record<Ingredient, string> = {
   CHILI: 'linear-gradient(135deg, #7f1d1d, #ef4444)',
@@ -88,7 +84,7 @@ export default function CardHand() {
               if (!selected) (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(0)'
             }}
           >
-            <img src={ICON[ingredient]} alt={LABEL[ingredient]} width={48} height={48} style={{ objectFit: 'contain' }} />
+            <img src={INGREDIENT_ICONS[ingredient]} alt={LABEL[ingredient]} width={48} height={48} style={{ objectFit: 'contain' }} />
             <span style={{ fontSize: '11px', fontWeight: 'bold' }}>{LABEL[ingredient]}</span>
             <span style={{ fontSize: '11px', opacity: 0.7 }}>[{i + 1}/{['J','K','L'][i]}]</span>
             {consuming && (
