@@ -24,6 +24,7 @@ export default function PerkPanel() {
   const [rerollsLeft, setRerollsLeft] = useState(1)
   const picksRemaining = mods.perkPickCount - pickedIds.size
   const canReroll = rerollsLeft > 0 && picksRemaining > 0
+  const noPicksLeft = picksRemaining <= 0
 
   // Reset offer + pick budget on every Rest Room visit. Defensive: today the
   // RestRoom remounts on each phase change so this would re-init anyway, but
@@ -74,7 +75,7 @@ export default function PerkPanel() {
         display: 'flex', gap: `${HEAL_PERK_GAP}px`,
         alignItems: 'center', flexWrap: 'wrap', justifyContent: 'center',
       }}>
-        <div style={{ zoom: HEAL_CARD_SCALE, opacity: pickedIds.has('heal') ? 0.4 : 1 }}>
+        <div style={{ zoom: HEAL_CARD_SCALE, opacity: pickedIds.has('heal') || noPicksLeft ? 0.4 : 1 }}>
           <HealCard hp={hp} maxHp={maxHp} onPick={pickHeal} />
         </div>
 
@@ -82,7 +83,7 @@ export default function PerkPanel() {
           {perks.map((perk) => {
             const isPicked = pickedIds.has(perk.id)
             return (
-              <div key={perk.id} style={{ zoom: PERK_CARD_SCALE, opacity: isPicked ? 0.4 : 1 }}>
+              <div key={perk.id} style={{ zoom: PERK_CARD_SCALE, opacity: isPicked || noPicksLeft ? 0.4 : 1 }}>
                 <PerkCard
                   perk={perk}
                   currentTier={currentTierFor(perk.id) + (isPicked ? 1 : 0)}
