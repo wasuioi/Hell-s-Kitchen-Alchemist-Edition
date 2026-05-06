@@ -36,8 +36,8 @@ export default function DamageNumbers() {
 
   // Set up global callback
   useFrame(() => {
-    if (!(window as any).__spawnDamageNumber) {
-      (window as any).__spawnDamageNumber = addNumber
+    if (!window.__spawnDamageNumber) {
+      window.__spawnDamageNumber = addNumber
     }
   })
 
