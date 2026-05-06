@@ -1,9 +1,10 @@
 import { create } from 'zustand'
-import type { GamePhase, GameStats, SpellType } from '../types'
+import type { GamePhase, GameStats, SpellType, WaveTier } from '../types'
 import { usePickupStore } from './pickupStore'
 
 interface GameState {
   phase: GamePhase; currentWave: number; timeScale: number; stats: GameStats
+  currentTier: WaveTier | null; pendingTier: WaveTier | null
   // Juice state
   shakeIntensity: number; shakeEndTime: number
   freezeUntil: number
@@ -13,7 +14,7 @@ interface GameState {
   lullEndTime: number
   // Actions
   startShift: () => void; completeWave: () => void; nextWave: () => void
-  skipReward: () => void
+  chooseTier: (tier: WaveTier) => void
   startBoss: () => void; triggerVictory: () => void; triggerDeath: () => void
   recordEnemyDefeated: () => void; recordIngredientUsed: () => void
   recordSpellCast: (spell: SpellType) => void; reset: () => void
@@ -33,6 +34,7 @@ const initialStats: GameStats = { enemiesDefeated: 0, ingredientsUsed: 0, wavesC
 export const useGameStore = create<GameState>((set, get) => ({
   phase: 'menu', currentWave: 0, timeScale: 1,
   stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> },
+  currentTier: null, pendingTier: null,
   // Juice defaults
   shakeIntensity: 0, shakeEndTime: 0,
   freezeUntil: 0,
@@ -41,13 +43,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   surgeActive: false, surgeEndTime: 0,
   lullEndTime: 0,
   // Game flow
-  startShift: () => set({ phase: 'combat', currentWave: 1, timeScale: 1, stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> } }),
+  startShift: () => set({ phase: 'combat', currentWave: 1, timeScale: 1, currentTier: 'mild', pendingTier: null, stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> } }),
   completeWave: () => {
     usePickupStore.getState().reset()
-    set((s) => ({ phase: 'reward', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } }))
+    set((s) => ({ phase: 'rest', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } }))
   },
-  nextWave: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })),
-  skipReward: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1 })),
+  nextWave: () => set((s) => ({ phase: 'combat', currentWave: s.currentWave + 1, currentTier: s.pendingTier ?? 'mild', pendingTier: null })),
+  chooseTier: (tier) => set({ pendingTier: tier }),
   startBoss: () => set({ phase: 'boss' }),
   triggerVictory: () => set((s) => ({ phase: 'victory', stats: { ...s.stats, wavesCleared: s.stats.wavesCleared + 1 } })),
   triggerDeath: () => set({ phase: 'death', timeScale: 0.2 }),
@@ -59,6 +61,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       phase: 'menu', currentWave: 0, timeScale: 1,
       stats: { ...initialStats, spellsCast: {} as Record<SpellType, number> },
+      currentTier: null, pendingTier: null,
       shakeIntensity: 0, shakeEndTime: 0, freezeUntil: 0, screenFlashUntil: 0,
       surgeActive: false, surgeEndTime: 0, lullEndTime: 0,
     })

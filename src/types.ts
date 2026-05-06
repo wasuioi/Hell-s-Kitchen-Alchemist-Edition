@@ -4,7 +4,9 @@ export type SpellType = 'INFERNO' | 'TIDAL_WAVE' | 'SALT_SPEED' | 'STEAM' | 'MET
 
 export type EnemyType = 'slow' | 'fast' | 'tanky' | 'boss' | 'exploder'
 
-export type GamePhase = 'menu' | 'combat' | 'reward' | 'pre-boss-lull' | 'boss' | 'death' | 'victory'
+export type WaveTier = 'mild' | 'spicy' | 'hellfire'
+
+export type GamePhase = 'menu' | 'combat' | 'rest' | 'pre-boss-lull' | 'boss' | 'death' | 'victory'
 
 export type StatusEffect = 'normal' | 'soaked' | 'stunned'
 

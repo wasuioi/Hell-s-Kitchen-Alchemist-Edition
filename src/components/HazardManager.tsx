@@ -5,6 +5,7 @@ import { useHazardStore } from '../stores/hazardStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { HAZARD_DEFS, HAZARD_POOL, type HazardDef } from '../data/hazards'
+import { TIER_MODIFIERS } from '../data/waves'
 import { ARENA_SIZE } from './Arena'
 import type { Hazard, HazardType, Position } from '../types'
 import HazardComponent from './Hazard'
@@ -92,10 +93,14 @@ export default function HazardManager() {
     const isHazardPhase = phase === 'combat' || phase === 'boss'
     const wasHazardPhase = prevPhase.current === 'combat' || prevPhase.current === 'boss'
 
+    const tier = useGameStore.getState().currentTier ?? 'mild'
+    const tierMult = TIER_MODIFIERS[tier].hazardIntervalMultiplier
+    const intervalSec = getHazardIntervalSec(phase, currentWave) * tierMult
+
     // Just entered a hazard phase from anywhere else (menu, reward, lull).
     // Reset hazards + restart the clock at the current tier's interval.
     if (isHazardPhase && !wasHazardPhase) {
-      nextHazardAt.current = nowMs + getHazardIntervalSec(phase, currentWave) * 1000
+      nextHazardAt.current = nowMs + intervalSec * 1000
       useHazardStore.getState().reset()
     }
     // Just exited (reward / lull / death / victory). Clear so they don't
@@ -116,7 +121,7 @@ export default function HazardManager() {
       const type = HAZARD_POOL[Math.floor(Math.random() * HAZARD_POOL.length)]
       const { position, rotation } = rollHazardPlacement(type)
       useHazardStore.getState().spawnHazard(type, position, rotation)
-      nextHazardAt.current = nowMs + getHazardIntervalSec(phase, currentWave) * 1000
+      nextHazardAt.current = nowMs + intervalSec * 1000
     }
 
     // Lifecycle + collision. Iterate from a snapshot so removeHazard mid-loop is safe.
