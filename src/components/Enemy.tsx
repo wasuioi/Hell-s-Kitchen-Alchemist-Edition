@@ -126,7 +126,7 @@ export default function Enemy({ enemy }: Props) {
         if (updated.type === 'exploder') {
           useEnemyStore.getState().setEnemyDetonating(enemy.id)
           // chainDepth=1 → short delay, exploder bun in place (no sprint).
-          ; (window as any).__queueDetonation?.(enemy.id, 1)
+          window.__queueDetonation?.(enemy.id, 1)
         } else {
           useEnemyStore.getState().setEnemyDying(enemy.id)
           useGameStore.getState().recordEnemyDefeated()
@@ -348,7 +348,7 @@ export default function Enemy({ enemy }: Props) {
     // Exploder: self-detonate when close to player
     if (enemy.type === 'exploder' && dist < EXPLODER_TRIGGER_RANGE && !enemy.detonating && !enemy.dying) {
       useEnemyStore.getState().setEnemyDetonating(enemy.id)
-        ; (window as any).__queueDetonation?.(enemy.id)
+      window.__queueDetonation?.(enemy.id)
       return
     }
 
