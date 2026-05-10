@@ -72,8 +72,8 @@ function applySaltSpeedBuff() {
 
 export function castSpell(spellType: SpellType) {
   const spell = buildSpell(spellType)
-  ;(window as any).__castSpell?.(spell)
-  ;(window as any).__playerAttack?.()
+  window.__castSpell?.(spell)
+  window.__playerAttack?.()
 
   // Salt Speed: grant the player a speed buff (stacks duration if cast again)
   if (spellType === 'SALT_SPEED') applySaltSpeedBuff()
@@ -83,7 +83,7 @@ export function castSpell(spellType: SpellType) {
   if (doubleBatchStacks > 0 && Math.random() < 0.1 * doubleBatchStacks) {
     setTimeout(() => {
       const bonusSpell = buildSpell(spellType)
-      ;(window as any).__castSpell?.(bonusSpell)
+      window.__castSpell?.(bonusSpell)
       if (spellType === 'SALT_SPEED') applySaltSpeedBuff()
     }, 200)
   }
