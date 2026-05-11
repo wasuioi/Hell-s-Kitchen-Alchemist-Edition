@@ -5,13 +5,15 @@
 // In a unit-test environment the global is undefined and these calls become
 // safe no-ops.
 
-import type { DamageNumber } from '../types'
+import type { DamageNumber, SpellEffect } from '../types'
 
 declare global {
   interface Window {
     __spawnExplosion?: (arg: { x: number; z: number; chainDepth?: number }) => void
     __spawnSpriteVfx?: (arg: { x: number; z: number; spriteSlug: string; size?: number }) => void
     __spawnDamageNumber?: (dmg: DamageNumber) => void
+    __castSpell?: (spell: SpellEffect) => void
+    __playerAttack?: () => void
   }
 }
 
