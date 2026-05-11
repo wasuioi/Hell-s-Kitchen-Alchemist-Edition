@@ -236,10 +236,10 @@ export default function SpellManager() {
   const [spells, setSpells] = useState<SpellEffect[]>([])
 
   useEffect(() => {
-    ; (window as any).__castSpell = (spell: SpellEffect) => {
+    window.__castSpell = (spell: SpellEffect) => {
       setSpells((prev) => [...prev, spell])
     }
-    return () => { delete (window as any).__castSpell }
+    return () => { delete window.__castSpell }
   }, [])
 
   function handleExpired(id: string) {

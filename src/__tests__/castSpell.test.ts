@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import type { SpellEffect } from '../types'
 import { usePlayerStore } from '../stores/playerStore'
 import { useDeckStore } from '../stores/deckStore'
 import { SPELL_CONFIG } from '../data/recipes'
@@ -8,10 +9,21 @@ const INFERNO_BASE = SPELL_CONFIG.INFERNO.damage
 // Mock the window globals castSpell calls so the test doesn't crash. Vitest
 // runs in jsdom (vitest.config.ts), so `window` already exists — we only
 // need to attach the dynamic globals that the 3D scene normally provides.
+type CastSpellFn = (spell: SpellEffect) => void
+type PlayerAttackFn = () => void
+type SpawnSpriteVfxFn = (arg: { x: number; z: number; spriteSlug: string; size?: number }) => void
+
+let castSpellMock: ReturnType<typeof vi.fn<CastSpellFn>>
+let playerAttackMock: ReturnType<typeof vi.fn<PlayerAttackFn>>
+let spawnSpriteVfxMock: ReturnType<typeof vi.fn<SpawnSpriteVfxFn>>
+
 beforeEach(() => {
-  ;(window as any).__castSpell = vi.fn()
-  ;(window as any).__playerAttack = vi.fn()
-  ;(window as any).__spawnSpriteVfx = vi.fn()
+  castSpellMock = vi.fn<CastSpellFn>()
+  playerAttackMock = vi.fn<PlayerAttackFn>()
+  spawnSpriteVfxMock = vi.fn<SpawnSpriteVfxFn>()
+  window.__castSpell = castSpellMock
+  window.__playerAttack = playerAttackMock
+  window.__spawnSpriteVfx = spawnSpriteVfxMock
   usePlayerStore.getState().reset()
   useDeckStore.getState().reset()
 })
@@ -30,7 +42,7 @@ describe('castSpell + boiling_point', () => {
     const { castSpell } = await import('../utils/castSpell')
     addBoilingPoint(1)
     castSpell('INFERNO')
-    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    const spell = castSpellMock.mock.calls.at(-1)![0]
     expect(spell.damage).toBe(INFERNO_BASE)
   })
 
@@ -39,7 +51,7 @@ describe('castSpell + boiling_point', () => {
     addBoilingPoint(1)
     for (let i = 0; i < 5; i++) usePlayerStore.getState().addHeat(5) // 5 heat
     castSpell('INFERNO')
-    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    const spell = castSpellMock.mock.calls.at(-1)![0]
     // base × (1 + 0.10 × 5) = base × 1.5
     expect(spell.damage).toBeCloseTo(INFERNO_BASE * 1.5, 5)
   })
@@ -49,7 +61,7 @@ describe('castSpell + boiling_point', () => {
     addBoilingPoint(3)
     for (let i = 0; i < 7; i++) usePlayerStore.getState().addHeat(7) // 7 heat
     castSpell('INFERNO')
-    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    const spell = castSpellMock.mock.calls.at(-1)![0]
     // base × (1 + 0.15 × 7) = base × 2.05
     expect(spell.damage).toBeCloseTo(INFERNO_BASE * 2.05, 5)
   })
@@ -59,7 +71,7 @@ describe('castSpell + boiling_point', () => {
     addBoilingPoint(4) // 1 stack of overflow
     for (let i = 0; i < 7; i++) usePlayerStore.getState().addHeat(7)
     castSpell('INFERNO')
-    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    const spell = castSpellMock.mock.calls.at(-1)![0]
     // perStack = 0.15 + 0.05 × 1 = 0.20
     // perStack = 0.15 + 0.05 × 1 = 0.20 → base × (1 + 0.20 × 7) = base × 2.40
     expect(spell.damage).toBeCloseTo(INFERNO_BASE * 2.40, 5)
@@ -108,8 +120,8 @@ describe('castSpell + boiling_point VFX', () => {
     addBoilingPoint(1)
     for (let i = 0; i < 5; i++) usePlayerStore.getState().addHeat(5) // 5 heat — at threshold
     castSpell('INFERNO')
-    const calls = (window as any).__spawnSpriteVfx.mock.calls
-    const slugs = calls.map((c: any[]) => c[0].spriteSlug)
+    const calls = spawnSpriteVfxMock.mock.calls
+    const slugs = calls.map((c) => c[0].spriteSlug)
     expect(slugs).toContain('boiling_point_consume')
     expect(slugs).toContain('boiling_point_spell')
   })
@@ -118,8 +130,8 @@ describe('castSpell + boiling_point VFX', () => {
     const { castSpell } = await import('../utils/castSpell')
     addBoilingPoint(1)
     castSpell('INFERNO')
-    const calls = (window as any).__spawnSpriteVfx.mock.calls
-    const slugs = calls.map((c: any[]) => c[0].spriteSlug)
+    const calls = spawnSpriteVfxMock.mock.calls
+    const slugs = calls.map((c) => c[0].spriteSlug)
     expect(slugs).not.toContain('boiling_point_consume')
   })
 
@@ -128,8 +140,8 @@ describe('castSpell + boiling_point VFX', () => {
     addBoilingPoint(1)
     usePlayerStore.getState().addHeat(5)
     castSpell('TIDAL_WAVE')
-    const calls = (window as any).__spawnSpriteVfx.mock.calls
-    const slugs = calls.map((c: any[]) => c[0].spriteSlug)
+    const calls = spawnSpriteVfxMock.mock.calls
+    const slugs = calls.map((c) => c[0].spriteSlug)
     expect(slugs).not.toContain('boiling_point_consume')
   })
 
@@ -141,8 +153,8 @@ describe('castSpell + boiling_point VFX', () => {
     usePlayerStore.getState().addHeat(5)
     usePlayerStore.getState().addHeat(5) // 4 heat — below threshold
     castSpell('INFERNO')
-    const calls = (window as any).__spawnSpriteVfx.mock.calls
-    const slugs = calls.map((c: any[]) => c[0].spriteSlug)
+    const calls = spawnSpriteVfxMock.mock.calls
+    const slugs = calls.map((c) => c[0].spriteSlug)
     expect(slugs).not.toContain('boiling_point_consume')
     expect(slugs).not.toContain('boiling_point_spell')
   })
@@ -153,7 +165,7 @@ describe('castSpell + boiling_point VFX', () => {
     usePlayerStore.getState().addHeat(5)
     usePlayerStore.getState().addHeat(5) // 2 heat
     castSpell('INFERNO')
-    const spell = (window as any).__castSpell.mock.calls.at(-1)[0]
+    const spell = castSpellMock.mock.calls.at(-1)![0]
     // base × (1 + 0.10 × 2) = base × 1.2 — multiplier still works
     expect(spell.damage).toBeCloseTo(INFERNO_BASE * 1.2, 5)
     expect(usePlayerStore.getState().heatStacks).toBe(0) // Heat still consumes

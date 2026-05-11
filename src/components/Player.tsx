@@ -80,8 +80,8 @@ export default function Player() {
 
   useFrame((_, delta) => {
     // Register global callbacks
-    if (!(window as any).__playerAttack) {
-      ; (window as any).__playerAttack = () => {
+    if (!window.__playerAttack) {
+      window.__playerAttack = () => {
         isAttacking.current = true
         attackEndTime.current = performance.now() + 600
       }
