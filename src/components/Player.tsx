@@ -12,9 +12,15 @@ const PLAYER_SPEED = 6
 const PLAYER_RADIUS = 0.5
 const BOUNDARY = ARENA_SIZE / 2 - PLAYER_RADIUS - 0.5
 
+declare global {
+  interface Window {
+    __playerKeys?: Record<string, boolean>
+  }
+}
+
 const keys: Record<string, boolean> = {}
 if (typeof window !== 'undefined') {
-  ; (window as any).__playerKeys = keys
+  window.__playerKeys = keys
   window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true })
   window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false })
 }
