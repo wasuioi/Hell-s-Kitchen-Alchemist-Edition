@@ -547,7 +547,7 @@ export default function ExplosionEffects() {
 
   useFrame(() => {
     if (!window.__spawnExplosion) {
-      window.__spawnExplosion = (arg: any) => addExplosion(arg)
+      window.__spawnExplosion = ({ x, z, chainDepth = 0 }) => addExplosion({ x, z, chainDepth })
     }
     const now = performance.now()
     const before = explosionsRef.current.length
