@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import type { SpellEffect } from '../types'
-import { usePlayerStore } from '../stores/playerStore'
-import { useDeckStore } from '../stores/deckStore'
-import { SPELL_CONFIG } from '../data/recipes'
+import type { SpellEffect } from '@/types'
+import { usePlayerStore } from '@/stores/playerStore'
+import { useDeckStore } from '@/stores/deckStore'
+import { SPELL_CONFIG } from '@/data/recipes'
 
 const INFERNO_BASE = SPELL_CONFIG.INFERNO.damage
 

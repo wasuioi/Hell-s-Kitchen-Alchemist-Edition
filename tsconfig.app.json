@@ -8,6 +8,13 @@
     "types": ["vite/client", "vitest/globals"],
     "skipLibCheck": true,
 
+    /* Path aliases — `@/` maps to `src/` so files can import as
+       `@/stores/gameStore` instead of `../../stores/gameStore`. */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
