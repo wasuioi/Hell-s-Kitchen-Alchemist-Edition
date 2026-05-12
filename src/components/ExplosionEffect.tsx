@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useVfxStore } from '../stores/vfxStore'
 import { useGameStore } from '../stores/gameStore'
-import { spawnGroundCrack } from './GroundCracks'
+import { spawnGroundCrack } from '../utils/spawnVfx'
 
 // ── Types ──
 
