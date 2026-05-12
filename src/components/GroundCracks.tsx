@@ -55,16 +55,6 @@ function createCrackTexture(): THREE.CanvasTexture {
 // Pre-generate 3 variations
 const crackTextures = [createCrackTexture(), createCrackTexture(), createCrackTexture()]
 
-declare global {
-  interface Window {
-    __spawnGroundCrack?: (pos: { x: number; z: number }) => void
-  }
-}
-
-export function spawnGroundCrack(x: number, z: number) {
-  window.__spawnGroundCrack?.({ x, z })
-}
-
 export default function GroundCracks() {
   const [cracks, setCracks] = useState<Crack[]>([])
   const cracksRef = useRef<Crack[]>([])

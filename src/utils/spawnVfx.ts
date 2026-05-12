@@ -12,6 +12,7 @@ declare global {
     __spawnExplosion?: (arg: { x: number; z: number; chainDepth?: number }) => void
     __spawnSpriteVfx?: (arg: { x: number; z: number; spriteSlug: string; size?: number }) => void
     __spawnDamageNumber?: (dmg: DamageNumber) => void
+    __spawnGroundCrack?: (pos: { x: number; z: number }) => void
     __castSpell?: (spell: SpellEffect) => void
     __playerAttack?: () => void
   }
@@ -49,4 +50,9 @@ export function spawnDamageNumberVfx(x: number, z: number, amount: number, color
     color,
     createdAt: performance.now(),
   })
+}
+
+export function spawnGroundCrack(x: number, z: number): void {
+  if (typeof window === 'undefined') return
+  window.__spawnGroundCrack?.({ x, z })
 }

@@ -9,7 +9,7 @@ import { getDistance } from '../utils/collision'
 import { PARTICLE_CONFIG } from '../data/particleConfig'
 import ParticleSystem from './ParticleSystem'
 import { spawnDamageNumber } from './DamageNumbers'
-import { spawnGroundCrack } from './GroundCracks'
+import { spawnGroundCrack } from '../utils/spawnVfx'
 
 declare global {
   interface Window {
