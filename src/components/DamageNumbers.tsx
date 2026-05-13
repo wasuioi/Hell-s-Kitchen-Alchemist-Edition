@@ -13,12 +13,6 @@ const MAX_NUMBERS = 10
 const LIFETIME = 0.8
 const RISE_SPEED = 2
 
-let nextDmgId = 0
-
-export function spawnDamageNumber(x: number, z: number, amount: number, color: string, y: number = 1.5) {
-  window.__spawnDamageNumber?.({ id: `dmg_${nextDmgId++}`, position: { x, y, z }, amount, color, createdAt: performance.now() })
-}
-
 interface DmgEntry extends DamageNumber {
   age: number
 }
