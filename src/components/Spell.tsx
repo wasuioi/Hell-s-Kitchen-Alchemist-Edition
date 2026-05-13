@@ -8,7 +8,7 @@ import { useDeckStore } from '../stores/deckStore'
 import { getDistance } from '../utils/collision'
 import { PARTICLE_CONFIG } from '../data/particleConfig'
 import ParticleSystem from './ParticleSystem'
-import { spawnDamageNumber } from './DamageNumbers'
+import { spawnDamageNumberVfx } from '../utils/spawnVfx'
 import { spawnGroundCrack } from './GroundCracks'
 
 declare global {
@@ -118,7 +118,7 @@ function SpellVisual({ spell, onExpired }: SpellVisualProps) {
           // Boss is ~4.5 units tall vs the default 1.5; lift the damage number
           // above its head so the player can actually see it land.
           const dmgY = enemy.type === 'boss' ? 5 : 1.5
-          spawnDamageNumber(enemy.position.x, enemy.position.z, actualDamage, dmgColor, dmgY)
+          spawnDamageNumberVfx(enemy.position.x, enemy.position.z, actualDamage, dmgColor, dmgY)
 
           // Screen shake: stronger for big spells
           if (spell.type === 'METEOR' || spell.type === 'INFERNO') {
