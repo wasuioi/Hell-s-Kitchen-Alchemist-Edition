@@ -6,7 +6,7 @@ import { usePlayerStore } from '../stores/playerStore'
 import { useEnemyStore } from '../stores/enemyStore'
 import { useGameStore } from '../stores/gameStore'
 import { ARENA_SIZE } from './Arena'
-import { spawnDamageNumber } from './DamageNumbers'
+import { spawnDamageNumberVfx } from '../utils/spawnVfx'
 import type { Enemy as EnemyType } from '../types'
 
 const BURN_TICK_INTERVAL_MS = 1000
@@ -120,7 +120,7 @@ export default function Enemy({ enemy }: Props) {
       burnTickRef.current = tickNow
       useEnemyStore.getState().damageEnemy(enemy.id, BURN_TICK_DAMAGE)
       useEnemyStore.getState().setEnemyHitFlash(enemy.id, tickNow + 100)
-      spawnDamageNumber(enemy.position.x, enemy.position.z, BURN_TICK_DAMAGE, '#fb923c')
+      spawnDamageNumberVfx(enemy.position.x, enemy.position.z, BURN_TICK_DAMAGE, '#fb923c')
       const updated = useEnemyStore.getState().enemies.find((e) => e.id === enemy.id)
       if (updated && updated.hp <= 0) {
         if (updated.type === 'exploder') {
