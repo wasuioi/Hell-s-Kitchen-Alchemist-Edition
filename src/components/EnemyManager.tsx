@@ -5,7 +5,7 @@ import { useGameStore } from '../stores/gameStore'
 import { usePlayerStore } from '../stores/playerStore'
 import { ARENA_SIZE } from './Arena'
 import Enemy from './Enemy'
-import { spawnDamageNumber } from './DamageNumbers'
+import { spawnDamageNumberVfx } from '../utils/spawnVfx'
 import { getDistance } from '../utils/collision'
 import type { EnemyType } from '../types'
 import { spawnExplosion } from './ExplosionEffect'
@@ -136,7 +136,7 @@ export default function EnemyManager() {
           if (dist <= EXPLODER_RADIUS) {
             useEnemyStore.getState().damageEnemy(other.id, EXPLODER_ENEMY_DAMAGE)
             useEnemyStore.getState().setEnemyHitFlash(other.id, now + 100)
-            spawnDamageNumber(other.position.x, other.position.z, EXPLODER_ENEMY_DAMAGE, '#f97316')
+            spawnDamageNumberVfx(other.position.x, other.position.z, EXPLODER_ENEMY_DAMAGE, '#f97316')
 
             // Chain reaction: if we killed another exploder
             const updated = useEnemyStore.getState().enemies.find((e) => e.id === other.id)
