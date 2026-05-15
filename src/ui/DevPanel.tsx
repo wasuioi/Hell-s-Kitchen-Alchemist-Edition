@@ -7,7 +7,7 @@ import { usePickupStore } from '../stores/pickupStore'
 import { useDeckStore } from '../stores/deckStore'
 import { HAZARD_POOL } from '../data/hazards'
 import { PERK_POOL } from '../data/perks'
-import { rollHazardPlacement } from '../components/HazardManager'
+import { rollHazardPlacement } from '../utils/hazardPlacement'
 import type { HazardType } from '../types'
 
 const HAZARD_LABEL: Record<HazardType, string> = {
