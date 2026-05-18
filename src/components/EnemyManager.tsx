@@ -8,7 +8,7 @@ import Enemy from './Enemy'
 import { spawnDamageNumber } from './DamageNumbers'
 import { getDistance } from '../utils/collision'
 import type { EnemyType } from '../types'
-import { spawnExplosion } from './ExplosionEffect'
+import { spawnExplosion } from './spawnExplosion'
 
 const SPAWN_INTERVAL_BASE = 3
 // Per-wave enemy count — ramps up so early waves feel compact and the peak hits fast.
